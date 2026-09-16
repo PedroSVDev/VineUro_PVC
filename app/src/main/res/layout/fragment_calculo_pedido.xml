@@ -494,15 +494,32 @@
 
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Bottom Blue Action Bar -->
+    <!-- Bottom Blue Action Bar with Horizontal Scroll for Window Tabs -->
     <FrameLayout
         android:id="@+id/bottom_bar"
         android:layout_width="0dp"
-        android:layout_height="52dp"
+        android:layout_height="56dp"
         android:background="#42A5F5"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent">
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginStart="72dp"
+            android:fillViewport="true"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/container_window_tabs"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal" />
+
+        </HorizontalScrollView>
+
+    </FrameLayout>
 
     <!-- Big Square/Rounded Action Plus Button (+) at Bottom Left -->
     <com.google.android.material.card.MaterialCardView

@@ -113,7 +113,6 @@ class WindowPreviewView @JvmOverloads constructor(
     private val badgeAreas = mutableListOf<BadgeArea>()
     private val paneAreas = mutableListOf<PaneArea>()
 
-    // Mecanismos de apertura configurados por cada paño (Key: paneIndex, Value: mechanismId "1".."8")
     val paneMechanisms = mutableMapOf<Int, String>()
 
     var onDimensionClickListener: ((type: DimensionType, index: Int, currentValue: Int) -> Unit)? = null
@@ -133,8 +132,20 @@ class WindowPreviewView @JvmOverloads constructor(
         sectionWidths = FloatArray(cols) { defaultWidthPerSection }
 
         paneMechanisms.clear()
-
         invalidate()
+    }
+
+    fun resetCanvas() {
+        this.config = null
+        paneMechanisms.clear()
+        badgeAreas.clear()
+        paneAreas.clear()
+        invalidate()
+    }
+
+    fun updateDimensions(alto: Int, ancho: Int) {
+        updateTotalHeight(alto)
+        updateTotalWidth(ancho)
     }
 
     fun updateSectionHeight(index: Int, newHeightMm: Int) {
@@ -194,7 +205,6 @@ class WindowPreviewView @JvmOverloads constructor(
             val x = event.x
             val y = event.y
 
-            // 1. Detección de clic en números de cota (dimensiones)
             for (badge in badgeAreas) {
                 if (badge.rect.contains(x, y)) {
                     performClick()
@@ -203,7 +213,6 @@ class WindowPreviewView @JvmOverloads constructor(
                 }
             }
 
-            // 2. Detección de clic en la cruz (+) o paño de la ventana
             for (pane in paneAreas) {
                 if (pane.rect.contains(x, y)) {
                     performClick()
@@ -312,53 +321,53 @@ class WindowPreviewView @JvmOverloads constructor(
 
         if (paneW <= 10f || paneH <= 10f) return
 
-        val mechanismId = paneMechanisms[paneIndex] ?: "5" // "5" = Fijo con Cruz (+) por defecto
+        val mechanismId = paneMechanisms[paneIndex] ?: "5"
 
         when (mechanismId) {
-            "1" -> { // Deslizante Derecha (->)
+            "1" -> {
                 val arrowLen = paneW * 0.35f
                 canvas.drawLine(cX - arrowLen / 2f, cY, cX + arrowLen / 2f, cY, crosshairPaint)
                 canvas.drawLine(cX + arrowLen / 6f, cY - 12f, cX + arrowLen / 2f, cY, crosshairPaint)
                 canvas.drawLine(cX + arrowLen / 6f, cY + 12f, cX + arrowLen / 2f, cY, crosshairPaint)
             }
 
-            "2" -> { // Oscilobatiente Superior (V)
+            "2" -> {
                 canvas.drawLine(pL + 8f, pT + 8f, cX, pB - 8f, crosshairPaint)
                 canvas.drawLine(pR - 8f, pT + 8f, cX, pB - 8f, crosshairPaint)
             }
 
-            "3" -> { // Deslizante Izquierda (<-)
+            "3" -> {
                 val arrowLen = paneW * 0.35f
                 canvas.drawLine(cX - arrowLen / 2f, cY, cX + arrowLen / 2f, cY, crosshairPaint)
                 canvas.drawLine(cX - arrowLen / 6f, cY - 12f, cX - arrowLen / 2f, cY, crosshairPaint)
                 canvas.drawLine(cX - arrowLen / 6f, cY + 12f, cX - arrowLen / 2f, cY, crosshairPaint)
             }
 
-            "4" -> { // Practicable Izquierda (>)
+            "4" -> {
                 canvas.drawLine(pL + 8f, pT + 8f, pR - 8f, cY, crosshairPaint)
                 canvas.drawLine(pL + 8f, pB - 8f, pR - 8f, cY, crosshairPaint)
             }
 
-            "6" -> { // Practicable Derecha (<)
+            "6" -> {
                 canvas.drawLine(pR - 8f, pT + 8f, pL + 8f, cY, crosshairPaint)
                 canvas.drawLine(pR - 8f, pB - 8f, pL + 8f, cY, crosshairPaint)
             }
 
-            "7" -> { // Oscilobatiente Izquierda
+            "7" -> {
                 canvas.drawLine(pL + 8f, pT + 8f, pR - 8f, cY, crosshairPaint)
                 canvas.drawLine(pL + 8f, pB - 8f, pR - 8f, cY, crosshairPaint)
                 canvas.drawLine(pL + 8f, pT + 8f, cX, pB - 8f, crosshairPaint)
                 canvas.drawLine(pR - 8f, pT + 8f, cX, pB - 8f, crosshairPaint)
             }
 
-            "8" -> { // Oscilobatiente Derecha
+            "8" -> {
                 canvas.drawLine(pR - 8f, pT + 8f, pL + 8f, cY, crosshairPaint)
                 canvas.drawLine(pR - 8f, pB - 8f, pL + 8f, cY, crosshairPaint)
                 canvas.drawLine(pL + 8f, pT + 8f, cX, pB - 8f, crosshairPaint)
                 canvas.drawLine(pR - 8f, pT + 8f, cX, pB - 8f, crosshairPaint)
             }
 
-            else -> { // "5": Fijo Cruz (+) con círculo azul
+            else -> {
                 val radius = Math.min(paneW, paneH) * 0.28f
                 canvas.drawCircle(cX, cY, radius, circleCenterPaint)
 

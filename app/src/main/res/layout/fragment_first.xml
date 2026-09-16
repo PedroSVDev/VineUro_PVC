@@ -191,45 +191,6 @@
                         app:layout_constraintTop_toTopOf="parent" />
                 </androidx.constraintlayout.widget.ConstraintLayout>
 
-                <!-- Row 5: COMMENTS -->
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:id="@+id/btn_comments"
-                    android:layout_width="match_parent"
-                    android:layout_height="62dp"
-                    android:background="@color/menu_comments"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground">
-
-                    <ImageView
-                        android:id="@+id/icon_comments"
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:layout_marginStart="24dp"
-                        android:contentDescription="@string/menu_comments"
-                        android:src="@drawable/ic_menu_comments"
-                        app:tint="@color/white"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent" />
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="24dp"
-                        android:gravity="center"
-                        android:text="@string/menu_comments"
-                        android:textColor="@color/white"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.02"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent" />
-                </androidx.constraintlayout.widget.ConstraintLayout>
-
                 <!-- Row 6: COMPARTIR DATOS -->
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:id="@+id/btn_compartir_datos"
@@ -269,44 +230,6 @@
                         app:layout_constraintTop_toTopOf="parent" />
                 </androidx.constraintlayout.widget.ConstraintLayout>
 
-                <!-- Row 7: APP-PATRON MODE -->
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:id="@+id/btn_app_patron_mode"
-                    android:layout_width="match_parent"
-                    android:layout_height="62dp"
-                    android:background="@color/menu_app_patron"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground">
-
-                    <ImageView
-                        android:id="@+id/icon_app_patron"
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:layout_marginStart="24dp"
-                        android:contentDescription="@string/menu_app_patron_mode"
-                        android:src="@drawable/ic_menu_handshake"
-                        app:tint="@color/white"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent" />
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="24dp"
-                        android:gravity="center"
-                        android:text="@string/menu_app_patron_mode"
-                        android:textColor="@color/white"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.02"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent" />
-                </androidx.constraintlayout.widget.ConstraintLayout>
 
             </LinearLayout>
 

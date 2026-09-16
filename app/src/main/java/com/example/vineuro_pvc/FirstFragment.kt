@@ -45,16 +45,8 @@ class FirstFragment : Fragment() {
             showOptionSelected(getString(R.string.menu_precios))
         }
 
-        binding.btnComments.setOnClickListener {
-            showOptionSelected(getString(R.string.menu_comments))
-        }
-
         binding.btnCompartirDatos.setOnClickListener {
             showOptionSelected(getString(R.string.menu_compartir_datos))
-        }
-
-        binding.btnAppPatronMode.setOnClickListener {
-            showOptionSelected(getString(R.string.menu_app_patron_mode))
         }
     }
 
