@@ -1,0 +1,23 @@
+# Android Studio
+*.iml
+.idea/
+!.idea/runConfigurations/
+
+# Gradle
+.gradle/
+build/
+**/build/
+
+# Local configuration
+local.properties
+
+# Android captures
+captures/
+
+# Native build
+.externalNativeBuild/
+.cxx/
+
+# OS
+.DS_Store
+Thumbs.db

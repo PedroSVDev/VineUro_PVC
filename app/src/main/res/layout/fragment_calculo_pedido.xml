@@ -1,0 +1,532 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#D0D0D0"
+    tools:context=".CalculoPedidoFragment">
+
+    <!-- Top Right: Client Name Header & param. comprobar Checkbox -->
+    <TextView
+        android:id="@+id/tv_header_cliente_nombre"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:layout_marginEnd="16dp"
+        android:textColor="#333333"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="Aleksander White : S1" />
+
+    <CheckBox
+        android:id="@+id/cb_param_comprobar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:layout_marginEnd="12dp"
+        android:checked="true"
+        android:text="param. comprobar"
+        android:textColor="#333333"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_header_cliente_nombre" />
+
+    <!-- Center Drawing Canvas Area with WindowPreviewView -->
+    <FrameLayout
+        android:id="@+id/canvas_area"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="2dp"
+        android:background="#D0D0D0"
+        app:layout_constraintBottom_toTopOf="@id/card_bottom_matrix"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/cb_param_comprobar">
+
+        <com.example.vineuro_pvc.views.WindowPreviewView
+            android:id="@+id/wpv_main_canvas"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="16dp" />
+
+        <!-- Delete Icon Button (Bottom Right of Canvas) -->
+        <ImageView
+            android:id="@+id/btn_delete_item"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="12dp"
+            android:background="#E8E8E8"
+            android:contentDescription="Eliminar elemento"
+            android:padding="6dp"
+            android:src="@android:drawable/ic_menu_delete"
+            app:tint="#888888" />
+
+    </FrameLayout>
+
+    <!-- Bottom Matrix Table Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_bottom_matrix"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="0dp"
+        app:cardElevation="4dp"
+        app:strokeWidth="0dp"
+        app:layout_constraintBottom_toTopOf="@id/bottom_bar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fillViewport="true"
+            android:scrollbars="horizontal">
+
+            <TableLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="#E5E5E5"
+                android:stretchColumns="*">
+
+                <!-- Header Row -->
+                <TableRow
+                    android:background="#DDDDDD"
+                    android:paddingTop="5dp"
+                    android:paddingBottom="5dp">
+
+                    <TextView
+                        android:layout_width="110dp"
+                        android:paddingStart="6dp"
+                        android:paddingEnd="6dp"
+                        android:text="@string/header_parte"
+                        android:textColor="#333333"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="75dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:text="@string/header_zona"
+                        android:textColor="#333333"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="75dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:text="@string/header_marcos"
+                        android:textColor="#333333"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="75dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:text="@string/header_impostas"
+                        android:textColor="#333333"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="85dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:text="@string/header_glaz_beads"
+                        android:textColor="#333333"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="70dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:text="@string/header_caucho"
+                        android:textColor="#333333"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="65dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:text="@string/header_hojas"
+                        android:textColor="#333333"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="110dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:text="@string/header_hojas_puerta"
+                        android:textColor="#333333"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="70dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:text="@string/header_total"
+                        android:textColor="#D32F2F"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </TableRow>
+
+                <!-- Row 1: ventana -->
+                <TableRow
+                    android:background="#EEEEEE"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp">
+
+                    <TextView
+                        android:paddingStart="6dp"
+                        android:paddingEnd="6dp"
+                        android:text="@string/row_ventana"
+                        android:textColor="#333333"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/cell_v_zona"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#333333"
+                        android:textSize="12sp"
+                        tools:text="2.70 m2" />
+
+                    <TextView
+                        android:id="@+id/cell_v_marcos"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#333333"
+                        android:textSize="12sp"
+                        tools:text="6.60 m" />
+
+                    <TextView
+                        android:id="@+id/cell_v_impostas"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#333333"
+                        android:textSize="12sp"
+                        tools:text="2.81 m" />
+
+                    <TextView
+                        android:id="@+id/cell_v_glaz"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#333333"
+                        android:textSize="12sp"
+                        tools:text="11.62 m" />
+
+                    <TextView
+                        android:id="@+id/cell_v_caucho"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#333333"
+                        android:textSize="12sp"
+                        tools:text="11.62 m" />
+
+                    <TextView
+                        android:id="@+id/cell_v_hojas"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#333333"
+                        android:textSize="12sp"
+                        tools:text="-" />
+
+                    <TextView
+                        android:id="@+id/cell_v_hojas_p"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#333333"
+                        android:textSize="12sp"
+                        tools:text="-" />
+
+                    <TextView
+                        android:id="@+id/cell_v_total"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#1976D2"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        tools:text="0 S/" />
+                </TableRow>
+
+                <!-- Row 2: precio (Blue Text) -->
+                <TableRow
+                    android:background="#E0E0E0"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp">
+
+                    <TextView
+                        android:paddingStart="6dp"
+                        android:paddingEnd="6dp"
+                        android:text="@string/row_precio"
+                        android:textColor="#1976D2"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/cell_p_zona"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#1976D2"
+                        android:textSize="12sp"
+                        tools:text="-" />
+
+                    <TextView
+                        android:id="@+id/cell_p_marcos"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#1976D2"
+                        android:textSize="12sp"
+                        tools:text="-" />
+
+                    <TextView
+                        android:id="@+id/cell_p_impostas"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#1976D2"
+                        android:textSize="12sp"
+                        tools:text="-" />
+
+                    <TextView
+                        android:id="@+id/cell_p_glaz"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#1976D2"
+                        android:textSize="12sp"
+                        tools:text="-" />
+
+                    <TextView
+                        android:id="@+id/cell_p_caucho"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#1976D2"
+                        android:textSize="12sp"
+                        tools:text="-" />
+
+                    <TextView
+                        android:id="@+id/cell_p_hojas"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#1976D2"
+                        android:textSize="12sp"
+                        tools:text="-" />
+
+                    <TextView
+                        android:id="@+id/cell_p_hojas_p"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#1976D2"
+                        android:textSize="12sp"
+                        tools:text="-" />
+
+                    <TextView
+                        android:id="@+id/cell_p_total"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#1976D2"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        tools:text="0.00 (-0%)" />
+                </TableRow>
+
+                <!-- Row 3: todas las ventanas -->
+                <TableRow
+                    android:background="#EEEEEE"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp">
+
+                    <TextView
+                        android:paddingStart="6dp"
+                        android:paddingEnd="6dp"
+                        android:text="@string/row_todas_ventanas"
+                        android:textColor="#333333"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/cell_tv_zona"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#333333"
+                        android:textSize="12sp"
+                        tools:text="2.70 m2" />
+
+                    <TextView
+                        android:id="@+id/cell_tv_marcos"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#333333"
+                        android:textSize="12sp"
+                        tools:text="6.60 m" />
+
+                    <TextView
+                        android:id="@+id/cell_tv_impostas"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#333333"
+                        android:textSize="12sp"
+                        tools:text="2.81 m" />
+
+                    <TextView
+                        android:id="@+id/cell_tv_glaz"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#333333"
+                        android:textSize="12sp"
+                        tools:text="11.62 m" />
+
+                    <TextView
+                        android:id="@+id/cell_tv_caucho"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#333333"
+                        android:textSize="12sp"
+                        tools:text="11.62 m" />
+
+                    <TextView
+                        android:id="@+id/cell_tv_hojas"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#333333"
+                        android:textSize="12sp"
+                        tools:text="-" />
+
+                    <TextView
+                        android:id="@+id/cell_tv_hojas_p"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#333333"
+                        android:textSize="12sp"
+                        tools:text="-" />
+
+                    <TextView
+                        android:id="@+id/cell_tv_total"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#1976D2"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        tools:text="0 S/" />
+                </TableRow>
+
+                <!-- Row 4: costo (Red Text) -->
+                <TableRow
+                    android:background="#E0E0E0"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp">
+
+                    <TextView
+                        android:paddingStart="6dp"
+                        android:paddingEnd="6dp"
+                        android:text="@string/row_costo"
+                        android:textColor="#D32F2F"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/cell_c_zona"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#D32F2F"
+                        android:textSize="12sp"
+                        tools:text="-" />
+
+                    <TextView
+                        android:id="@+id/cell_c_marcos"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#D32F2F"
+                        android:textSize="12sp"
+                        tools:text="-" />
+
+                    <TextView
+                        android:id="@+id/cell_c_impostas"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#D32F2F"
+                        android:textSize="12sp"
+                        tools:text="-" />
+
+                    <TextView
+                        android:id="@+id/cell_c_glaz"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#D32F2F"
+                        android:textSize="12sp"
+                        tools:text="-" />
+
+                    <TextView
+                        android:id="@+id/cell_c_caucho"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#D32F2F"
+                        android:textSize="12sp"
+                        tools:text="-" />
+
+                    <TextView
+                        android:id="@+id/cell_c_hojas"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#D32F2F"
+                        android:textSize="12sp"
+                        tools:text="-" />
+
+                    <TextView
+                        android:id="@+id/cell_c_hojas_p"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#D32F2F"
+                        android:textSize="12sp"
+                        tools:text="-" />
+
+                    <TextView
+                        android:id="@+id/cell_c_total"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#D32F2F"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        tools:text="0.00 (-0%)" />
+                </TableRow>
+
+            </TableLayout>
+
+        </HorizontalScrollView>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Bottom Blue Action Bar -->
+    <FrameLayout
+        android:id="@+id/bottom_bar"
+        android:layout_width="0dp"
+        android:layout_height="52dp"
+        android:background="#42A5F5"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Big Square/Rounded Action Plus Button (+) at Bottom Left -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/btn_add_item"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackground"
+        app:cardBackgroundColor="#52A2FA"
+        app:cardCornerRadius="0dp"
+        app:cardElevation="8dp"
+        app:strokeWidth="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <ImageView
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="center"
+            android:contentDescription="Agregar elemento"
+            android:src="@drawable/ic_menu_add"
+            app:tint="@color/white" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

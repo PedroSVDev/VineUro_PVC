@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/card_item"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="4dp"
+    app:cardBackgroundColor="#808080"
+    app:cardCornerRadius="6dp"
+    app:cardElevation="2dp"
+    app:strokeColor="#000000"
+    app:strokeWidth="0dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="6dp">
+
+        <com.example.vineuro_pvc.views.WindowPreviewView
+            android:id="@+id/wpv_config_preview"
+            android:layout_width="70dp"
+            android:layout_height="70dp" />
+
+        <ImageView
+            android:id="@+id/iv_config_icon"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:contentDescription="Icono de apertura"
+            android:visibility="gone"
+            tools:src="@drawable/ic_apertura_fixed_plus" />
+
+        <TextView
+            android:id="@+id/tv_config_nombre"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center"
+            android:maxLines="2"
+            android:textColor="@color/white"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            tools:text="1 Paño Fijo" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

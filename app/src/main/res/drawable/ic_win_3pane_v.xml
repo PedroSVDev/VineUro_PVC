@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- Outer Frame -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M10,10 H90 V90 H10 Z" />
+    <!-- Glass Pane 1 -->
+    <path
+        android:fillColor="#C8D8E8"
+        android:pathData="M14,14 H35 V86 H14 Z" />
+    <!-- Glass Pane 2 -->
+    <path
+        android:fillColor="#C8D8E8"
+        android:pathData="M39,14 H61 V86 H39 Z" />
+    <!-- Glass Pane 3 -->
+    <path
+        android:fillColor="#C8D8E8"
+        android:pathData="M65,14 H86 V86 H65 Z" />
+</vector>

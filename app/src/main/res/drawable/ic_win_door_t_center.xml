@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- Frame T-shape side windows + center door -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M10,10 H90 V60 H70 V90 H30 V60 H10 Z" />
+    <!-- Glass Left Window -->
+    <path
+        android:fillColor="#C8D8E8"
+        android:pathData="M14,14 H31 V55 H14 Z" />
+    <!-- Glass Center Door -->
+    <path
+        android:fillColor="#C8D8E8"
+        android:pathData="M35,14 H65 V86 H35 Z" />
+    <!-- Glass Right Window -->
+    <path
+        android:fillColor="#C8D8E8"
+        android:pathData="M69,14 H86 V55 H69 Z" />
+</vector>

@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- Outer Frame -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M10,10 H90 V90 H10 Z" />
+    <!-- Glass Pane -->
+    <path
+        android:fillColor="#C8D8E8"
+        android:pathData="M16,16 H84 V84 H16 Z" />
+</vector>

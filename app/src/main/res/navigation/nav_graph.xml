@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/FirstFragment">
+
+    <fragment
+        android:id="@+id/FirstFragment"
+        android:name="com.example.vineuro_pvc.FirstFragment"
+        android:label="@string/first_fragment_label"
+        tools:layout="@layout/fragment_first">
+
+        <action
+            android:id="@+id/action_FirstFragment_to_SecondFragment"
+            app:destination="@id/SecondFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/SecondFragment"
+        android:name="com.example.vineuro_pvc.SecondFragment"
+        android:label="@string/second_fragment_label"
+        tools:layout="@layout/fragment_second">
+
+        <action
+            android:id="@+id/action_SecondFragment_to_FirstFragment"
+            app:destination="@id/FirstFragment" />
+
+        <action
+            android:id="@+id/action_SecondFragment_to_NuevoClienteFragment"
+            app:destination="@id/NuevoClienteFragment" />
+
+        <action
+            android:id="@+id/action_SecondFragment_to_ClientesGuardadosFragment"
+            app:destination="@id/ClientesGuardadosFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/NuevoClienteFragment"
+        android:name="com.example.vineuro_pvc.NuevoClienteFragment"
+        android:label="@string/title_nuevo_cliente"
+        tools:layout="@layout/fragment_nuevo_cliente" />
+
+    <fragment
+        android:id="@+id/ClientesGuardadosFragment"
+        android:name="com.example.vineuro_pvc.ClientesGuardadosFragment"
+        android:label="@string/menu_clientes_guardados"
+        tools:layout="@layout/fragment_clientes_guardados">
+
+        <action
+            android:id="@+id/action_ClientesGuardadosFragment_to_DetallePedidoClienteFragment"
+            app:destination="@id/DetallePedidoClienteFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/DetallePedidoClienteFragment"
+        android:name="com.example.vineuro_pvc.DetallePedidoClienteFragment"
+        android:label="@string/title_detalle_cliente_pedido"
+        tools:layout="@layout/fragment_detalle_pedido_cliente">
+
+        <action
+            android:id="@+id/action_DetallePedidoClienteFragment_to_CalculoPedidoFragment"
+            app:destination="@id/CalculoPedidoFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/CalculoPedidoFragment"
+        android:name="com.example.vineuro_pvc.CalculoPedidoFragment"
+        android:label="@string/title_calculo_pedido"
+        tools:layout="@layout/fragment_calculo_pedido" />
+</navigation>

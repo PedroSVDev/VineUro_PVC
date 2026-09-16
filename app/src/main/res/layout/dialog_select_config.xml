@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#CCCCCC"
+    android:orientation="vertical">
+
+    <!-- Top Two Column Body -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="440dp"
+        android:orientation="horizontal">
+
+        <!-- LEFT PANEL: impostas -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.45"
+            android:background="#CCCCCC"
+            android:orientation="vertical">
+
+            <!-- Header: impostas -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:background="#42A5F5"
+                android:gravity="center"
+                android:text="impostas"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fillViewport="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="8dp">
+
+                    <!-- Layout Grid Selection (2 Columns) -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_impostas_layouts"
+                        android:layout_width="match_parent"
+                        android:layout_height="220dp"
+                        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                        app:spanCount="2"
+                        tools:listitem="@layout/item_window_config" />
+
+                    <!-- Toggle Checkboxes -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="vertical">
+
+                        <CheckBox
+                            android:id="@+id/cb_sandwich_panels"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="sandwich panels"
+                            android:textColor="#222222"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <CheckBox
+                            android:id="@+id/cb_puerta"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="puerta"
+                            android:textColor="#666666"
+                            android:textSize="14sp" />
+
+                        <CheckBox
+                            android:id="@+id/cb_mosq_net"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="mosq.net"
+                            android:textColor="#666666"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </ScrollView>
+
+        </LinearLayout>
+
+        <!-- Divider Line -->
+        <View
+            android:layout_width="2dp"
+            android:layout_height="match_parent"
+            android:background="#999999" />
+
+        <!-- RIGHT PANEL: apertura -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.55"
+            android:background="#CCCCCC"
+            android:orientation="vertical">
+
+            <!-- Header: apertura -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:background="#42A5F5"
+                android:gravity="center"
+                android:text="apertura"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <!-- Apertura Grid (3 Columns) -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_apertura_mechanisms"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="8dp"
+                app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                app:spanCount="3"
+                tools:listitem="@layout/item_window_config" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Bottom Buttons Bar: NO (Blue) / SÍ (Green) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_dialog_no"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.45"
+            android:backgroundTint="#42A5F5"
+            android:text="NO"
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:cornerRadius="0dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_dialog_si"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.55"
+            android:backgroundTint="#9CCC65"
+            android:text="SÍ"
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:cornerRadius="0dp" />
+
+    </LinearLayout>
+
+</LinearLayout>

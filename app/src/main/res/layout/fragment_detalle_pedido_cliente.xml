@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@color/menu_screen_bg"
+    tools:context=".DetallePedidoClienteFragment">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="20dp"
+        android:paddingBottom="32dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+
+        <!-- Top Card: Client Info Summary & ID Badge -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_cliente_info"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="6dp"
+            app:cardUseCompatPadding="true"
+            app:strokeWidth="0dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_max="500dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/title_detalle_cliente_pedido"
+                        android:textColor="#666666"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <!-- Client Code Badge -->
+                    <TextView
+                        android:id="@+id/tv_codigo_cliente"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/ic_launcher_background"
+                        android:backgroundTint="@color/menu_nuevo_orden"
+                        android:paddingStart="12dp"
+                        android:paddingTop="6dp"
+                        android:paddingEnd="12dp"
+                        android:paddingBottom="6dp"
+                        android:textColor="@color/white"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        tools:text="CLI-12345678" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tv_nombre_cliente"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:textColor="@color/black"
+                    android:textSize="19sp"
+                    android:textStyle="bold"
+                    tools:text="JUAN PEDRO PEREZ GARCIA" />
+
+                <TextView
+                    android:id="@+id/tv_dni_cliente"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="#555555"
+                    android:textSize="14sp"
+                    tools:text="DNI: 12345678" />
+
+                <TextView
+                    android:id="@+id/tv_contacto_cliente"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="#666666"
+                    android:textSize="13sp"
+                    tools:text="Tel: 987654321 | email@ejemplo.com" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Form Card: Address & Notes -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_form_pedido"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="6dp"
+            app:cardUseCompatPadding="true"
+            app:strokeWidth="0dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/card_cliente_info"
+            app:layout_constraintWidth_max="500dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <!-- Field 1: Dirección -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/til_direccion"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/label_direccion">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_direccion"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPostalAddress|textCapSentences"
+                        android:textSize="16sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Field 2: Nota / Observación -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/til_nota"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:hint="@string/label_nota">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_nota"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="top|start"
+                        android:inputType="textMultiLine|textCapSentences"
+                        android:minLines="3"
+                        android:textSize="15sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Continuar Button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_continuar_pedido"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="24dp"
+                    android:backgroundTint="@color/menu_nuevo_orden"
+                    android:text="@string/btn_continuar_pedido"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="8dp" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.core.widget.NestedScrollView>

@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@color/menu_screen_bg"
+    tools:context=".SecondFragment">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="32dp"
+        android:paddingBottom="32dp"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp">
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_nuevo_orden"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="10dp"
+            app:cardUseCompatPadding="false"
+            app:strokeWidth="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_max="450dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Row 1: NUEVO CLIENTE -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/btn_nuevo_cliente"
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:background="@color/menu_nuevo_orden"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <ImageView
+                        android:id="@+id/icon_nuevo_cliente"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_marginStart="24dp"
+                        android:contentDescription="@string/menu_nuevo_cliente"
+                        android:src="@drawable/ic_person_add"
+                        app:tint="@color/white"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="24dp"
+                        android:gravity="center"
+                        android:text="@string/menu_nuevo_cliente"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.02"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <!-- Row 2: CLIENTES GUARDADOS -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/btn_clientes_guardados"
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:background="@color/menu_ultimo_pedido"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <ImageView
+                        android:id="@+id/icon_clientes_guardados"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_marginStart="24dp"
+                        android:contentDescription="@string/menu_clientes_guardados"
+                        android:src="@drawable/ic_contacts"
+                        app:tint="@color/white"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="24dp"
+                        android:gravity="center"
+                        android:text="@string/menu_clientes_guardados"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.02"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.core.widget.NestedScrollView>

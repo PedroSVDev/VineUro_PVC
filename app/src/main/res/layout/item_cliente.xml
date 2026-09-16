@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="16dp"
+    android:layout_marginTop="6dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginBottom="6dp"
+    app:cardCornerRadius="10dp"
+    app:cardElevation="3dp"
+    app:strokeWidth="0dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <!-- Avatar Circle -->
+        <FrameLayout
+            android:id="@+id/avatar_container"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/ic_launcher_background"
+            android:backgroundTint="@color/menu_nuevo_orden"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:id="@+id/tv_avatar_initials"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                tools:text="JP" />
+        </FrameLayout>
+
+        <!-- Full Name -->
+        <TextView
+            android:id="@+id/tv_nombre_cliente"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:textColor="@color/black"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/avatar_container"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="JUAN PEDRO PEREZ GARCIA" />
+
+        <!-- DNI -->
+        <TextView
+            android:id="@+id/tv_dni_cliente"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="2dp"
+            android:textColor="#555555"
+            android:textSize="14sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/avatar_container"
+            app:layout_constraintTop_toBottomOf="@id/tv_nombre_cliente"
+            tools:text="DNI: 12345678" />
+
+        <!-- Teléfono -->
+        <TextView
+            android:id="@+id/tv_telefono_cliente"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="2dp"
+            android:textColor="#666666"
+            android:textSize="13sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/avatar_container"
+            app:layout_constraintTop_toBottomOf="@id/tv_dni_cliente"
+            tools:text="Tel: 987654321" />
+
+        <!-- Correo Electrónico -->
+        <TextView
+            android:id="@+id/tv_email_cliente"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="2dp"
+            android:textColor="#666666"
+            android:textSize="13sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/avatar_container"
+            app:layout_constraintTop_toBottomOf="@id/tv_telefono_cliente"
+            tools:text="Email: juan.perez@email.com" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

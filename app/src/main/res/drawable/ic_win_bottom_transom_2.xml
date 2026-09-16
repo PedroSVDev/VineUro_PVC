@@ -1,0 +1,21 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M10,10 H90 V90 H10 Z" />
+    <!-- Top Sash Left -->
+    <path
+        android:fillColor="#C8D8E8"
+        android:pathData="M15,15 H47 V62 H15 Z" />
+    <!-- Top Sash Right -->
+    <path
+        android:fillColor="#C8D8E8"
+        android:pathData="M53,15 H85 V62 H53 Z" />
+    <!-- Bottom Transom Pane -->
+    <path
+        android:fillColor="#C8D8E8"
+        android:pathData="M15,68 H85 V85 H15 Z" />
+</vector>
