@@ -11,5 +11,9 @@ data class OrderItem(
     var sectionHeights: FloatArray = floatArrayOf(600f, 600f, 600f),
     var sectionWidths: FloatArray = floatArrayOf(1500f),
     val paneMechanisms: MutableMap<Int, String> = mutableMapOf(),
+    val paneMosqNet: MutableMap<Int, Boolean> = mutableMapOf(),
+    val panePuerta: MutableMap<Int, Boolean> = mutableMapOf(),
+    val paneSandwich: MutableMap<Int, Boolean> = mutableMapOf(),
+    val paneCols: MutableMap<Int, Int> = mutableMapOf(),
     var colorBgHex: String = "#42A5F5",
 )

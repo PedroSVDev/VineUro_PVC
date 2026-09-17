@@ -6,13 +6,15 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.vineuro_pvc.data.ClientRepository
 import com.example.vineuro_pvc.data.Cliente
 import com.example.vineuro_pvc.databinding.FragmentClientesGuardadosBinding
+import kotlinx.coroutines.launch
 
 /**
- * Fragmento que lista todos los clientes guardados localmente.
+ * Fragmento que lista todos los clientes guardados localmente y sincronizados con Supabase.
  */
 class ClientesGuardadosFragment : Fragment() {
 
@@ -48,6 +50,21 @@ class ClientesGuardadosFragment : Fragment() {
         }
 
         cargarClientes("")
+
+        // Sincronización automática con Supabase Cloud
+        lifecycleScope.launch {
+            val clientesSincronizados = clientRepository.sincronizarConSupabase()
+            if (_binding != null && binding.etSearchCliente.text.isNullOrBlank()) {
+                if (clientesSincronizados.isEmpty()) {
+                    binding.rvClientesGuardados.visibility = View.GONE
+                    binding.layoutEmptyState.visibility = View.VISIBLE
+                } else {
+                    binding.rvClientesGuardados.visibility = View.VISIBLE
+                    binding.layoutEmptyState.visibility = View.GONE
+                    adapter.submitList(clientesSincronizados)
+                }
+            }
+        }
     }
 
     private fun cargarClientes(query: String) {

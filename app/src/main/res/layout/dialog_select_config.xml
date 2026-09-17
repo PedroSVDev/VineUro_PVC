@@ -52,37 +52,92 @@
                         app:spanCount="2"
                         tools:listitem="@layout/item_window_config" />
 
-                    <!-- Toggle Checkboxes -->
+                    <!-- Toggle Options with Icons -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:orientation="vertical">
 
-                        <CheckBox
-                            android:id="@+id/cb_sandwich_panels"
-                            android:layout_width="wrap_content"
+                        <!-- Option 1: Sandwich Panels -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="sandwich panels"
-                            android:textColor="#222222"
-                            android:textSize="14sp"
-                            android:textStyle="bold" />
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingTop="2dp"
+                            android:paddingBottom="2dp">
 
-                        <CheckBox
-                            android:id="@+id/cb_puerta"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="puerta"
-                            android:textColor="#666666"
-                            android:textSize="14sp" />
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:layout_marginEnd="6dp"
+                                android:contentDescription="sandwich panels"
+                                android:src="@drawable/ic_sandwich_panel"
+                                app:tint="#444444" />
 
-                        <CheckBox
-                            android:id="@+id/cb_mosq_net"
-                            android:layout_width="wrap_content"
+                            <CheckBox
+                                android:id="@+id/cb_sandwich_panels"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="sandwich panels"
+                                android:textColor="#222222"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <!-- Option 2: Puerta -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="mosq.net"
-                            android:textColor="#666666"
-                            android:textSize="14sp" />
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingTop="2dp"
+                            android:paddingBottom="2dp">
+
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:layout_marginEnd="6dp"
+                                android:contentDescription="puerta"
+                                android:src="@drawable/ic_door"
+                                app:tint="#444444" />
+
+                            <CheckBox
+                                android:id="@+id/cb_puerta"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="puerta"
+                                android:textColor="#222222"
+                                android:textSize="13sp" />
+                        </LinearLayout>
+
+                        <!-- Option 3: Mosq.Net -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingTop="2dp"
+                            android:paddingBottom="2dp">
+
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:layout_marginEnd="6dp"
+                                android:contentDescription="mosq.net"
+                                android:src="@drawable/ic_mosquito_net"
+                                app:tint="#444444" />
+
+                            <CheckBox
+                                android:id="@+id/cb_mosq_net"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="mosq.net"
+                                android:textColor="#222222"
+                                android:textSize="13sp" />
+                        </LinearLayout>
+
                     </LinearLayout>
 
                 </LinearLayout>

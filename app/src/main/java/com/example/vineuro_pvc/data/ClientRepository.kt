@@ -2,15 +2,20 @@ package com.example.vineuro_pvc.data
 
 import android.content.Context
 import androidx.core.content.edit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * Repositorio de almacenamiento local para Clientes usando SharedPreferences.
+ * Repositorio de almacenamiento híbrido (Local SharedPreferences + Supabase Cloud).
  */
 class ClientRepository(context: Context) {
 
     private val prefs = context.getSharedPreferences("pref_clientes", Context.MODE_PRIVATE)
+    private val supabaseService = SupabaseService()
+    private val scope = CoroutineScope(Dispatchers.IO)
 
     fun guardarCliente(cliente: Cliente): Boolean {
         val listaActual = obtenerClientes().toMutableList()
@@ -22,7 +27,35 @@ class ClientRepository(context: Context) {
             listaActual.add(0, cliente)
         }
 
-        return guardarLista(listaActual)
+        val localOk = guardarLista(listaActual)
+
+        // Sincronizar en segundo plano con Supabase Cloud
+        scope.launch {
+            supabaseService.upsertCliente(cliente)
+        }
+
+        return localOk
+    }
+
+    suspend fun sincronizarConSupabase(): List<Cliente> {
+        val cloudClientes = supabaseService.fetchClientes()
+        if (cloudClientes.isNotEmpty()) {
+            val localClientes = obtenerClientes().toMutableList()
+
+            // Fusionar clientes de la nube con los locales
+            for (cloud in cloudClientes) {
+                val idx = localClientes.indexOfFirst { it.dni == cloud.dni }
+                if (idx >= 0) {
+                    localClientes[idx] = cloud
+                } else {
+                    localClientes.add(cloud)
+                }
+            }
+
+            guardarLista(localClientes)
+            return localClientes
+        }
+        return obtenerClientes()
     }
 
     fun obtenerClientes(): List<Cliente> {
@@ -73,7 +106,13 @@ class ClientRepository(context: Context) {
 
     fun eliminarCliente(dni: String): Boolean {
         val listaActual = obtenerClientes().filterNot { it.dni == dni }
-        return guardarLista(listaActual)
+        val localOk = guardarLista(listaActual)
+
+        scope.launch {
+            supabaseService.deleteCliente(dni)
+        }
+
+        return localOk
     }
 
     private fun guardarLista(lista: List<Cliente>): Boolean {

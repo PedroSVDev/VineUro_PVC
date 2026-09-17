@@ -20,10 +20,11 @@ import com.example.vineuro_pvc.databinding.FragmentCalculoPedidoBinding
 import com.example.vineuro_pvc.databinding.ItemOrderWindowTabBinding
 import com.example.vineuro_pvc.views.WindowPreviewView
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.util.Locale
 
 /**
- * Fragmento de Cálculo y Diseño con separación clara entre Catálogo 73 Modelos (+) y Ajuste Impostas/Apertura por Paño.
+ * Fragmento de Cálculo y Diseño con cotas para edición de ancho de paneles individuales y herramientas técnicas.
  */
 class CalculoPedidoFragment : Fragment() {
 
@@ -79,28 +80,37 @@ class CalculoPedidoFragment : Fragment() {
             mostrarDialogoEditarMedida(dimensionType, sectionIndex, currentValue)
         }
 
-        // 2. Configurar listener táctil al pulsar en cualquier (+) de los paños de la plantilla -> Abre 'impostas' / 'apertura' (SÍ/NO)
+        // 2. Configurar listener táctil al pulsar en cualquier (+) de los paños de la plantilla
         binding.wpvMainCanvas.onPaneClickListener = { paneIndex, _, _ ->
             mostrarDialogoSeleccionConfigParaPano(paneIndex)
         }
 
-        // 3. Botón azul inferior (+): Abre el CATÁLOGO GENERAL DE LOS 73 MODELOS
+        // 3. Botón azul inferior (+): Abre el CATÁLOGO GENERAL
         binding.btnAddItem.setOnClickListener {
             mostrarDialogoSeleccionCatalogGeneral()
         }
 
-        // 4. Botón Eliminar / Papelera
+        // 4. Botón verde compás (Herramientas Técnicas de trazado)
+        binding.btnCompass.setOnClickListener {
+            Toast.makeText(requireContext(), "Modo de calibración y compás técnico activo", Toast.LENGTH_SHORT).show()
+        }
+
+        // 5. Botón Eliminar / Papelera con diseño Material 3
         binding.btnDeleteItem.setOnClickListener {
-            if (itemsOrden.isNotEmpty()) {
-                AlertDialog.Builder(requireContext())
-                    .setTitle("Eliminar Elemento")
-                    .setMessage("¿Desea eliminar la Ventana ${itemsOrden[activeItemIndex].index} de la orden?")
+            if (itemsOrden.isNotEmpty() && activeItemIndex in itemsOrden.indices) {
+                val itemActual = itemsOrden[activeItemIndex]
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("¿Eliminar Ventana ${itemActual.index}?")
+                    .setMessage("Esta acción eliminará el diseño y los cálculos de esta ventana de la orden. ¿Desea continuar?")
+                    .setIcon(android.R.drawable.ic_menu_delete)
                     .setPositiveButton("ELIMINAR") { dialog, _ ->
                         eliminarElementoActivo()
                         dialog.dismiss()
                     }
                     .setNegativeButton("CANCELAR") { dialog, _ -> dialog.dismiss() }
                     .show()
+            } else {
+                Toast.makeText(requireContext(), "No hay ventanas para eliminar", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -148,6 +158,25 @@ class CalculoPedidoFragment : Fragment() {
             )
 
             tabBinding.tvTabIndex.text = item.index.toString()
+
+            tabBinding.wpvTabThumb.sectionHeights = item.sectionHeights.clone()
+            tabBinding.wpvTabThumb.sectionWidths = item.sectionWidths.clone()
+
+            tabBinding.wpvTabThumb.paneMechanisms.clear()
+            tabBinding.wpvTabThumb.paneMechanisms.putAll(item.paneMechanisms)
+
+            tabBinding.wpvTabThumb.paneMosqNet.clear()
+            tabBinding.wpvTabThumb.paneMosqNet.putAll(item.paneMosqNet)
+
+            tabBinding.wpvTabThumb.panePuerta.clear()
+            tabBinding.wpvTabThumb.panePuerta.putAll(item.panePuerta)
+
+            tabBinding.wpvTabThumb.paneSandwich.clear()
+            tabBinding.wpvTabThumb.paneSandwich.putAll(item.paneSandwich)
+
+            tabBinding.wpvTabThumb.paneCols.clear()
+            tabBinding.wpvTabThumb.paneCols.putAll(item.paneCols)
+
             tabBinding.wpvTabThumb.setConfig(item.config, isTechnicalMode = false)
 
             val colorBg = Color.parseColor(item.colorBgHex)
@@ -161,7 +190,7 @@ class CalculoPedidoFragment : Fragment() {
                 tabBinding.cardWindowTab.strokeWidth = 0
             }
 
-            tabBinding.root.setOnClickListener {
+            tabBinding.cardWindowTab.setOnClickListener {
                 guardarEstadoItemActivo()
                 activeItemIndex = i
                 renderizarPestanasInferiores()
@@ -179,8 +208,21 @@ class CalculoPedidoFragment : Fragment() {
             item.anchoTotalMm = binding.wpvMainCanvas.anchoTotalMm
             item.sectionHeights = binding.wpvMainCanvas.sectionHeights.clone()
             item.sectionWidths = binding.wpvMainCanvas.sectionWidths.clone()
+
             item.paneMechanisms.clear()
             item.paneMechanisms.putAll(binding.wpvMainCanvas.paneMechanisms)
+
+            item.paneMosqNet.clear()
+            item.paneMosqNet.putAll(binding.wpvMainCanvas.paneMosqNet)
+
+            item.panePuerta.clear()
+            item.panePuerta.putAll(binding.wpvMainCanvas.panePuerta)
+
+            item.paneSandwich.clear()
+            item.paneSandwich.putAll(binding.wpvMainCanvas.paneSandwich)
+
+            item.paneCols.clear()
+            item.paneCols.putAll(binding.wpvMainCanvas.paneCols)
         }
     }
 
@@ -188,20 +230,30 @@ class CalculoPedidoFragment : Fragment() {
         if (activeItemIndex !in itemsOrden.indices) return
         val item = itemsOrden[activeItemIndex]
 
+        binding.wpvMainCanvas.setConfig(item.config, isTechnicalMode = true, resetMechanisms = false)
         binding.wpvMainCanvas.sectionHeights = item.sectionHeights.clone()
         binding.wpvMainCanvas.sectionWidths = item.sectionWidths.clone()
+
         binding.wpvMainCanvas.paneMechanisms.clear()
         binding.wpvMainCanvas.paneMechanisms.putAll(item.paneMechanisms)
 
+        binding.wpvMainCanvas.paneMosqNet.clear()
+        binding.wpvMainCanvas.paneMosqNet.putAll(item.paneMosqNet)
+
+        binding.wpvMainCanvas.panePuerta.clear()
+        binding.wpvMainCanvas.panePuerta.putAll(item.panePuerta)
+
+        binding.wpvMainCanvas.paneSandwich.clear()
+        binding.wpvMainCanvas.paneSandwich.putAll(item.paneSandwich)
+
+        binding.wpvMainCanvas.paneCols.clear()
+        binding.wpvMainCanvas.paneCols.putAll(item.paneCols)
+
         binding.wpvMainCanvas.updateDimensions(item.altoTotalMm, item.anchoTotalMm)
-        binding.wpvMainCanvas.setConfig(item.config, isTechnicalMode = true)
 
         actualizarTablaMatriz(item.config)
     }
 
-    /**
-     * Muestra el CATÁLOGO GENERAL DE LOS 73 MODELOS al pulsar el botón azul (+) inferior.
-     */
     private fun mostrarDialogoSeleccionCatalogGeneral() {
         val dialog = BottomSheetDialog(requireContext())
         val dialogBinding = DialogSelectConfigGeneralBinding.inflate(layoutInflater)
@@ -217,7 +269,6 @@ class CalculoPedidoFragment : Fragment() {
         }
         dialogBinding.rvCatalogConfigs.adapter = catalogAdapter
 
-        // Filtro por categorías
         dialogBinding.chipGroupCatalogCategories.setOnCheckedStateChangeListener { _, checkedIds ->
             if (checkedIds.isEmpty()) return@setOnCheckedStateChangeListener
             val filtrados = when (checkedIds.first()) {
@@ -231,7 +282,6 @@ class CalculoPedidoFragment : Fragment() {
             }
         }
 
-        // Botón ACEPTAR MODELO
         dialogBinding.btnAceptarCatalogConfig.setOnClickListener {
             guardarEstadoItemActivo()
 
@@ -256,23 +306,35 @@ class CalculoPedidoFragment : Fragment() {
         dialog.show()
     }
 
-    /**
-     * Muestra el diálogo de 'impostas' y 'apertura' (SÍ/NO) al pulsar en un (+) del dibujo en el canvas.
-     */
     private fun mostrarDialogoSeleccionConfigParaPano(targetPaneIndex: Int) {
         val dialog = BottomSheetDialog(requireContext())
         val dialogBinding = DialogSelectConfigBinding.inflate(layoutInflater)
         dialog.setContentView(dialogBinding.root)
 
-        val currentItem = if (activeItemIndex in itemsOrden.indices) itemsOrden[activeItemIndex] else null
-        var tempConfigSeleccionada: WindowConfig = currentItem?.config ?: listaConfiguraciones.first()
+        var tempSubCols = binding.wpvMainCanvas.paneCols[targetPaneIndex] ?: 1
         var tempMecanismoSeleccionado: AperturaMechanism = listaMecanismosApertura.find { it.id == "5" } ?: listaMecanismosApertura.first()
 
+        dialogBinding.cbMosqNet.isChecked = binding.wpvMainCanvas.paneMosqNet[targetPaneIndex] == true
+        dialogBinding.cbPuerta.isChecked = binding.wpvMainCanvas.panePuerta[targetPaneIndex] == true
+        dialogBinding.cbSandwichPanels.isChecked = binding.wpvMainCanvas.paneSandwich[targetPaneIndex] == true
+
+        val impostaConfigs = listOf(
+            WindowConfig("imp_1", "1 Paño Fijo", "Estándar", WindowConfig.LayoutType.GRID, cols = 1, rows = 1),
+            WindowConfig("imp_2", "2 Paneles V.", "Estándar", WindowConfig.LayoutType.GRID, cols = 2, rows = 1),
+            WindowConfig("imp_3", "3 Paneles V.", "Estándar", WindowConfig.LayoutType.GRID, cols = 3, rows = 1),
+            WindowConfig("imp_4", "4 Paneles V.", "Estándar", WindowConfig.LayoutType.GRID, cols = 4, rows = 1),
+        )
+
         val layoutAdapter = WindowConfigAdapter(
-            listaConfiguraciones.take(12),
-            selectedId = tempConfigSeleccionada.id,
+            impostaConfigs,
+            selectedId = "imp_$tempSubCols",
         ) { config ->
-            tempConfigSeleccionada = config
+            tempSubCols = when (config.id) {
+                "imp_2" -> 2
+                "imp_3" -> 3
+                "imp_4" -> 4
+                else -> 1
+            }
         }
         dialogBinding.rvImpostasLayouts.adapter = layoutAdapter
 
@@ -287,16 +349,13 @@ class CalculoPedidoFragment : Fragment() {
         dialogBinding.btnDialogNo.setOnClickListener { dialog.dismiss() }
 
         dialogBinding.btnDialogSi.setOnClickListener {
-            var finalConfig = tempConfigSeleccionada
+            val isSandwich = dialogBinding.cbSandwichPanels.isChecked
+            val isPuerta = dialogBinding.cbPuerta.isChecked
+            val isMosqNet = dialogBinding.cbMosqNet.isChecked
 
-            if (dialogBinding.cbPuerta.isChecked && finalConfig.categoria != "Puerta-Ventana") {
-                val puertaConfig = listaConfiguraciones.find { it.categoria == "Puerta-Ventana" }
-                if (puertaConfig != null) finalConfig = puertaConfig
-            }
-
-            currentItem?.config = finalConfig
-            aplicarConfiguracionDirecta(finalConfig)
             binding.wpvMainCanvas.setPaneMechanism(targetPaneIndex, tempMecanismoSeleccionado.id)
+            binding.wpvMainCanvas.setPaneOptions(targetPaneIndex, isSandwich, isPuerta, isMosqNet, tempSubCols)
+
             guardarEstadoItemActivo()
             renderizarPestanasInferiores()
 
@@ -305,7 +364,10 @@ class CalculoPedidoFragment : Fragment() {
             val msg = buildString {
                 append("Paño ${targetPaneIndex + 1}: ")
                 append(tempMecanismoSeleccionado.nombre)
-                if (dialogBinding.cbPuerta.isChecked) append(" | Modo Puerta")
+                if (tempSubCols > 1) append(" | $tempSubCols Paneles")
+                if (isPuerta) append(" | Modo Puerta")
+                if (isMosqNet) append(" | Mosq.Net")
+                if (isSandwich) append(" | Panel Sándwich")
             }
             Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
         }
@@ -313,29 +375,26 @@ class CalculoPedidoFragment : Fragment() {
         dialog.show()
     }
 
-    private fun aplicarConfiguracionDirecta(config: WindowConfig) {
-        if (activeItemIndex in itemsOrden.indices) {
-            itemsOrden[activeItemIndex].config = config
-        }
-        binding.wpvMainCanvas.setConfig(config, isTechnicalMode = true)
-        actualizarTablaMatriz(config)
-    }
-
     private fun eliminarElementoActivo() {
-        if (itemsOrden.size > 1) {
-            itemsOrden.removeAt(activeItemIndex)
+        if (activeItemIndex in itemsOrden.indices) {
+            val itemEliminado = itemsOrden.removeAt(activeItemIndex)
+
             for (idx in itemsOrden.indices) {
                 itemsOrden[idx].index = idx + 1
             }
-            activeItemIndex = Math.max(0, activeItemIndex - 1)
-            renderizarPestanasInferiores()
-            cargarItemActivoEnCanvas()
-            Toast.makeText(requireContext(), "Elemento eliminado de la orden", Toast.LENGTH_SHORT).show()
-        } else if (itemsOrden.size == 1) {
-            val item = itemsOrden[0]
-            binding.wpvMainCanvas.resetCanvas()
-            limpiarTablaMatriz()
-            Toast.makeText(requireContext(), "Lienzo de Ventana ${item.index} limpiado", Toast.LENGTH_SHORT).show()
+
+            if (itemsOrden.isNotEmpty()) {
+                activeItemIndex = Math.min(activeItemIndex, itemsOrden.size - 1)
+                renderizarPestanasInferiores()
+                cargarItemActivoEnCanvas()
+                Toast.makeText(requireContext(), "Ventana ${itemEliminado.index} eliminada de la orden", Toast.LENGTH_SHORT).show()
+            } else {
+                activeItemIndex = 0
+                renderizarPestanasInferiores()
+                binding.wpvMainCanvas.resetCanvas()
+                limpiarTablaMatriz()
+                Toast.makeText(requireContext(), "Se eliminaron todas las ventanas de la orden", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -386,6 +445,7 @@ class CalculoPedidoFragment : Fragment() {
             WindowPreviewView.DimensionType.TOTAL_HEIGHT -> "Editar Alto Total (mm)"
             WindowPreviewView.DimensionType.TOTAL_WIDTH -> "Editar Ancho Total (mm)"
             WindowPreviewView.DimensionType.SECTION_HEIGHT -> "Editar Alto Sección ${index + 1} (mm)"
+            WindowPreviewView.DimensionType.SECTION_WIDTH -> "Editar Ancho Panel ${index + 1} (mm)"
         }
 
         val input = EditText(requireContext()).apply {
@@ -411,8 +471,12 @@ class CalculoPedidoFragment : Fragment() {
                         WindowPreviewView.DimensionType.SECTION_HEIGHT -> {
                             binding.wpvMainCanvas.updateSectionHeight(index, nuevoValor)
                         }
+                        WindowPreviewView.DimensionType.SECTION_WIDTH -> {
+                            binding.wpvMainCanvas.updateSectionWidth(index, nuevoValor)
+                        }
                     }
                     guardarEstadoItemActivo()
+                    renderizarPestanasInferiores()
                     if (activeItemIndex in itemsOrden.indices) {
                         actualizarTablaMatriz(itemsOrden[activeItemIndex].config)
                     }
