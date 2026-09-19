@@ -37,6 +37,13 @@ class WindowPreviewView @JvmOverloads constructor(
         val col: Int,
     )
 
+    /**
+     * Convierte valores DP a píxeles reales según la densidad del celular.
+     */
+    private fun dpToPx(dp: Float): Float {
+        return dp * context.resources.displayMetrics.density
+    }
+
     private val framePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         style = Paint.Style.FILL
@@ -45,7 +52,7 @@ class WindowPreviewView @JvmOverloads constructor(
     private val frameBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#333333")
         style = Paint.Style.STROKE
-        strokeWidth = 2f
+        strokeWidth = dpToPx(1f)
     }
 
     private val glassPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -61,24 +68,24 @@ class WindowPreviewView @JvmOverloads constructor(
     private val meshPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#70666666")
         style = Paint.Style.STROKE
-        strokeWidth = 1f
+        strokeWidth = dpToPx(0.5f)
     }
 
     private val handlePlatePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#FFFFFF")
+        color = Color.WHITE
         style = Paint.Style.FILL
     }
 
     private val doorHandlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#444444")
         style = Paint.Style.FILL_AND_STROKE
-        strokeWidth = 1.5f
+        strokeWidth = dpToPx(1f)
     }
 
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#444444")
         style = Paint.Style.STROKE
-        strokeWidth = 3f
+        strokeWidth = dpToPx(1.5f)
     }
 
     private val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -94,7 +101,7 @@ class WindowPreviewView @JvmOverloads constructor(
     private val handleStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#4A90E2")
         style = Paint.Style.STROKE
-        strokeWidth = 3f
+        strokeWidth = dpToPx(1.5f)
     }
 
     private val badgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -105,12 +112,12 @@ class WindowPreviewView @JvmOverloads constructor(
     private val badgeBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#4A90E2")
         style = Paint.Style.STROKE
-        strokeWidth = 2.5f
+        strokeWidth = dpToPx(1.2f)
     }
 
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#1976D2")
-        textSize = 25f
+        textSize = dpToPx(11f)
         isFakeBoldText = true
         textAlign = Paint.Align.CENTER
     }
@@ -118,7 +125,7 @@ class WindowPreviewView @JvmOverloads constructor(
     private val crosshairPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#333333")
         style = Paint.Style.STROKE
-        strokeWidth = 3.5f
+        strokeWidth = dpToPx(1.8f)
         strokeCap = Paint.Cap.ROUND
     }
 
@@ -188,7 +195,7 @@ class WindowPreviewView @JvmOverloads constructor(
 
         if (isNewConfig || sectionHeights.size != rows) {
             sectionHeights = if (rows == 2) {
-                floatArrayOf(600f, currentTotalH - 600f)
+                floatArrayOf(600f, (currentTotalH - 600f).coerceAtLeast(50f))
             } else {
                 val defaultH = currentTotalH / rows
                 FloatArray(rows) { defaultH }
@@ -248,7 +255,7 @@ class WindowPreviewView @JvmOverloads constructor(
             if (oldTotal > 0) {
                 val scale = newTotalHeightMm.toFloat() / oldTotal
                 for (i in sectionHeights.indices) {
-                    sectionHeights[i] = sectionHeights[i] * scale
+                    sectionHeights[i] = (sectionHeights[i] * scale).coerceAtLeast(10f)
                 }
             }
             invalidate()
@@ -261,7 +268,7 @@ class WindowPreviewView @JvmOverloads constructor(
             if (oldTotal > 0) {
                 val scale = newTotalWidthMm.toFloat() / oldTotal
                 for (i in sectionWidths.indices) {
-                    sectionWidths[i] = sectionWidths[i] * scale
+                    sectionWidths[i] = (sectionWidths[i] * scale).coerceAtLeast(10f)
                 }
             }
             invalidate()
@@ -331,23 +338,26 @@ class WindowPreviewView @JvmOverloads constructor(
         if ((w <= 0) || (h <= 0)) return
 
         if (!showTechnicalDetails) {
-            val padding = 4f
+            val padding = dpToPx(2f)
             val rect = RectF(padding, padding, w - padding, h - padding)
             drawWindowConfig(canvas, rect, cfg)
             return
         }
 
-        val leftMargin = 150f
-        val bottomMargin = 110f
-        val topMargin = 30f
-        val rightMargin = 30f
+        val leftMargin = dpToPx(55f)
+        val bottomMargin = dpToPx(45f)
+        val topMargin = dpToPx(15f)
+        val rightMargin = dpToPx(15f)
 
         val availW = w - leftMargin - rightMargin
         val availH = h - topMargin - bottomMargin
 
         if ((availW <= 0) || (availH <= 0)) return
 
-        val targetAspect = anchoTotalMm.toFloat() / altoTotalMm.toFloat()
+        val totalH = altoTotalMm.toFloat().coerceAtLeast(1f)
+        val totalW = anchoTotalMm.toFloat().coerceAtLeast(1f)
+
+        val targetAspect = totalW / totalH
         val availAspect = availW / availH
 
         val drawW: Float
@@ -373,7 +383,7 @@ class WindowPreviewView @JvmOverloads constructor(
     }
 
     private fun drawWindowConfig(canvas: Canvas, rect: RectF, cfg: WindowConfig) {
-        val frameThickness = if (showTechnicalDetails) 14f else 5f
+        val frameThickness = if (showTechnicalDetails) dpToPx(7f) else dpToPx(3f)
 
         when (cfg.layoutType) {
             WindowConfig.LayoutType.GRID -> drawGrid(canvas, rect, cfg.cols, cfg.rows, frameThickness)
@@ -405,9 +415,10 @@ class WindowPreviewView @JvmOverloads constructor(
         val subCols = paneCols[paneIndex] ?: 1
         if (subCols > 1) {
             val subW = (pR - pL) / subCols
+            val spacing = dpToPx(1.5f)
             for (sc in 0 until subCols) {
-                val spL = pL + sc * subW + (if (sc > 0) 3f else 0f)
-                val spR = pL + (sc + 1) * subW - (if (sc < subCols - 1) 3f else 0f)
+                val spL = pL + sc * subW + (if (sc > 0) spacing else 0f)
+                val spR = pL + (sc + 1) * subW - (if (sc < subCols - 1) spacing else 0f)
                 val subIndex = paneIndex * 10 + sc
                 drawSinglePane(canvas, spL, pT, spR, pB, subIndex, row, col)
             }
@@ -438,7 +449,7 @@ class WindowPreviewView @JvmOverloads constructor(
         var glassB = pB
 
         if (isPuerta && showTechnicalDetails) {
-            val sashThickness = 12f
+            val sashThickness = dpToPx(6f)
             canvas.drawRect(pL, pT, pR, pB, framePaint)
             canvas.drawRect(pL, pT, pR, pB, frameBorderPaint)
 
@@ -448,13 +459,16 @@ class WindowPreviewView @JvmOverloads constructor(
             glassB = pB - sashThickness
 
             val cY = (glassT + glassB) / 2f
-            val handleX = glassL + 12f
+            val handleX = glassL + dpToPx(6f)
+            val hpW = dpToPx(2.5f)
+            val hpH = dpToPx(11f)
 
-            canvas.drawRoundRect(RectF(handleX - 4f, cY - 22f, handleX + 4f, cY + 22f), 3f, 3f, handlePlatePaint)
-            canvas.drawRoundRect(RectF(handleX - 4f, cY - 22f, handleX + 4f, cY + 22f), 3f, 3f, frameBorderPaint)
+            canvas.drawRoundRect(RectF(handleX - hpW, cY - hpH, handleX + hpW, cY + hpH), dpToPx(1.5f), dpToPx(1.5f), handlePlatePaint)
+            canvas.drawRoundRect(RectF(handleX - hpW, cY - hpH, handleX + hpW, cY + hpH), dpToPx(1.5f), dpToPx(1.5f), frameBorderPaint)
 
-            canvas.drawRoundRect(RectF(handleX - 14f, cY - 12f, handleX - 2f, cY + 8f), 3f, 3f, doorHandlePaint)
-            canvas.drawRoundRect(RectF(handleX - 22f, cY - 12f, handleX - 14f, cY - 2f), 2f, 2f, doorHandlePaint)
+            val handW = dpToPx(7f)
+            val handH = dpToPx(5f)
+            canvas.drawRoundRect(RectF(handleX - handW, cY - handH, handleX - dpToPx(1f), handH + cY + dpToPx(2f)), dpToPx(1.5f), dpToPx(1.5f), doorHandlePaint)
         }
 
         canvas.drawRect(glassL, glassT, glassR, glassB, if (isSandwich) sandwichPaint else glassPaint)
@@ -481,52 +495,54 @@ class WindowPreviewView @JvmOverloads constructor(
         val paneW = glassR - glassL
         val paneH = glassB - glassT
 
-        if (paneW <= 6f || paneH <= 6f) return
+        if (paneW <= dpToPx(3f) || paneH <= dpToPx(3f)) return
 
         val mechanismId = paneMechanisms[paneIndex] ?: "5"
+        val padding = dpToPx(2f)
+        val arrowHeadSize = dpToPx(4f)
 
         when (mechanismId) {
             "1" -> {
                 val arrowLen = paneW * 0.35f
                 canvas.drawLine(cX - arrowLen / 2f, cY, cX + arrowLen / 2f, cY, crosshairPaint)
-                canvas.drawLine(cX + arrowLen / 6f, cY - 8f, cX + arrowLen / 2f, cY, crosshairPaint)
-                canvas.drawLine(cX + arrowLen / 6f, cY + 8f, cX + arrowLen / 2f, cY, crosshairPaint)
+                canvas.drawLine(cX + arrowLen / 6f, cY - arrowHeadSize, cX + arrowLen / 2f, cY, crosshairPaint)
+                canvas.drawLine(cX + arrowLen / 6f, cY + arrowHeadSize, cX + arrowLen / 2f, cY, crosshairPaint)
             }
 
             "2" -> {
-                canvas.drawLine(glassL + 4f, glassT + 4f, cX, glassB - 4f, crosshairPaint)
-                canvas.drawLine(glassR - 4f, glassT + 4f, cX, glassB - 4f, crosshairPaint)
+                canvas.drawLine(glassL + padding, glassT + padding, cX, glassB - padding, crosshairPaint)
+                canvas.drawLine(glassR - padding, glassT + padding, cX, glassB - padding, crosshairPaint)
             }
 
             "3" -> {
                 val arrowLen = paneW * 0.35f
                 canvas.drawLine(cX - arrowLen / 2f, cY, cX + arrowLen / 2f, cY, crosshairPaint)
-                canvas.drawLine(cX - arrowLen / 6f, cY - 8f, cX - arrowLen / 2f, cY, crosshairPaint)
-                canvas.drawLine(cX - arrowLen / 6f, cY + 8f, cX - arrowLen / 2f, cY, crosshairPaint)
+                canvas.drawLine(cX - arrowLen / 6f, cY - arrowHeadSize, cX - arrowLen / 2f, cY, crosshairPaint)
+                canvas.drawLine(cX - arrowLen / 6f, cY + arrowHeadSize, cX - arrowLen / 2f, cY, crosshairPaint)
             }
 
             "4" -> {
-                canvas.drawLine(glassL + 4f, glassT + 4f, glassR - 4f, cY, crosshairPaint)
-                canvas.drawLine(glassL + 4f, glassB - 4f, glassR - 4f, cY, crosshairPaint)
+                canvas.drawLine(glassL + padding, glassT + padding, glassR - padding, cY, crosshairPaint)
+                canvas.drawLine(glassL + padding, glassB - padding, glassR - padding, cY, crosshairPaint)
             }
 
             "6" -> {
-                canvas.drawLine(glassR - 4f, glassT + 4f, glassL + 4f, cY, crosshairPaint)
-                canvas.drawLine(glassR - 4f, glassB - 4f, glassL + 4f, cY, crosshairPaint)
+                canvas.drawLine(glassR - padding, glassT + padding, glassL + padding, cY, crosshairPaint)
+                canvas.drawLine(glassR - padding, glassB - padding, glassL + padding, cY, crosshairPaint)
             }
 
             "7" -> {
-                canvas.drawLine(glassL + 4f, glassT + 4f, glassR - 4f, cY, crosshairPaint)
-                canvas.drawLine(glassL + 4f, glassB - 4f, glassR - 4f, cY, crosshairPaint)
-                canvas.drawLine(glassL + 4f, glassT + 4f, cX, glassB - 4f, crosshairPaint)
-                canvas.drawLine(glassR - 4f, glassT + 4f, cX, glassB - 4f, crosshairPaint)
+                canvas.drawLine(glassL + padding, glassT + padding, glassR - padding, cY, crosshairPaint)
+                canvas.drawLine(glassL + padding, glassB - padding, glassR - padding, cY, crosshairPaint)
+                canvas.drawLine(glassL + padding, glassT + padding, cX, glassB - padding, crosshairPaint)
+                canvas.drawLine(glassR - padding, glassT + padding, cX, glassB - padding, crosshairPaint)
             }
 
             "8" -> {
-                canvas.drawLine(glassR - 4f, glassT + 4f, glassL + 4f, cY, crosshairPaint)
-                canvas.drawLine(glassR - 4f, glassB - 4f, glassL + 4f, cY, crosshairPaint)
-                canvas.drawLine(glassL + 4f, glassT + 4f, cX, glassB - 4f, crosshairPaint)
-                canvas.drawLine(glassR - 4f, glassT + 4f, cX, glassB - 4f, crosshairPaint)
+                canvas.drawLine(glassR - padding, glassT + padding, glassL + padding, cY, crosshairPaint)
+                canvas.drawLine(glassR - padding, glassB - padding, glassL + padding, cY, crosshairPaint)
+                canvas.drawLine(glassL + padding, glassT + padding, cX, glassB - padding, crosshairPaint)
+                canvas.drawLine(glassR - padding, glassT + padding, cX, glassB - padding, crosshairPaint)
             }
 
             else -> {
@@ -588,20 +604,21 @@ class WindowPreviewView @JvmOverloads constructor(
         val totalWVal = activeWidths.sum().coerceAtLeast(1f)
 
         var currentY = innerT
-        var pIdx = 0
+        val padding = dpToPx(1f)
 
+        var pIdx = 0
         for (r in 0 until rows) {
             val rowRatio = activeHeights[r] / totalHVal
             val cellH = totalInnerH * rowRatio
-            val pT = currentY + 2f
-            val pB = (currentY + cellH - 2f).coerceAtMost(innerB - 2f)
+            val pT = currentY + padding
+            val pB = (currentY + cellH - padding).coerceAtMost(innerB - padding)
 
             var currentX = innerL
             for (c in 0 until cols) {
                 val colRatio = activeWidths[c] / totalWVal
                 val cellW = totalInnerW * colRatio
-                val pL = currentX + 2f
-                val pR = (currentX + cellW - 2f).coerceAtMost(innerR - 2f)
+                val pL = currentX + padding
+                val pR = (currentX + cellW - padding).coerceAtMost(innerR - padding)
 
                 if (pR > pL && pB > pT) {
                     drawPaneWithMechanism(canvas, pL, pT, pR, pB, paneIndex = pIdx, row = r, col = c)
@@ -622,18 +639,20 @@ class WindowPreviewView @JvmOverloads constructor(
         val innerB = rect.bottom - t
 
         val activeHeights = getScaledActiveHeights(2)
-        val transomRatio = activeHeights[0] / activeHeights.sum().coerceAtLeast(1f)
+        val totalHSum = activeHeights.sum().coerceAtLeast(1f)
+        val transomRatio = activeHeights[0] / totalHSum
         val transomH = (innerB - innerT) * transomRatio
+        val padding = dpToPx(1f)
 
-        drawPaneWithMechanism(canvas, innerL + 2f, innerT + 2f, innerR - 2f, innerT + transomH - 2f, paneIndex = 0)
+        drawPaneWithMechanism(canvas, innerL + padding, innerT + padding, innerR - padding, innerT + transomH - padding, paneIndex = 0)
 
         val cellW = (innerR - innerL) / cols
-        val bottomT = innerT + transomH + 2f
+        val bottomT = innerT + transomH + padding
 
         for (c in 0 until cols) {
-            val pL = innerL + c * cellW + 2f
-            val pR = (innerL + (c + 1) * cellW - 2f).coerceAtMost(innerR - 2f)
-            drawPaneWithMechanism(canvas, pL, bottomT, pR, innerB - 2f, paneIndex = c + 1)
+            val pL = innerL + c * cellW + padding
+            val pR = (innerL + (c + 1) * cellW - padding).coerceAtMost(innerR - padding)
+            drawPaneWithMechanism(canvas, pL, bottomT, pR, innerB - padding, paneIndex = c + 1)
         }
     }
 
@@ -646,17 +665,19 @@ class WindowPreviewView @JvmOverloads constructor(
         val innerB = rect.bottom - t
 
         val activeHeights = getScaledActiveHeights(2)
-        val mainRatio = activeHeights[0] / activeHeights.sum().coerceAtLeast(1f)
+        val totalHSum = activeHeights.sum().coerceAtLeast(1f)
+        val mainRatio = activeHeights[0] / totalHSum
         val topB = innerT + (innerB - innerT) * mainRatio
+        val padding = dpToPx(1f)
 
         val cellW = (innerR - innerL) / cols
         for (c in 0 until cols) {
-            val pL = innerL + c * cellW + 2f
-            val pR = (innerL + (c + 1) * cellW - 2f).coerceAtMost(innerR - 2f)
-            drawPaneWithMechanism(canvas, pL, innerT + 2f, pR, topB - 2f, paneIndex = c)
+            val pL = innerL + c * cellW + padding
+            val pR = (innerL + (c + 1) * cellW - padding).coerceAtMost(innerR - padding)
+            drawPaneWithMechanism(canvas, pL, innerT + padding, pR, topB - padding, paneIndex = c)
         }
 
-        drawPaneWithMechanism(canvas, innerL + 2f, topB + 2f, innerR - 2f, innerB - 2f, paneIndex = cols)
+        drawPaneWithMechanism(canvas, innerL + padding, topB + padding, innerR - padding, innerB - padding, paneIndex = cols)
     }
 
     private fun drawTopBottomTransom(canvas: Canvas, rect: RectF, cols: Int, t: Float) {
@@ -676,27 +697,29 @@ class WindowPreviewView @JvmOverloads constructor(
         val totalH = innerB - innerT
         val topH = totalH * topRatio
         val midH = totalH * midRatio
+        val padding = dpToPx(1f)
 
-        drawPaneWithMechanism(canvas, innerL + 2f, innerT + 2f, innerR - 2f, innerT + topH - 2f, paneIndex = 0)
+        drawPaneWithMechanism(canvas, innerL + padding, innerT + padding, innerR - padding, innerT + topH - padding, paneIndex = 0)
 
         val cellW = (innerR - innerL) / cols
-        val midT = innerT + topH + 2f
-        val midB = midT + midH - 4f
+        val midT = innerT + topH + padding
+        val midB = midT + midH - padding * 2f
 
         for (c in 0 until cols) {
-            val pL = innerL + c * cellW + 2f
-            val pR = (innerL + (c + 1) * cellW - 2f).coerceAtMost(innerR - 2f)
+            val pL = innerL + c * cellW + padding
+            val pR = (innerL + (c + 1) * cellW - padding).coerceAtMost(innerR - padding)
             drawPaneWithMechanism(canvas, pL, midT, pR, midB, paneIndex = c + 1)
         }
 
-        drawPaneWithMechanism(canvas, innerL + 2f, midB + 4f, innerR - 2f, innerB - 2f, paneIndex = cols + 1)
+        drawPaneWithMechanism(canvas, innerL + padding, midB + padding * 2f, innerR - padding, innerB - padding, paneIndex = cols + 1)
     }
 
     private fun drawDoorL(canvas: Canvas, rect: RectF, isLeftDoor: Boolean, hasTransom: Boolean, t: Float) {
         val splitX = if (isLeftDoor) rect.left + (rect.width() * 0.45f) else rect.left + (rect.width() * 0.55f)
 
         val activeHeights = getScaledActiveHeights(2)
-        val mainRatio = activeHeights[0] / activeHeights.sum().coerceAtLeast(1f)
+        val totalHSum = activeHeights.sum().coerceAtLeast(1f)
+        val mainRatio = activeHeights[0] / totalHSum
         val windowBottomY = rect.top + (rect.height() * mainRatio)
 
         if (isLeftDoor) {
@@ -711,34 +734,35 @@ class WindowPreviewView @JvmOverloads constructor(
         val iT = rect.top + t
         val iR = rect.right - t
         val iB = rect.bottom - t
+        val padding = dpToPx(1f)
 
         val transomH = if (hasTransom) (iB - iT) * 0.22f else 0f
 
         if (isLeftDoor) {
             if (hasTransom) {
-                drawPaneWithMechanism(canvas, iL + 2f, iT + 2f, splitX - 2f, iT + transomH - 2f, paneIndex = 0)
-                drawPaneWithMechanism(canvas, iL + 2f, iT + transomH + 2f, splitX - 2f, iB - 2f, paneIndex = 1)
+                drawPaneWithMechanism(canvas, iL + padding, iT + padding, splitX - padding, iT + transomH - padding, paneIndex = 0)
+                drawPaneWithMechanism(canvas, iL + padding, iT + transomH + padding, splitX - padding, iB - padding, paneIndex = 1)
             } else {
-                drawPaneWithMechanism(canvas, iL + 2f, iT + 2f, splitX - 2f, iB - 2f, paneIndex = 0)
+                drawPaneWithMechanism(canvas, iL + padding, iT + padding, splitX - padding, iB - padding, paneIndex = 0)
             }
             if (hasTransom) {
-                drawPaneWithMechanism(canvas, splitX + 2f, iT + 2f, iR - 2f, iT + transomH - 2f, paneIndex = 2)
-                drawPaneWithMechanism(canvas, splitX + 2f, iT + transomH + 2f, iR - 2f, windowBottomY - t - 2f, paneIndex = 3)
+                drawPaneWithMechanism(canvas, splitX + padding, iT + padding, iR - padding, iT + transomH - padding, paneIndex = 2)
+                drawPaneWithMechanism(canvas, splitX + padding, iT + transomH + padding, iR - padding, windowBottomY - t - padding, paneIndex = 3)
             } else {
-                drawPaneWithMechanism(canvas, splitX + 2f, iT + 2f, iR - 2f, windowBottomY - t - 2f, paneIndex = 1)
+                drawPaneWithMechanism(canvas, splitX + padding, iT + padding, iR - padding, windowBottomY - t - padding, paneIndex = 1)
             }
         } else {
             if (hasTransom) {
-                drawPaneWithMechanism(canvas, iL + 2f, iT + 2f, splitX - 2f, iT + transomH - 2f, paneIndex = 0)
-                drawPaneWithMechanism(canvas, iL + 2f, iT + transomH + 2f, splitX - 2f, windowBottomY - t - 2f, paneIndex = 1)
+                drawPaneWithMechanism(canvas, iL + padding, iT + padding, splitX - padding, iT + transomH - padding, paneIndex = 0)
+                drawPaneWithMechanism(canvas, iL + padding, iT + transomH + padding, splitX - padding, windowBottomY - t - padding, paneIndex = 1)
             } else {
-                drawPaneWithMechanism(canvas, iL + 2f, iT + 2f, splitX - 2f, windowBottomY - t - 2f, paneIndex = 0)
+                drawPaneWithMechanism(canvas, iL + padding, iT + padding, splitX - padding, windowBottomY - t - padding, paneIndex = 0)
             }
             if (hasTransom) {
-                drawPaneWithMechanism(canvas, splitX + 2f, iT + 2f, iR - 2f, iT + transomH - 2f, paneIndex = 2)
-                drawPaneWithMechanism(canvas, splitX + 2f, iT + transomH + 2f, iR - 2f, iB - 2f, paneIndex = 3)
+                drawPaneWithMechanism(canvas, splitX + padding, iT + padding, iR - padding, iT + transomH - padding, paneIndex = 2)
+                drawPaneWithMechanism(canvas, splitX + padding, iT + transomH + padding, iR - padding, iB - padding, paneIndex = 3)
             } else {
-                drawPaneWithMechanism(canvas, splitX + 2f, iT + 2f, iR - 2f, iB - 2f, paneIndex = 1)
+                drawPaneWithMechanism(canvas, splitX + padding, iT + padding, iR - padding, iB - padding, paneIndex = 1)
             }
         }
     }
@@ -748,7 +772,8 @@ class WindowPreviewView @JvmOverloads constructor(
         val splitRightX = rect.left + (rect.width() * 0.67f)
 
         val activeHeights = getScaledActiveHeights(2)
-        val topRatio = activeHeights[0] / activeHeights.sum().coerceAtLeast(1f)
+        val totalHSum = activeHeights.sum().coerceAtLeast(1f)
+        val topRatio = activeHeights[0] / totalHSum
         val windowBottomY = rect.top + (rect.height() * topRatio)
 
         if (hasTransom) {
@@ -764,16 +789,17 @@ class WindowPreviewView @JvmOverloads constructor(
         val iT = rect.top + t
         val iR = rect.right - t
         val iB = rect.bottom - t
+        val padding = dpToPx(1f)
 
         if (hasTransom) {
-            drawPaneWithMechanism(canvas, iL + 2f, iT + 2f, iR - 2f, windowBottomY - 2f, paneIndex = 0)
-            drawPaneWithMechanism(canvas, iL + 2f, windowBottomY + 2f, splitLeftX - 2f, iB - 2f, paneIndex = 1)
-            drawPaneWithMechanism(canvas, splitLeftX + 2f, windowBottomY + 2f, splitRightX - 2f, iB - 2f, paneIndex = 2)
-            drawPaneWithMechanism(canvas, splitRightX + 2f, windowBottomY + 2f, iR - 2f, iB - 2f, paneIndex = 3)
+            drawPaneWithMechanism(canvas, iL + padding, iT + padding, iR - padding, windowBottomY - padding, paneIndex = 0)
+            drawPaneWithMechanism(canvas, iL + padding, windowBottomY + padding, splitLeftX - padding, iB - padding, paneIndex = 1)
+            drawPaneWithMechanism(canvas, splitLeftX + padding, windowBottomY + padding, splitRightX - padding, iB - padding, paneIndex = 2)
+            drawPaneWithMechanism(canvas, splitRightX + padding, windowBottomY + padding, iR - padding, iB - padding, paneIndex = 3)
         } else {
-            drawPaneWithMechanism(canvas, iL + 2f, iT + 2f, splitLeftX - 2f, windowBottomY - 2f, paneIndex = 0)
-            drawPaneWithMechanism(canvas, splitRightX + 2f, iT + 2f, iR - 2f, windowBottomY - 2f, paneIndex = 2)
-            drawPaneWithMechanism(canvas, splitLeftX + 2f, iT + 2f, splitRightX - 2f, iB - 2f, paneIndex = 1)
+            drawPaneWithMechanism(canvas, iL + padding, iT + padding, splitLeftX - padding, windowBottomY - padding, paneIndex = 0)
+            drawPaneWithMechanism(canvas, splitRightX + padding, iT + padding, iR - padding, windowBottomY - padding, paneIndex = 2)
+            drawPaneWithMechanism(canvas, splitLeftX + padding, iT + padding, splitRightX - padding, iB - padding, paneIndex = 1)
         }
     }
 
@@ -782,7 +808,7 @@ class WindowPreviewView @JvmOverloads constructor(
     }
 
     private fun getScaledActiveHeights(rows: Int): FloatArray {
-        val totalH = altoTotalMm.toFloat()
+        val totalH = altoTotalMm.toFloat().coerceAtLeast(1f)
         val result = FloatArray(rows)
 
         if (sectionHeights.size == rows) {
@@ -790,7 +816,7 @@ class WindowPreviewView @JvmOverloads constructor(
             if (rawSum > 0f) {
                 val scale = totalH / rawSum
                 for (r in 0 until rows) {
-                    result[r] = sectionHeights[r] * scale
+                    result[r] = (sectionHeights[r] * scale).coerceAtLeast(1f)
                 }
                 return result
             }
@@ -803,7 +829,7 @@ class WindowPreviewView @JvmOverloads constructor(
     }
 
     private fun getScaledActiveWidths(cols: Int): FloatArray {
-        val totalW = anchoTotalMm.toFloat()
+        val totalW = anchoTotalMm.toFloat().coerceAtLeast(1f)
         val result = FloatArray(cols)
 
         if (sectionWidths.size == cols) {
@@ -811,7 +837,7 @@ class WindowPreviewView @JvmOverloads constructor(
             if (rawSum > 0f) {
                 val scale = totalW / rawSum
                 for (c in 0 until cols) {
-                    result[c] = sectionWidths[c] * scale
+                    result[c] = (sectionWidths[c] * scale).coerceAtLeast(1f)
                 }
                 return result
             }
@@ -824,13 +850,14 @@ class WindowPreviewView @JvmOverloads constructor(
     }
 
     private fun drawDimensionLines(canvas: Canvas, rect: RectF, cfg: WindowConfig) {
-        val lineX = rect.left - 25f
-        val lineOuterX = rect.left - 90f
+        val lineX = rect.left - dpToPx(12f)
+        val lineOuterX = rect.left - dpToPx(42f)
+        val dotRadius = dpToPx(2.5f)
 
         // 1. Línea vertical principal (alto total)
         canvas.drawLine(lineOuterX, rect.top, lineOuterX, rect.bottom, linePaint)
-        canvas.drawCircle(lineOuterX, rect.top, 5f, dotPaint)
-        canvas.drawCircle(lineOuterX, rect.bottom, 5f, dotPaint)
+        canvas.drawCircle(lineOuterX, rect.top, dotRadius, dotPaint)
+        canvas.drawCircle(lineOuterX, rect.bottom, dotRadius, dotPaint)
         drawInteractiveBadge(
             canvas,
             lineOuterX,
@@ -842,13 +869,14 @@ class WindowPreviewView @JvmOverloads constructor(
         )
 
         // Manija azul inferior
-        canvas.drawCircle(lineOuterX, rect.bottom + 15f, 12f, handlePaint)
-        canvas.drawCircle(lineOuterX, rect.bottom + 15f, 12f, handleStrokePaint)
+        val handleRadius = dpToPx(6f)
+        canvas.drawCircle(lineOuterX, rect.bottom + dpToPx(8f), handleRadius, handlePaint)
+        canvas.drawCircle(lineOuterX, rect.bottom + dpToPx(8f), handleRadius, handleStrokePaint)
 
-        // 2. Línea vertical por secciones (alturas por sección/fila)
+        // 2. Línea vertical por secciones
         canvas.drawLine(lineX, rect.top, lineX, rect.bottom, linePaint)
-        canvas.drawCircle(lineX, rect.top, 5f, dotPaint)
-        canvas.drawCircle(lineX, rect.bottom, 5f, dotPaint)
+        canvas.drawCircle(lineX, rect.top, dotRadius, dotPaint)
+        canvas.drawCircle(lineX, rect.bottom, dotRadius, dotPaint)
 
         val rows = getActiveLayoutRows(cfg)
         val activeHeights = getScaledActiveHeights(rows)
@@ -860,7 +888,7 @@ class WindowPreviewView @JvmOverloads constructor(
             val sectionH = rect.height() * rowRatio
             val sY1 = currentY
             val sY2 = currentY + sectionH
-            canvas.drawCircle(lineX, sY2, 5f, dotPaint)
+            canvas.drawCircle(lineX, sY2, dotRadius, dotPaint)
 
             val sectionVal = activeHeights[r].toInt()
 
@@ -876,15 +904,15 @@ class WindowPreviewView @JvmOverloads constructor(
             currentY += sectionH
         }
 
-        // 3. Línea horizontal por paneles/columnas (anchos por sección/columna)
+        // 3. Línea horizontal por paneles
         val cols = getActiveLayoutCols(cfg)
         val activeWidths = getScaledActiveWidths(cols)
         val totalWVal = activeWidths.sum().coerceAtLeast(1f)
 
-        val lineInnerY = rect.bottom + 28f
+        val lineInnerY = rect.bottom + dpToPx(15f)
         canvas.drawLine(rect.left, lineInnerY, rect.right, lineInnerY, linePaint)
-        canvas.drawCircle(rect.left, lineInnerY, 5f, dotPaint)
-        canvas.drawCircle(rect.right, lineInnerY, 5f, dotPaint)
+        canvas.drawCircle(rect.left, lineInnerY, dotRadius, dotPaint)
+        canvas.drawCircle(rect.right, lineInnerY, dotRadius, dotPaint)
 
         var currentX = rect.left
         for (c in 0 until cols) {
@@ -892,7 +920,7 @@ class WindowPreviewView @JvmOverloads constructor(
             val sectionW = rect.width() * colRatio
             val sX1 = currentX
             val sX2 = currentX + sectionW
-            canvas.drawCircle(sX2, lineInnerY, 5f, dotPaint)
+            canvas.drawCircle(sX2, lineInnerY, dotRadius, dotPaint)
 
             val panelVal = activeWidths[c].toInt()
 
@@ -909,10 +937,10 @@ class WindowPreviewView @JvmOverloads constructor(
         }
 
         // 4. Línea horizontal principal (ancho total)
-        val lineOuterY = rect.bottom + 85f
+        val lineOuterY = rect.bottom + dpToPx(38f)
         canvas.drawLine(rect.left, lineOuterY, rect.right, lineOuterY, linePaint)
-        canvas.drawCircle(rect.left, lineOuterY, 5f, dotPaint)
-        canvas.drawCircle(rect.right, lineOuterY, 5f, dotPaint)
+        canvas.drawCircle(rect.left, lineOuterY, dotRadius, dotPaint)
+        canvas.drawCircle(rect.right, lineOuterY, dotRadius, dotPaint)
         drawInteractiveBadge(
             canvas,
             (rect.left + rect.right) / 2f,
@@ -933,13 +961,13 @@ class WindowPreviewView @JvmOverloads constructor(
         index: Int,
         currentValue: Int,
     ) {
-        val badgeW = 68f
-        val badgeH = 28f
+        val badgeW = dpToPx(32f)
+        val badgeH = dpToPx(13f)
         val badgeRect = RectF(cX - badgeW / 2f, cY - badgeH / 2f, cX + badgeW / 2f, cY + badgeH / 2f)
 
-        canvas.drawRoundRect(badgeRect, 6f, 6f, badgePaint)
-        canvas.drawRoundRect(badgeRect, 6f, 6f, badgeBorderPaint)
-        canvas.drawText(text, cX, cY + 8f, textPaint)
+        canvas.drawRoundRect(badgeRect, dpToPx(3f), dpToPx(3f), badgePaint)
+        canvas.drawRoundRect(badgeRect, dpToPx(3f), dpToPx(3f), badgeBorderPaint)
+        canvas.drawText(text, cX, cY + dpToPx(4f), textPaint)
 
         badgeAreas.add(BadgeArea(badgeRect, type, index, currentValue))
     }

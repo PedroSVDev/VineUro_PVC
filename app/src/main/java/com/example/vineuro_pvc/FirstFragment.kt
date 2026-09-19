@@ -42,7 +42,7 @@ class FirstFragment : Fragment() {
         }
 
         binding.btnPrecios.setOnClickListener {
-            showOptionSelected(getString(R.string.menu_precios))
+            findNavController().navigate(R.id.action_FirstFragment_to_PreciosFragment)
         }
 
         binding.btnCompartirDatos.setOnClickListener {

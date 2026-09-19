@@ -12,4 +12,26 @@
     <color name="menu_comments">#E08472</color>
     <color name="menu_compartir">#1BBBB3</color>
     <color name="menu_app_patron">#61B813</color>
+
+    <!-- Precios Screen Table Header Colors -->
+    <color name="header_moneda">#90EE90</color>
+    <color name="header_impuesto">#00CED1</color>
+    <color name="header_planes">#FF69B4</color>
+    <color name="header_ventanas">#FFA500</color>
+    <color name="header_cristal">#1E90FF</color>
+    <color name="header_umbral_ext">#9370DB</color>
+    <color name="header_umbral_int">#32CD32</color>
+    <color name="header_muebles">#DB7093</color>
+    <color name="header_extras">#808000</color>
+    <color name="header_empleos">#F08080</color>
+    <color name="header_mosquitera">#FFDAB9</color>
+    <color name="header_laminacion">#006400</color>
+    <color name="header_colors">#808080</color>
+    <color name="keypad_bg">#E0E0E0</color>
+    <color name="keypad_button_bg">#4A90E2</color>
+    <color name="keypad_confirm_bg">#757575</color>
+    <color name="keypad_delete_bg">#A0A0A0</color>
+    <color name="table_border">#CCCCCC</color>
+    <color name="table_row_even">#F9F9F9</color>
+    <color name="table_row_odd">#FFFFFF</color>
 </resources>

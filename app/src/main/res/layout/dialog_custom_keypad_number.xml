@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_keypad"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="2dp">
+
+    <TextView
+        android:id="@+id/tvKeypadValue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/white"
+        android:gravity="center"
+        android:padding="8dp"
+        android:text="0"
+        android:textColor="@color/black"
+        android:textSize="28sp"
+        android:textStyle="bold" />
+
+    <GridLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:columnCount="3"
+        android:useDefaultMargins="true">
+
+        <!-- Fila 7-8-9 -->
+        <Button style="@style/KeypadButton" android:text="7" android:id="@+id/btn7" />
+        <Button style="@style/KeypadButton" android:text="8" android:id="@+id/btn8" />
+        <Button style="@style/KeypadButton" android:text="9" android:id="@+id/btn9" />
+
+        <!-- Fila 4-5-6 -->
+        <Button style="@style/KeypadButton" android:text="4" android:id="@+id/btn4" />
+        <Button style="@style/KeypadButton" android:text="5" android:id="@+id/btn5" />
+        <Button style="@style/KeypadButton" android:text="6" android:id="@+id/btn6" />
+
+        <!-- Fila 1-2-3 -->
+        <Button style="@style/KeypadButton" android:text="1" android:id="@+id/btn1" />
+        <Button style="@style/KeypadButton" android:text="2" android:id="@+id/btn2" />
+        <Button style="@style/KeypadButton" android:text="3" android:id="@+id/btn3" />
+
+        <!-- Fila Especial -->
+        <ImageButton
+            android:id="@+id/btnKeypadDelete"
+            style="@style/KeypadActionItem"
+            android:src="@drawable/ic_apertura_arrow_left" />
+        <Button style="@style/KeypadButton" android:text="0" android:id="@+id/btn0" />
+        <Button style="@style/KeypadButton" android:text="." android:id="@+id/btnDot" />
+
+        <!-- Fila de Confirmación -->
+        <ImageButton
+            android:id="@+id/btnKeypadClear"
+            style="@style/KeypadActionItem"
+            android:src="@drawable/ic_apertura_arrow_left" />
+
+        <View android:layout_width="60dp" android:layout_height="60dp" />
+
+        <ImageButton
+            android:id="@+id/btnKeypadDone"
+            style="@style/KeypadActionItem"
+            android:src="@drawable/ic_menu_send" />
+
+    </GridLayout>
+</LinearLayout>
