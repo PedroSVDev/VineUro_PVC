@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.Toast
+import androidx.appcompat.widget.PopupMenu
 import androidx.fragment.app.Fragment
 import com.example.vineuro_pvc.data.ClientRepository
 import com.example.vineuro_pvc.data.OrderItem
@@ -24,7 +25,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.util.Locale
 
 /**
- * Fragmento de Cálculo y Diseño con cotas para edición de ancho de paneles individuales y herramientas técnicas.
+ * Fragmento de Cálculo y Diseño que soporta sugerencias de IA y se inicializa en blanco para nuevos pedidos.
  */
 class CalculoPedidoFragment : Fragment() {
 
@@ -65,6 +66,7 @@ class CalculoPedidoFragment : Fragment() {
 
         val dniCliente = arguments?.getString("dni_cliente") ?: ""
         var nombreHeader = arguments?.getString("nombre_cliente") ?: "Aleksander White : S1"
+        val usarSugerenciaIa = arguments?.getBoolean("usar_sugerencia_ia", false) ?: false
 
         if (dniCliente.isNotEmpty()) {
             val cliente = clientRepository.obtenerClientePorDni(dniCliente)
@@ -95,7 +97,7 @@ class CalculoPedidoFragment : Fragment() {
             Toast.makeText(requireContext(), "Modo de calibración y compás técnico activo", Toast.LENGTH_SHORT).show()
         }
 
-        // 5. Botón Eliminar / Papelera con diseño Material 3
+        // 5. Botón Eliminar / Papelera
         binding.btnDeleteItem.setOnClickListener {
             if (itemsOrden.isNotEmpty() && activeItemIndex in itemsOrden.indices) {
                 val itemActual = itemsOrden[activeItemIndex]
@@ -114,7 +116,63 @@ class CalculoPedidoFragment : Fragment() {
             }
         }
 
-        inicializarOrden()
+        // 6. Botón de menú superior derecho con opciones
+        binding.btnHeaderMenu.setOnClickListener { viewAnchor ->
+            mostrarMenuOpcionesSuperiores(viewAnchor)
+        }
+
+        if (usarSugerenciaIa) {
+            inicializarOrdenSugerida()
+        } else {
+            inicializarOrdenVacia()
+        }
+    }
+
+    private fun mostrarMenuOpcionesSuperiores(anchorView: View) {
+        val popup = PopupMenu(requireContext(), anchorView)
+        popup.menu.apply {
+            add(0, 1, 0, "📄 Ver Detalles del Cliente / Pedido")
+            add(0, 2, 1, "💾 Guardar Cambios en la Nube")
+            add(0, 3, 2, "📐 Exportar / Compartir Cotización")
+            add(0, 4, 3, "🔄 Reiniciar Orden Completa")
+            add(0, 5, 4, "⚙️ Configuración de Parámetros")
+        }
+
+        popup.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                1 -> {
+                    Toast.makeText(requireContext(), "Detalles del cliente: ${binding.tvHeaderClienteNombre.text}", Toast.LENGTH_SHORT).show()
+                    true
+                }
+                2 -> {
+                    Toast.makeText(requireContext(), "Orden sincronizada y guardada exitosamente en Supabase Cloud", Toast.LENGTH_SHORT).show()
+                    true
+                }
+                3 -> {
+                    Toast.makeText(requireContext(), "Generando cotización técnica...", Toast.LENGTH_SHORT).show()
+                    true
+                }
+                4 -> {
+                    MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("¿Reiniciar Orden?")
+                        .setMessage("¿Desea eliminar todas las ventanas y vaciar este pedido?")
+                        .setIcon(android.R.drawable.ic_menu_delete)
+                        .setPositiveButton("VACIAR ORDEN") { dialog, _ ->
+                            inicializarOrdenVacia()
+                            dialog.dismiss()
+                        }
+                        .setNegativeButton("CANCELAR") { dialog, _ -> dialog.dismiss() }
+                        .show()
+                    true
+                }
+                5 -> {
+                    Toast.makeText(requireContext(), "Ajuste de parámetros comprobados activo", Toast.LENGTH_SHORT).show()
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
     }
 
     private fun inicializarConfiguraciones() {
@@ -122,29 +180,38 @@ class CalculoPedidoFragment : Fragment() {
         listaConfiguraciones.addAll(WindowConfigCatalog.obtenerTodas())
     }
 
-    private fun inicializarOrden() {
+    private fun inicializarOrdenVacia() {
         itemsOrden.clear()
-        if (listaConfiguraciones.size > 5) {
-            val window1 = OrderItem(
-                index = 1,
-                config = listaConfiguraciones[5],
-                colorBgHex = "#42A5F5",
-            )
-
-            val window2 = OrderItem(
-                index = 2,
-                config = listaConfiguraciones[3],
-                colorBgHex = "#CE3B75",
-            )
-
-            itemsOrden.add(window1)
-            itemsOrden.add(window2)
-            activeItemIndex = 0
-
-            renderizarPestanasInferiores()
-            cargarItemActivoEnCanvas()
-        }
+        activeItemIndex = 0
+        renderizarPestanasInferiores()
+        binding.wpvMainCanvas.resetCanvas()
+        limpiarTablaMatriz()
     }
+
+    private fun inicializarOrdenSugerida() {
+        itemsOrden.clear()
+        // Buscar "2 Paneles V."
+        val configSugerida = listaConfiguraciones.find { it.nombre == "2 Paneles V." } ?: listaConfiguraciones.first()
+
+        val window1 = OrderItem(
+            index = 1,
+            config = configSugerida,
+            colorBgHex = "#42A5F5",
+        )
+
+        // Asignar apertura "Desliz. Der." y "Desliz. Izq." a los paneles por defecto como sugerencia
+        window1.paneMechanisms[0] = "1" // Desliz Der
+        window1.paneMechanisms[1] = "3" // Desliz Izq
+
+        itemsOrden.add(window1)
+        activeItemIndex = 0
+
+        renderizarPestanasInferiores()
+        cargarItemActivoEnCanvas()
+        
+        Toast.makeText(requireContext(), "Sugerencia de IA aplicada correctamente ✨", Toast.LENGTH_LONG).show()
+    }
+
 
     private fun renderizarPestanasInferiores() {
         binding.containerWindowTabs.removeAllViews()

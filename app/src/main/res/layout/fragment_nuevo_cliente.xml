@@ -47,21 +47,18 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:layout_marginBottom="16dp"
-                    android:text="Ingrese el DNI para consultar datos automáticamente."
+                    android:text="Ingrese los datos del cliente."
                     android:textColor="#666666"
                     android:textSize="14sp" />
 
-                <!-- DNI Field with End Search Button -->
+                <!-- DNI Field -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/til_dni"
                     style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="@string/label_dni"
-                    app:endIconMode="custom"
-                    app:endIconDrawable="@android:drawable/ic_menu_search"
-                    app:endIconContentDescription="@string/btn_buscar_dni"
-                    app:helperText="Formato: 8 dígitos">
+                    app:helperText="Formato: 8 dígitos (Opcional)">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_dni"
@@ -71,27 +68,6 @@
                         android:maxLength="8"
                         android:textSize="16sp" />
                 </com.google.android.material.textfield.TextInputLayout>
-
-                <!-- Progress indicator for API search -->
-                <com.google.android.material.progressindicator.LinearProgressIndicator
-                    android:id="@+id/progress_dni"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:indeterminate="true"
-                    android:visibility="gone" />
-
-                <!-- Status TextView for DNI Search -->
-                <TextView
-                    android:id="@+id/tv_dni_status"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:layout_marginBottom="12dp"
-                    android:textSize="13sp"
-                    android:visibility="gone"
-                    tools:text="Buscando datos del DNI..."
-                    tools:visibility="visible" />
 
                 <!-- Nombres Field -->
                 <com.google.android.material.textfield.TextInputLayout

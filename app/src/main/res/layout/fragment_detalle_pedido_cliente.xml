@@ -156,12 +156,29 @@
                         android:textSize="15sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <!-- NEW: AI Suggestion Button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_sugerir_ia"
+                    style="@style/Widget.Material3.Button.OutlinedButton.Icon"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="16dp"
+                    android:text="Sugerir Diseño Ideal con IA"
+                    android:textColor="#2196F3"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="8dp"
+                    app:icon="@drawable/ic_ai_sparkles"
+                    app:iconTint="#2196F3"
+                    app:strokeColor="#2196F3"
+                    app:strokeWidth="1.5dp" />
+
                 <!-- Continuar Button -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_continuar_pedido"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:layout_marginTop="24dp"
+                    android:layout_marginTop="16dp"
                     android:backgroundTint="@color/menu_nuevo_orden"
                     android:text="@string/btn_continuar_pedido"
                     android:textColor="@color/white"
