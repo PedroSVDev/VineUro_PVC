@@ -2,6 +2,7 @@ package com.example.vineuro_pvc
 
 import android.app.AlertDialog
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.text.InputType
 import android.view.LayoutInflater
@@ -11,8 +12,10 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.widget.PopupMenu
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import com.example.vineuro_pvc.data.ClientRepository
 import com.example.vineuro_pvc.data.OrderItem
+import com.example.vineuro_pvc.data.OrderItemHolder
 import com.example.vineuro_pvc.data.WindowConfig
 import com.example.vineuro_pvc.data.WindowConfigCatalog
 import com.example.vineuro_pvc.databinding.DialogSelectConfigBinding
@@ -116,6 +119,11 @@ class CalculoPedidoFragment : Fragment() {
             }
         }
 
+        // 0. Botón azul circular superior izquierdo (Hamburguesa): Abre el menú flotante
+        binding.btnTopLeftMenu.setOnClickListener {
+            mostrarMenuOpcionesFlotante()
+        }
+
         // 6. Botón de menú superior derecho con opciones
         binding.btnHeaderMenu.setOnClickListener { viewAnchor ->
             mostrarMenuOpcionesSuperiores(viewAnchor)
@@ -126,6 +134,55 @@ class CalculoPedidoFragment : Fragment() {
         } else {
             inicializarOrdenVacia()
         }
+    }
+
+    private fun mostrarMenuOpcionesFlotante() {
+        val dialogBinding = com.example.vineuro_pvc.databinding.DialogMenuOpcionesBinding.inflate(layoutInflater)
+        val dialog = AlertDialog.Builder(requireContext())
+            .setView(dialogBinding.root)
+            .create()
+
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        // 1. CREAR PDF SÓLO PROYECTOS
+        dialogBinding.btnPdfSoloProyectos.setOnClickListener {
+            guardarEstadoItemActivo()
+            OrderItemHolder.items = itemsOrden.toList()
+            OrderItemHolder.clientName = binding.tvHeaderClienteNombre.text.toString()
+            dialog.dismiss()
+            findNavController().navigate(R.id.action_CalculoPedidoFragment_to_PdfPreviewFragment)
+        }
+
+        // 2. CREAR PDF CON LOS DETALLES
+        dialogBinding.btnPdfConDetalles.setOnClickListener {
+            Toast.makeText(requireContext(), "Generador de PDF con Detalles en desarrollo", Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+        }
+
+        // 3. PDF OFERTA COMERCIAL
+        dialogBinding.btnPdfOfertaComercial1.setOnClickListener {
+            Toast.makeText(requireContext(), "Generador de Oferta Comercial en desarrollo", Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+        }
+
+        // 4. PDF OFERTA COMERCIAL 2 (Desbloqueado)
+        dialogBinding.btnPdfOfertaComercial2.setOnClickListener {
+            Toast.makeText(requireContext(), "Generador de Oferta Comercial 2 en desarrollo", Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+        }
+
+        // 5. CONFIGURAR REQUISITOS
+        dialogBinding.btnConfigurarRequisitos.setOnClickListener {
+            Toast.makeText(requireContext(), "Configuración de requisitos técnicos de la orden", Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+        }
+
+        // 6. CERRAR EL MENÚ
+        dialogBinding.btnCerrarMenu.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
     private fun mostrarMenuOpcionesSuperiores(anchorView: View) {

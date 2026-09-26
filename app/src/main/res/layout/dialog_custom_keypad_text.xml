@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_keypad"
     android:elevation="8dp"
@@ -9,7 +9,7 @@
 
     <EditText
         android:id="@+id/etKeypadValue"
-        android:layout_width="320dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/white"
         android:gravity="center"
@@ -27,27 +27,31 @@
         <ImageButton
             android:id="@+id/btnKeypadClose"
             style="@style/KeypadActionItem"
+            android:layout_width="0dp"
             android:layout_weight="1"
-            android:src="@drawable/ic_menu_add" /> <!-- X Icon -->
+            android:src="@drawable/ic_keypad_close" />
 
         <ImageButton
             android:id="@+id/btnKeypadDelete"
             style="@style/KeypadActionItem"
+            android:layout_width="0dp"
             android:layout_weight="1"
-            android:src="@drawable/ic_apertura_arrow_left" /> <!-- Triangle -->
+            android:src="@drawable/ic_keypad_arrow_left" />
 
         <ImageButton
             android:id="@+id/btnKeypadClear"
             style="@style/KeypadActionItem"
+            android:layout_width="0dp"
             android:layout_weight="1"
-            android:src="@drawable/ic_apertura_arrow_left" /> <!-- Double triangle logic in code -->
+            android:src="@drawable/ic_keypad_double_arrow_left" />
 
         <ImageButton
             android:id="@+id/btnKeypadDone"
             style="@style/KeypadActionItem"
+            android:layout_width="0dp"
             android:layout_weight="1"
             android:backgroundTint="#757575"
-            android:src="@drawable/ic_menu_send" /> <!-- Check -->
+            android:src="@drawable/ic_keypad_done" />
 
     </LinearLayout>
 </LinearLayout>

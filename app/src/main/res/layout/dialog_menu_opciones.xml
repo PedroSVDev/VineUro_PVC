@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="20dp"
+    android:layout_marginEnd="20dp"
+    app:cardCornerRadius="2dp"
+    app:cardElevation="12dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="#333333">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Header: menú -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="38dp"
+            android:background="#42A5F5">
+
+            <com.example.vineuro_pvc.views.StrokeTextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="menú"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+        </FrameLayout>
+
+        <!-- Divider line -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#333333" />
+
+        <!-- 1. CREAR PDF SÓLO PROYECTOS -->
+        <LinearLayout
+            android:id="@+id/btn_pdf_solo_proyectos"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:background="#92C338"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:contentDescription="Icono solo proyectos"
+                android:src="@drawable/ic_win_grid_2x2"
+                app:tint="#FFFFFF" />
+
+            <com.example.vineuro_pvc.views.StrokeTextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:text="CREAR PDF SÓLO PROYECTOS"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#333333" />
+
+        <!-- 2. CREAR PDF CON LOS DETALLES -->
+        <LinearLayout
+            android:id="@+id/btn_pdf_con_detalles"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:background="#E56B5D"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:contentDescription="Icono con detalles"
+                android:src="@drawable/ic_win_3pane_h"
+                app:tint="#FFFFFF" />
+
+            <com.example.vineuro_pvc.views.StrokeTextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:text="CREAR PDF CON LOS DETALLES"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#333333" />
+
+        <!-- 3. PDF OFERTA COMERCIAL -->
+        <LinearLayout
+            android:id="@+id/btn_pdf_oferta_comercial_1"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:background="#E56372"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:contentDescription="Icono oferta comercial"
+                android:src="@drawable/ic_win_2pane_v"
+                app:tint="#FFFFFF" />
+
+            <com.example.vineuro_pvc.views.StrokeTextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:text="PDF OFERTA COMERCIAL"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#333333" />
+
+        <!-- 4. PDF OFERTA COMERCIAL 2 -->
+        <LinearLayout
+            android:id="@+id/btn_pdf_oferta_comercial_2"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:background="#257A6F"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:contentDescription="Icono oferta comercial 2"
+                android:src="@drawable/ic_win_1pane"
+                app:tint="#FFFFFF" />
+
+            <com.example.vineuro_pvc.views.StrokeTextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:text="PDF OFERTA COMERCIAL 2"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#333333" />
+
+        <!-- 5. CONFIGURAR REQUISITOS -->
+        <LinearLayout
+            android:id="@+id/btn_configurar_requisitos"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:background="#E0921B"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:contentDescription="Icono requisitos"
+                android:src="@drawable/ic_menu_edit"
+                app:tint="#FFFFFF" />
+
+            <com.example.vineuro_pvc.views.StrokeTextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:text="CONFIGURAR REQUISITOS"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#333333" />
+
+        <!-- 6. CERRAR EL MENÚ -->
+        <LinearLayout
+            android:id="@+id/btn_cerrar_menu"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:background="#42A5F5"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <com.example.vineuro_pvc.views.StrokeTextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CERRAR EL MENÚ"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

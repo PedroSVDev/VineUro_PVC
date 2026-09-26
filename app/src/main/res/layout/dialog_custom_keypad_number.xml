@@ -40,26 +40,30 @@
         <Button style="@style/KeypadButton" android:text="2" android:id="@+id/btn2" />
         <Button style="@style/KeypadButton" android:text="3" android:id="@+id/btn3" />
 
-        <!-- Fila Especial -->
+        <!-- Fila Backspace, 0, . -->
         <ImageButton
             android:id="@+id/btnKeypadDelete"
             style="@style/KeypadActionItem"
-            android:src="@drawable/ic_apertura_arrow_left" />
+            android:src="@drawable/ic_keypad_arrow_left" />
         <Button style="@style/KeypadButton" android:text="0" android:id="@+id/btn0" />
         <Button style="@style/KeypadButton" android:text="." android:id="@+id/btnDot" />
 
-        <!-- Fila de Confirmación -->
+        <!-- Fila de Acciones: X, <<, Done -->
+        <ImageButton
+            android:id="@+id/btnKeypadClose"
+            style="@style/KeypadActionItem"
+            android:src="@drawable/ic_keypad_close" />
+
         <ImageButton
             android:id="@+id/btnKeypadClear"
             style="@style/KeypadActionItem"
-            android:src="@drawable/ic_apertura_arrow_left" />
-
-        <View android:layout_width="60dp" android:layout_height="60dp" />
+            android:src="@drawable/ic_keypad_double_arrow_left" />
 
         <ImageButton
             android:id="@+id/btnKeypadDone"
             style="@style/KeypadActionItem"
-            android:src="@drawable/ic_menu_send" />
+            android:backgroundTint="#757575"
+            android:src="@drawable/ic_keypad_done" />
 
     </GridLayout>
 </LinearLayout>

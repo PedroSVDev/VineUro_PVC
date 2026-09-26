@@ -1,6 +1,7 @@
 package com.example.vineuro_pvc.views
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -8,6 +9,7 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import com.example.vineuro_pvc.data.OrderItem
 import com.example.vineuro_pvc.data.WindowConfig
 
 class WindowPreviewView @JvmOverloads constructor(
@@ -325,6 +327,136 @@ class WindowPreviewView @JvmOverloads constructor(
         return true
     }
 
+    /**
+     * Permite dibujar un OrderItem específico en cualquier Canvas con límites dados.
+     */
+    fun drawItem(
+        canvas: Canvas,
+        bounds: RectF,
+        item: OrderItem,
+        showTechnicalDetails: Boolean = true
+    ) {
+        val savedConfig = this.config
+        val savedTechMode = this.showTechnicalDetails
+        val savedHeights = this.sectionHeights.clone()
+        val savedWidths = this.sectionWidths.clone()
+        val savedMechanisms = HashMap(this.paneMechanisms)
+        val savedMosqNet = HashMap(this.paneMosqNet)
+        val savedPuerta = HashMap(this.panePuerta)
+        val savedSandwich = HashMap(this.paneSandwich)
+        val savedCols = HashMap(this.paneCols)
+
+        try {
+            this.config = item.config
+            this.showTechnicalDetails = showTechnicalDetails
+            this.sectionHeights = item.sectionHeights.clone()
+            this.sectionWidths = item.sectionWidths.clone()
+
+            this.paneMechanisms.clear()
+            this.paneMechanisms.putAll(item.paneMechanisms)
+
+            this.paneMosqNet.clear()
+            this.paneMosqNet.putAll(item.paneMosqNet)
+
+            this.panePuerta.clear()
+            this.panePuerta.putAll(item.panePuerta)
+
+            this.paneSandwich.clear()
+            this.paneSandwich.putAll(item.paneSandwich)
+
+            this.paneCols.clear()
+            this.paneCols.putAll(item.paneCols)
+
+            val saveCount = canvas.save()
+            canvas.translate(bounds.left, bounds.top)
+
+            val w = bounds.width()
+            val h = bounds.height()
+
+            if (w > 0 && h > 0) {
+                badgeAreas.clear()
+                paneAreas.clear()
+
+                val cfg = item.config
+                if (!showTechnicalDetails) {
+                    val padding = dpToPx(2f)
+                    val rect = RectF(padding, padding, w - padding, h - padding)
+                    drawWindowConfig(canvas, rect, cfg)
+                } else {
+                    val leftMargin = dpToPx(55f)
+                    val bottomMargin = dpToPx(45f)
+                    val topMargin = dpToPx(15f)
+                    val rightMargin = dpToPx(15f)
+
+                    val availW = w - leftMargin - rightMargin
+                    val availH = h - topMargin - bottomMargin
+
+                    if (availW > 0 && availH > 0) {
+                        val totalH = item.altoTotalMm.toFloat().coerceAtLeast(1f)
+                        val totalW = item.anchoTotalMm.toFloat().coerceAtLeast(1f)
+
+                        val targetAspect = totalW / totalH
+                        val availAspect = availW / availH
+
+                        val drawW: Float
+                        val drawH: Float
+
+                        if (targetAspect > availAspect) {
+                            drawW = availW
+                            drawH = availW / targetAspect
+                        } else {
+                            drawH = availH
+                            drawW = availH * targetAspect
+                        }
+
+                        val rectLeft = leftMargin + (availW - drawW) / 2f
+                        val rectTop = topMargin + (availH - drawH) / 2f
+                        val rectRight = rectLeft + drawW
+                        val rectBottom = rectTop + drawH
+
+                        val windowRect = RectF(rectLeft, rectTop, rectRight, rectBottom)
+
+                        drawWindowConfig(canvas, windowRect, cfg)
+                        drawDimensionLines(canvas, windowRect, cfg)
+                    }
+                }
+            }
+            canvas.restoreToCount(saveCount)
+        } finally {
+            this.config = savedConfig
+            this.showTechnicalDetails = savedTechMode
+            this.sectionHeights = savedHeights
+            this.sectionWidths = savedWidths
+            this.paneMechanisms.clear()
+            this.paneMechanisms.putAll(savedMechanisms)
+            this.paneMosqNet.clear()
+            this.paneMosqNet.putAll(savedMosqNet)
+            this.panePuerta.clear()
+            this.panePuerta.putAll(savedPuerta)
+            this.paneSandwich.clear()
+            this.paneSandwich.putAll(savedSandwich)
+            this.paneCols.clear()
+            this.paneCols.putAll(savedCols)
+        }
+    }
+
+    companion object {
+        fun renderItemToBitmap(
+            context: Context,
+            item: OrderItem,
+            widthPx: Int,
+            heightPx: Int,
+            showTechnicalDetails: Boolean = true
+        ): Bitmap {
+            val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            val view = WindowPreviewView(context)
+            view.layout(0, 0, widthPx, heightPx)
+            view.drawItem(canvas, RectF(0f, 0f, widthPx.toFloat(), heightPx.toFloat()), item, showTechnicalDetails)
+            return bitmap
+        }
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
@@ -472,6 +604,7 @@ class WindowPreviewView @JvmOverloads constructor(
         }
 
         canvas.drawRect(glassL, glassT, glassR, glassB, if (isSandwich) sandwichPaint else glassPaint)
+        canvas.drawRect(glassL, glassT, glassR, glassB, frameBorderPaint)
 
         if (isMosqNet) {
             val paneW = glassR - glassL
@@ -589,6 +722,7 @@ class WindowPreviewView @JvmOverloads constructor(
 
     private fun drawGrid(canvas: Canvas, rect: RectF, cols: Int, rows: Int, t: Float) {
         canvas.drawRect(rect, framePaint)
+        canvas.drawRect(rect, frameBorderPaint)
 
         val innerL = rect.left + t
         val innerT = rect.top + t
@@ -632,6 +766,7 @@ class WindowPreviewView @JvmOverloads constructor(
 
     private fun drawTopTransom(canvas: Canvas, rect: RectF, cols: Int, t: Float) {
         canvas.drawRect(rect, framePaint)
+        canvas.drawRect(rect, frameBorderPaint)
 
         val innerL = rect.left + t
         val innerT = rect.top + t
@@ -658,6 +793,7 @@ class WindowPreviewView @JvmOverloads constructor(
 
     private fun drawBottomTransom(canvas: Canvas, rect: RectF, cols: Int, t: Float) {
         canvas.drawRect(rect, framePaint)
+        canvas.drawRect(rect, frameBorderPaint)
 
         val innerL = rect.left + t
         val innerT = rect.top + t
@@ -682,6 +818,7 @@ class WindowPreviewView @JvmOverloads constructor(
 
     private fun drawTopBottomTransom(canvas: Canvas, rect: RectF, cols: Int, t: Float) {
         canvas.drawRect(rect, framePaint)
+        canvas.drawRect(rect, frameBorderPaint)
 
         val innerL = rect.left + t
         val innerT = rect.top + t
@@ -724,10 +861,14 @@ class WindowPreviewView @JvmOverloads constructor(
 
         if (isLeftDoor) {
             canvas.drawRect(rect.left, rect.top, splitX, rect.bottom, framePaint)
+            canvas.drawRect(rect.left, rect.top, splitX, rect.bottom, frameBorderPaint)
             canvas.drawRect(splitX, rect.top, rect.right, windowBottomY, framePaint)
+            canvas.drawRect(splitX, rect.top, rect.right, windowBottomY, frameBorderPaint)
         } else {
             canvas.drawRect(rect.left, rect.top, splitX, windowBottomY, framePaint)
+            canvas.drawRect(rect.left, rect.top, splitX, windowBottomY, frameBorderPaint)
             canvas.drawRect(splitX, rect.top, rect.right, rect.bottom, framePaint)
+            canvas.drawRect(splitX, rect.top, rect.right, rect.bottom, frameBorderPaint)
         }
 
         val iL = rect.left + t
@@ -778,11 +919,16 @@ class WindowPreviewView @JvmOverloads constructor(
 
         if (hasTransom) {
             canvas.drawRect(rect.left, rect.top, rect.right, windowBottomY, framePaint)
+            canvas.drawRect(rect.left, rect.top, rect.right, windowBottomY, frameBorderPaint)
             canvas.drawRect(splitLeftX, windowBottomY, splitRightX, rect.bottom, framePaint)
+            canvas.drawRect(splitLeftX, windowBottomY, splitRightX, rect.bottom, frameBorderPaint)
         } else {
             canvas.drawRect(rect.left, rect.top, splitLeftX, windowBottomY, framePaint)
+            canvas.drawRect(rect.left, rect.top, splitLeftX, windowBottomY, frameBorderPaint)
             canvas.drawRect(splitLeftX, rect.top, splitRightX, rect.bottom, framePaint)
+            canvas.drawRect(splitLeftX, rect.top, splitRightX, rect.bottom, frameBorderPaint)
             canvas.drawRect(splitRightX, rect.top, rect.right, windowBottomY, framePaint)
+            canvas.drawRect(splitRightX, rect.top, rect.right, windowBottomY, frameBorderPaint)
         }
 
         val iL = rect.left + t
@@ -965,9 +1111,17 @@ class WindowPreviewView @JvmOverloads constructor(
         val badgeH = dpToPx(13f)
         val badgeRect = RectF(cX - badgeW / 2f, cY - badgeH / 2f, cX + badgeW / 2f, cY + badgeH / 2f)
 
+        val borderP = if (showTechnicalDetails) {
+            Paint(badgeBorderPaint).apply { color = Color.parseColor("#444444") }
+        } else badgeBorderPaint
+
+        val textP = if (showTechnicalDetails) {
+            Paint(textPaint).apply { color = Color.parseColor("#333333") }
+        } else textPaint
+
         canvas.drawRoundRect(badgeRect, dpToPx(3f), dpToPx(3f), badgePaint)
-        canvas.drawRoundRect(badgeRect, dpToPx(3f), dpToPx(3f), badgeBorderPaint)
-        canvas.drawText(text, cX, cY + dpToPx(4f), textPaint)
+        canvas.drawRoundRect(badgeRect, dpToPx(3f), dpToPx(3f), borderP)
+        canvas.drawText(text, cX, cY + dpToPx(4f), textP)
 
         badgeAreas.add(BadgeArea(badgeRect, type, index, currentValue))
     }

@@ -77,5 +77,16 @@
         android:id="@+id/CalculoPedidoFragment"
         android:name="com.example.vineuro_pvc.CalculoPedidoFragment"
         android:label="@string/title_calculo_pedido"
-        tools:layout="@layout/fragment_calculo_pedido" />
+        tools:layout="@layout/fragment_calculo_pedido">
+
+        <action
+            android:id="@+id/action_CalculoPedidoFragment_to_PdfPreviewFragment"
+            app:destination="@id/PdfPreviewFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/PdfPreviewFragment"
+        android:name="com.example.vineuro_pvc.PdfPreviewFragment"
+        android:label="Vista Previa de Oferta PDF"
+        tools:layout="@layout/fragment_pdf_preview" />
 </navigation>

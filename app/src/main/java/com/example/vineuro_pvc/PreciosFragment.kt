@@ -13,6 +13,7 @@ import android.widget.GridLayout
 import android.widget.ImageButton
 import android.widget.TableRow
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
@@ -53,7 +54,13 @@ class PreciosFragment : Fragment() {
         binding.btnAddEmpleos.setOnClickListener { addSelectionRow(binding.tableEmpleos, "new_job", "0", true) }
         binding.btnAddMosquitera.setOnClickListener { addRow(binding.tableMosquitera, List(7) { "0" }, true, colorType = 11) }
         binding.btnAddLaminacion.setOnClickListener { addRow(binding.tableLaminacion, listOf("new_lam", "0"), true, colorType = 12) }
-        binding.btnAddColors.setOnClickListener { addColorRow("new_color", Color.WHITE) }
+        binding.btnAddColors.setOnClickListener { 
+            if (colorNameExists("new_color")) {
+                Toast.makeText(requireContext(), "El color 'new_color' ya existe. Cámbiale el nombre primero.", Toast.LENGTH_SHORT).show()
+            } else {
+                addColorRow("new_color", Color.WHITE)
+            }
+        }
     }
 
     private fun addInitialData() {
@@ -126,16 +133,27 @@ class PreciosFragment : Fragment() {
             setBackgroundColor(Color.parseColor("#C5E1A5"))
             setOnClickListener { showNumericKeypad(this) }
         })
+        val selectionBoxes = mutableListOf<View>()
+        val drawables = listOf(
+            R.drawable.bg_sel_option_0,
+            R.drawable.bg_sel_option_1,
+            R.drawable.bg_sel_option_2,
+            R.drawable.bg_sel_option_3,
+            R.drawable.bg_sel_option_4,
+            R.drawable.bg_sel_option_5
+        )
+
         // Botones de selección (pc, m2, m...)
         for (i in 0 until 6) {
             val box = View(requireContext()).apply {
                 val size = dpToPx(24)
                 layoutParams = TableRow.LayoutParams(size, size).apply { setMargins(10, 10, 10, 10) }
-                setBackgroundResource(if (i < 2) R.drawable.bg_selection_circle else R.drawable.bg_selection_box)
-                setOnClickListener { 
-                    it.isSelected = !it.isSelected
+                setBackgroundResource(drawables[i])
+                setOnClickListener { clicked ->
+                    selectionBoxes.forEach { it.isSelected = (it == clicked) }
                 }
             }
+            selectionBoxes.add(box)
             row.addView(box)
         }
 
@@ -149,6 +167,32 @@ class PreciosFragment : Fragment() {
         table.addView(row)
     }
 
+    private fun colorNameExists(name: String): Boolean {
+        val table = binding.tableColors
+        for (i in 0 until table.childCount) {
+            val row = table.getChildAt(i) as? TableRow
+            val nameView = row?.getChildAt(0) as? TextView
+            if (nameView?.text.toString().trim().equals(name, ignoreCase = true)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun isColorNameDuplicate(name: String, currentTextView: TextView): Boolean {
+        val table = binding.tableColors
+        for (i in 0 until table.childCount) {
+            val row = table.getChildAt(i) as? TableRow
+            val nameView = row?.getChildAt(0) as? TextView
+            if (nameView != null && nameView != currentTextView) {
+                if (nameView.text.toString().trim().equals(name, ignoreCase = true)) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
     private fun addColorRow(name: String, colorValue: Int) {
         val table = binding.tableColors
         val row = TableRow(requireContext())
@@ -156,7 +200,7 @@ class PreciosFragment : Fragment() {
         row.addView(TextView(requireContext()).apply {
             text = name
             setPadding(20, 20, 20, 20)
-            setOnClickListener { showTextKeypad(this) }
+            setOnClickListener { showTextKeypad(this, isColorName = true) }
         })
         
         val colorCell = View(requireContext()).apply {
@@ -199,7 +243,12 @@ class PreciosFragment : Fragment() {
             val s = display.text.toString()
             display.text = if (s.length > 1) s.dropLast(1) else "0"
         }
-        dialogView.findViewById<View>(R.id.btnKeypadClear).setOnClickListener { display.text = "0" }
+        dialogView.findViewById<View>(R.id.btnKeypadClear).setOnClickListener {
+            display.text = "0"
+        }
+        dialogView.findViewById<View>(R.id.btnKeypadClose).setOnClickListener {
+            dialog.dismiss()
+        }
         dialogView.findViewById<View>(R.id.btnKeypadDone).setOnClickListener {
             target.text = formatDecimal(display.text.toString())
             dialog.dismiss()
@@ -207,19 +256,53 @@ class PreciosFragment : Fragment() {
         dialog.show()
     }
 
-    private fun showTextKeypad(target: TextView) {
+    private fun showTextKeypad(target: TextView, isColorName: Boolean = false) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_custom_keypad_text, null)
         val dialog = AlertDialog.Builder(requireContext()).setView(dialogView).create()
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
         val input = dialogView.findViewById<EditText>(R.id.etKeypadValue)
         input.setText(target.text)
+        input.setSelection(input.text.length)
+        input.requestFocus()
 
-        dialogView.findViewById<View>(R.id.btnKeypadDone).setOnClickListener {
-            target.text = input.text.toString()
+        dialogView.findViewById<View>(R.id.btnKeypadDelete).setOnClickListener {
+            val current = input.text.toString()
+            if (current.isNotEmpty()) {
+                input.setText(current.dropLast(1))
+                input.setSelection(input.text.length)
+            }
+        }
+
+        dialogView.findViewById<View>(R.id.btnKeypadClear).setOnClickListener {
+            input.setText("")
+        }
+
+        dialogView.findViewById<View>(R.id.btnKeypadClose).setOnClickListener {
             dialog.dismiss()
         }
-        dialogView.findViewById<View>(R.id.btnKeypadClose).setOnClickListener { dialog.dismiss() }
+
+        dialogView.findViewById<View>(R.id.btnKeypadDone).setOnClickListener {
+            val newName = input.text.toString().trim()
+            if (isColorName) {
+                if (newName.isBlank()) {
+                    Toast.makeText(requireContext(), "El nombre no puede estar vacío", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                if (isColorNameDuplicate(newName, target)) {
+                    Toast.makeText(requireContext(), "Ya existe un color con el nombre '$newName'", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+            }
+            target.text = newName
+            dialog.dismiss()
+        }
+
+        dialog.setOnShowListener {
+            val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            imm.showSoftInput(input, 0)
+        }
+
         dialog.show()
     }
 
@@ -229,7 +312,57 @@ class PreciosFragment : Fragment() {
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         
         val grid = dialogView.findViewById<GridLayout>(R.id.gridColors)
-        val colors = listOf(Color.WHITE, Color.GRAY, Color.BLACK, Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW, Color.CYAN)
+        val colors = listOf(
+            Color.parseColor("#f5f5f5"),
+            Color.parseColor("#d0d1d5"),
+            Color.parseColor("#afb1b0"),
+            Color.parseColor("#999999"),
+            Color.parseColor("#7d7d7d"),
+            Color.parseColor("#5e5e5c"),
+            Color.parseColor("#3e3e3e"),
+            Color.parseColor("#fff1ca"),
+            Color.parseColor("#feeebd"),
+            Color.parseColor("#ffe3a4"),
+            Color.parseColor("#fed9af"),
+            Color.parseColor("#fccfae"),
+            Color.parseColor("#dbaf96"),
+            Color.parseColor("#ddcd99"),
+            Color.parseColor("#efba8e"),
+            Color.parseColor("#dca680"),
+            Color.parseColor("#dca15f"),
+            Color.parseColor("#bc926a"),
+            Color.parseColor("#cf7749"),
+            Color.parseColor("#af642a"),
+            Color.parseColor("#785051"),
+            Color.parseColor("#fcf08c"),
+            Color.parseColor("#f6de64"),
+            Color.parseColor("#dfd580"),
+            Color.parseColor("#d0ae6f"),
+            Color.parseColor("#ae8448"),
+            Color.parseColor("#7c5d49"),
+            Color.parseColor("#56513b"),
+            Color.parseColor("#b5cd8f"),
+            Color.parseColor("#acdc62"),
+            Color.parseColor("#79d37b"),
+            Color.parseColor("#70a85f"),
+            Color.parseColor("#8a985b"),
+            Color.parseColor("#727b46"),
+            Color.parseColor("#477547"),
+            Color.parseColor("#ec928a"),
+            Color.parseColor("#f28171"),
+            Color.parseColor("#dd7171"),
+            Color.parseColor("#b9799c"),
+            Color.parseColor("#b55f5e"),
+            Color.parseColor("#855974"),
+            Color.parseColor("#a94140"),
+            Color.parseColor("#80c6be"),
+            Color.parseColor("#5eb0aa"),
+            Color.parseColor("#42a2ee"),
+            Color.parseColor("#5c91b0"),
+            Color.parseColor("#338fb4"),
+            Color.parseColor("#487fd2"),
+            Color.parseColor("#446daf")
+        )
         
         var selectedColor = (target.background as? ColorDrawable)?.color ?: Color.WHITE
 
