@@ -46,7 +46,7 @@ class FirstFragment : Fragment() {
         }
 
         binding.btnCompartirDatos.setOnClickListener {
-            showOptionSelected(getString(R.string.menu_compartir_datos))
+            findNavController().navigate(R.id.action_FirstFragment_to_CompartirDatosFragment)
         }
     }
 

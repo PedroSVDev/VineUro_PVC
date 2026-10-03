@@ -18,6 +18,10 @@
         <action
             android:id="@+id/action_FirstFragment_to_PreciosFragment"
             app:destination="@id/PreciosFragment" />
+
+        <action
+            android:id="@+id/action_FirstFragment_to_CompartirDatosFragment"
+            app:destination="@id/CompartirDatosFragment" />
     </fragment>
 
     <fragment
@@ -89,4 +93,10 @@
         android:name="com.example.vineuro_pvc.PdfPreviewFragment"
         android:label="Vista Previa de Oferta PDF"
         tools:layout="@layout/fragment_pdf_preview" />
+
+    <fragment
+        android:id="@+id/CompartirDatosFragment"
+        android:name="com.example.vineuro_pvc.CompartirDatosFragment"
+        android:label="Intercambio de datos Bluetooth"
+        tools:layout="@layout/fragment_compartir_datos" />
 </navigation>

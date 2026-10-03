@@ -303,14 +303,13 @@ class CalculoPedidoFragment : Fragment() {
 
             tabBinding.wpvTabThumb.setConfig(item.config, isTechnicalMode = false)
 
-            val colorBg = Color.parseColor(item.colorBgHex)
-            tabBinding.cardWindowTab.setCardBackgroundColor(colorBg)
-
             val isActive = (i == activeItemIndex)
             if (isActive) {
+                tabBinding.cardWindowTab.setCardBackgroundColor(Color.parseColor("#CE3B75"))
                 tabBinding.cardWindowTab.strokeColor = Color.WHITE
-                tabBinding.cardWindowTab.strokeWidth = 6
+                tabBinding.cardWindowTab.strokeWidth = 2
             } else {
+                tabBinding.cardWindowTab.setCardBackgroundColor(Color.parseColor("#42A5F5"))
                 tabBinding.cardWindowTab.strokeWidth = 0
             }
 
@@ -565,11 +564,21 @@ class CalculoPedidoFragment : Fragment() {
         index: Int,
         currentValue: Int,
     ) {
+        val totalAnchoActual = binding.wpvMainCanvas.anchoTotalMm
+        val totalAltoActual = binding.wpvMainCanvas.altoTotalMm
+
         val titulo = when (type) {
             WindowPreviewView.DimensionType.TOTAL_HEIGHT -> "Editar Alto Total (mm)"
             WindowPreviewView.DimensionType.TOTAL_WIDTH -> "Editar Ancho Total (mm)"
             WindowPreviewView.DimensionType.SECTION_HEIGHT -> "Editar Alto Sección ${index + 1} (mm)"
             WindowPreviewView.DimensionType.SECTION_WIDTH -> "Editar Ancho Panel ${index + 1} (mm)"
+        }
+
+        val mensaje = when (type) {
+            WindowPreviewView.DimensionType.TOTAL_HEIGHT -> "Alto total actual: $totalAltoActual mm"
+            WindowPreviewView.DimensionType.TOTAL_WIDTH -> "Ancho total actual: $totalAnchoActual mm"
+            WindowPreviewView.DimensionType.SECTION_HEIGHT -> "Alto total de la ventana: $totalAltoActual mm\nEl alto restante se rebalanceará automáticamente."
+            WindowPreviewView.DimensionType.SECTION_WIDTH -> "Ancho total de la ventana: $totalAnchoActual mm\nEl ancho restante se rebalanceará automáticamente."
         }
 
         val input = EditText(requireContext()).apply {
@@ -581,6 +590,7 @@ class CalculoPedidoFragment : Fragment() {
 
         AlertDialog.Builder(requireContext())
             .setTitle(titulo)
+            .setMessage(mensaje)
             .setView(input)
             .setPositiveButton("APLICAR") { dialog, _ ->
                 val nuevoValor = input.text.toString().toIntOrNull()
@@ -604,7 +614,19 @@ class CalculoPedidoFragment : Fragment() {
                     if (activeItemIndex in itemsOrden.indices) {
                         actualizarTablaMatriz(itemsOrden[activeItemIndex].config)
                     }
-                    Toast.makeText(requireContext(), "Medida actualizada: $nuevoValor mm", Toast.LENGTH_SHORT).show()
+
+                    val msgToast = when (type) {
+                        WindowPreviewView.DimensionType.SECTION_WIDTH -> {
+                            val totalAncho = binding.wpvMainCanvas.anchoTotalMm
+                            "Panel ${index + 1}: $nuevoValor mm (Ancho Total: $totalAncho mm)"
+                        }
+                        WindowPreviewView.DimensionType.SECTION_HEIGHT -> {
+                            val totalAlto = binding.wpvMainCanvas.altoTotalMm
+                            "Sección ${index + 1}: $nuevoValor mm (Alto Total: $totalAlto mm)"
+                        }
+                        else -> "Medida actualizada: $nuevoValor mm"
+                    }
+                    Toast.makeText(requireContext(), msgToast, Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(requireContext(), "Ingrese una medida válida en mm", Toast.LENGTH_SHORT).show()
                 }

@@ -239,14 +239,134 @@ class WindowPreviewView @JvmOverloads constructor(
 
     fun updateSectionHeight(index: Int, newHeightMm: Int) {
         if ((index in sectionHeights.indices) && (newHeightMm >= 50)) {
-            sectionHeights[index] = newHeightMm.toFloat()
+            val oldTotalInt = sectionHeights.sum().toInt()
+            val numSections = sectionHeights.size
+
+            if (numSections > 1) {
+                val minRequiredOther = (numSections - 1) * 50
+                if (newHeightMm + minRequiredOther <= oldTotalInt) {
+                    val remainingInt = oldTotalInt - newHeightMm
+                    val otherIndices = sectionHeights.indices.filter { it != index }
+                    val countOthers = otherIndices.size
+
+                    var otherSumFloat = 0f
+                    for (i in otherIndices) {
+                        otherSumFloat += sectionHeights[i]
+                    }
+
+                    sectionHeights[index] = newHeightMm.toFloat()
+
+                    if (otherSumFloat > 0f) {
+                        var assignedSum = 0
+                        val allocatedInts = IntArray(countOthers)
+
+                        for (k in otherIndices.indices) {
+                            val origIdx = otherIndices[k]
+                            val ratio = sectionHeights[origIdx] / otherSumFloat
+                            val alloc = (remainingInt * ratio).toInt()
+                            allocatedInts[k] = alloc
+                            assignedSum += alloc
+                        }
+
+                        var remainder = remainingInt - assignedSum
+                        var k = 0
+                        while (remainder > 0) {
+                            allocatedInts[k % countOthers] += 1
+                            remainder--
+                            k++
+                        }
+
+                        for (k in otherIndices.indices) {
+                            val origIdx = otherIndices[k]
+                            sectionHeights[origIdx] = allocatedInts[k].toFloat().coerceAtLeast(50f)
+                        }
+                    } else {
+                        val base = remainingInt / countOthers
+                        var remainder = remainingInt % countOthers
+                        for (k in otherIndices.indices) {
+                            val origIdx = otherIndices[k]
+                            val extra = if (remainder > 0) 1 else 0
+                            if (remainder > 0) remainder--
+                            sectionHeights[origIdx] = (base + extra).toFloat().coerceAtLeast(50f)
+                        }
+                    }
+                } else {
+                    sectionHeights[index] = newHeightMm.toFloat()
+                    val otherIndices = sectionHeights.indices.filter { it != index }
+                    for (i in otherIndices) {
+                        if (sectionHeights[i] < 50f) sectionHeights[i] = 50f
+                    }
+                }
+            } else {
+                sectionHeights[index] = newHeightMm.toFloat()
+            }
             invalidate()
         }
     }
 
     fun updateSectionWidth(index: Int, newWidthMm: Int) {
         if ((index in sectionWidths.indices) && (newWidthMm >= 50)) {
-            sectionWidths[index] = newWidthMm.toFloat()
+            val oldTotalInt = sectionWidths.sum().toInt()
+            val numSections = sectionWidths.size
+
+            if (numSections > 1) {
+                val minRequiredOther = (numSections - 1) * 50
+                if (newWidthMm + minRequiredOther <= oldTotalInt) {
+                    val remainingInt = oldTotalInt - newWidthMm
+                    val otherIndices = sectionWidths.indices.filter { it != index }
+                    val countOthers = otherIndices.size
+
+                    var otherSumFloat = 0f
+                    for (i in otherIndices) {
+                        otherSumFloat += sectionWidths[i]
+                    }
+
+                    sectionWidths[index] = newWidthMm.toFloat()
+
+                    if (otherSumFloat > 0f) {
+                        var assignedSum = 0
+                        val allocatedInts = IntArray(countOthers)
+
+                        for (k in otherIndices.indices) {
+                            val origIdx = otherIndices[k]
+                            val ratio = sectionWidths[origIdx] / otherSumFloat
+                            val alloc = (remainingInt * ratio).toInt()
+                            allocatedInts[k] = alloc
+                            assignedSum += alloc
+                        }
+
+                        var remainder = remainingInt - assignedSum
+                        var k = 0
+                        while (remainder > 0) {
+                            allocatedInts[k % countOthers] += 1
+                            remainder--
+                            k++
+                        }
+
+                        for (k in otherIndices.indices) {
+                            val origIdx = otherIndices[k]
+                            sectionWidths[origIdx] = allocatedInts[k].toFloat().coerceAtLeast(50f)
+                        }
+                    } else {
+                        val base = remainingInt / countOthers
+                        var remainder = remainingInt % countOthers
+                        for (k in otherIndices.indices) {
+                            val origIdx = otherIndices[k]
+                            val extra = if (remainder > 0) 1 else 0
+                            if (remainder > 0) remainder--
+                            sectionWidths[origIdx] = (base + extra).toFloat().coerceAtLeast(50f)
+                        }
+                    }
+                } else {
+                    sectionWidths[index] = newWidthMm.toFloat()
+                    val otherIndices = sectionWidths.indices.filter { it != index }
+                    for (i in otherIndices) {
+                        if (sectionWidths[i] < 50f) sectionWidths[i] = 50f
+                    }
+                }
+            } else {
+                sectionWidths[index] = newWidthMm.toFloat()
+            }
             invalidate()
         }
     }
@@ -308,12 +428,32 @@ class WindowPreviewView @JvmOverloads constructor(
             val x = event.x
             val y = event.y
 
+            var closestBadge: BadgeArea? = null
+            var minDistanceSq = Float.MAX_VALUE
+            val touchThreshold = dpToPx(32f)
+
             for (badge in badgeAreas) {
-                if (badge.rect.contains(x, y)) {
-                    performClick()
-                    onDimensionClickListener?.invoke(badge.type, badge.index, badge.currentValue)
-                    return true
+                val expandedRect = RectF(
+                    badge.rect.left - touchThreshold,
+                    badge.rect.top - touchThreshold,
+                    badge.rect.right + touchThreshold,
+                    badge.rect.bottom + touchThreshold
+                )
+                if (expandedRect.contains(x, y)) {
+                    val cX = badge.rect.centerX()
+                    val cY = badge.rect.centerY()
+                    val distSq = (x - cX) * (x - cX) + (y - cY) * (y - cY)
+                    if (distSq < minDistanceSq) {
+                        minDistanceSq = distSq
+                        closestBadge = badge
+                    }
                 }
+            }
+
+            if (closestBadge != null) {
+                performClick()
+                onDimensionClickListener?.invoke(closestBadge.type, closestBadge.index, closestBadge.currentValue)
+                return true
             }
 
             for (pane in paneAreas) {
@@ -334,7 +474,8 @@ class WindowPreviewView @JvmOverloads constructor(
         canvas: Canvas,
         bounds: RectF,
         item: OrderItem,
-        showTechnicalDetails: Boolean = true
+        showTechnicalDetails: Boolean = true,
+        isCompactMode: Boolean = false
     ) {
         val savedConfig = this.config
         val savedTechMode = this.showTechnicalDetails
@@ -383,42 +524,44 @@ class WindowPreviewView @JvmOverloads constructor(
                     val rect = RectF(padding, padding, w - padding, h - padding)
                     drawWindowConfig(canvas, rect, cfg)
                 } else {
-                    val leftMargin = dpToPx(55f)
-                    val bottomMargin = dpToPx(45f)
-                    val topMargin = dpToPx(15f)
-                    val rightMargin = dpToPx(15f)
+                val isCompact = isCompactMode || (w < dpToPx(300f))
 
-                    val availW = w - leftMargin - rightMargin
-                    val availH = h - topMargin - bottomMargin
+                val leftMargin = if (isCompact) dpToPx(24f) else dpToPx(55f)
+                val bottomMargin = if (isCompact) dpToPx(20f) else dpToPx(45f)
+                val topMargin = if (isCompact) dpToPx(6f) else dpToPx(15f)
+                val rightMargin = if (isCompact) dpToPx(6f) else dpToPx(15f)
 
-                    if (availW > 0 && availH > 0) {
-                        val totalH = item.altoTotalMm.toFloat().coerceAtLeast(1f)
-                        val totalW = item.anchoTotalMm.toFloat().coerceAtLeast(1f)
+                val availW = w - leftMargin - rightMargin
+                val availH = h - topMargin - bottomMargin
 
-                        val targetAspect = totalW / totalH
-                        val availAspect = availW / availH
+                if (availW > 0 && availH > 0) {
+                    val totalH = item.altoTotalMm.toFloat().coerceAtLeast(1f)
+                    val totalW = item.anchoTotalMm.toFloat().coerceAtLeast(1f)
 
-                        val drawW: Float
-                        val drawH: Float
+                    val targetAspect = totalW / totalH
+                    val availAspect = availW / availH
 
-                        if (targetAspect > availAspect) {
-                            drawW = availW
-                            drawH = availW / targetAspect
-                        } else {
-                            drawH = availH
-                            drawW = availH * targetAspect
-                        }
+                    val drawW: Float
+                    val drawH: Float
 
-                        val rectLeft = leftMargin + (availW - drawW) / 2f
-                        val rectTop = topMargin + (availH - drawH) / 2f
-                        val rectRight = rectLeft + drawW
-                        val rectBottom = rectTop + drawH
-
-                        val windowRect = RectF(rectLeft, rectTop, rectRight, rectBottom)
-
-                        drawWindowConfig(canvas, windowRect, cfg)
-                        drawDimensionLines(canvas, windowRect, cfg)
+                    if (targetAspect > availAspect) {
+                        drawW = availW
+                        drawH = availW / targetAspect
+                    } else {
+                        drawH = availH
+                        drawW = availH * targetAspect
                     }
+
+                    val rectLeft = leftMargin + (availW - drawW) / 2f
+                    val rectTop = topMargin + (availH - drawH) / 2f
+                    val rectRight = rectLeft + drawW
+                    val rectBottom = rectTop + drawH
+
+                    val windowRect = RectF(rectLeft, rectTop, rectRight, rectBottom)
+
+                    drawWindowConfig(canvas, windowRect, cfg)
+                    drawDimensionLines(canvas, windowRect, cfg, isCompactMode = isCompact)
+                }
                 }
             }
             canvas.restoreToCount(saveCount)
@@ -995,10 +1138,10 @@ class WindowPreviewView @JvmOverloads constructor(
         return result
     }
 
-    private fun drawDimensionLines(canvas: Canvas, rect: RectF, cfg: WindowConfig) {
-        val lineX = rect.left - dpToPx(12f)
-        val lineOuterX = rect.left - dpToPx(42f)
-        val dotRadius = dpToPx(2.5f)
+    private fun drawDimensionLines(canvas: Canvas, rect: RectF, cfg: WindowConfig, isCompactMode: Boolean = false) {
+        val lineX = if (isCompactMode) rect.left - dpToPx(8f) else rect.left - dpToPx(12f)
+        val lineOuterX = if (isCompactMode) rect.left - dpToPx(18f) else rect.left - dpToPx(42f)
+        val dotRadius = if (isCompactMode) dpToPx(1.8f) else dpToPx(2.5f)
 
         // 1. Línea vertical principal (alto total)
         canvas.drawLine(lineOuterX, rect.top, lineOuterX, rect.bottom, linePaint)
@@ -1012,78 +1155,87 @@ class WindowPreviewView @JvmOverloads constructor(
             DimensionType.TOTAL_HEIGHT,
             0,
             altoTotalMm,
+            isCompactMode = isCompactMode
         )
 
-        // Manija azul inferior
-        val handleRadius = dpToPx(6f)
-        canvas.drawCircle(lineOuterX, rect.bottom + dpToPx(8f), handleRadius, handlePaint)
-        canvas.drawCircle(lineOuterX, rect.bottom + dpToPx(8f), handleRadius, handleStrokePaint)
-
-        // 2. Línea vertical por secciones
-        canvas.drawLine(lineX, rect.top, lineX, rect.bottom, linePaint)
-        canvas.drawCircle(lineX, rect.top, dotRadius, dotPaint)
-        canvas.drawCircle(lineX, rect.bottom, dotRadius, dotPaint)
-
-        val rows = getActiveLayoutRows(cfg)
-        val activeHeights = getScaledActiveHeights(rows)
-        val totalHVal = activeHeights.sum().coerceAtLeast(1f)
-        var currentY = rect.top
-
-        for (r in 0 until rows) {
-            val rowRatio = activeHeights[r] / totalHVal
-            val sectionH = rect.height() * rowRatio
-            val sY1 = currentY
-            val sY2 = currentY + sectionH
-            canvas.drawCircle(lineX, sY2, dotRadius, dotPaint)
-
-            val sectionVal = activeHeights[r].toInt()
-
-            drawInteractiveBadge(
-                canvas,
-                lineX,
-                (sY1 + sY2) / 2f,
-                sectionVal.toString(),
-                DimensionType.SECTION_HEIGHT,
-                r,
-                sectionVal,
-            )
-            currentY += sectionH
+        // Manija azul inferior (solo en modo interactivo del editor)
+        if (!isCompactMode) {
+            val handleRadius = dpToPx(6f)
+            canvas.drawCircle(lineOuterX, rect.bottom + dpToPx(8f), handleRadius, handlePaint)
+            canvas.drawCircle(lineOuterX, rect.bottom + dpToPx(8f), handleRadius, handleStrokePaint)
         }
 
-        // 3. Línea horizontal por paneles
+        // 2. Línea vertical por secciones (solo si hay múltiples filas)
+        val rows = getActiveLayoutRows(cfg)
+        if (rows > 1) {
+            canvas.drawLine(lineX, rect.top, lineX, rect.bottom, linePaint)
+            canvas.drawCircle(lineX, rect.top, dotRadius, dotPaint)
+            canvas.drawCircle(lineX, rect.bottom, dotRadius, dotPaint)
+
+            val activeHeights = getScaledActiveHeights(rows)
+            val totalHVal = activeHeights.sum().coerceAtLeast(1f)
+            var currentY = rect.top
+
+            for (r in 0 until rows) {
+                val rowRatio = activeHeights[r] / totalHVal
+                val sectionH = rect.height() * rowRatio
+                val sY1 = currentY
+                val sY2 = currentY + sectionH
+                canvas.drawCircle(lineX, sY2, dotRadius, dotPaint)
+
+                val sectionVal = activeHeights[r].toInt()
+
+                drawInteractiveBadge(
+                    canvas,
+                    lineX,
+                    (sY1 + sY2) / 2f,
+                    sectionVal.toString(),
+                    DimensionType.SECTION_HEIGHT,
+                    r,
+                    sectionVal,
+                    isCompactMode = isCompactMode
+                )
+                currentY += sectionH
+            }
+        }
+
+        // 3. Línea horizontal por paneles (solo si hay múltiples columnas)
         val cols = getActiveLayoutCols(cfg)
-        val activeWidths = getScaledActiveWidths(cols)
-        val totalWVal = activeWidths.sum().coerceAtLeast(1f)
+        if (cols > 1) {
+            val activeWidths = getScaledActiveWidths(cols)
+            val totalWVal = activeWidths.sum().coerceAtLeast(1f)
 
-        val lineInnerY = rect.bottom + dpToPx(15f)
-        canvas.drawLine(rect.left, lineInnerY, rect.right, lineInnerY, linePaint)
-        canvas.drawCircle(rect.left, lineInnerY, dotRadius, dotPaint)
-        canvas.drawCircle(rect.right, lineInnerY, dotRadius, dotPaint)
+            val lineInnerY = if (isCompactMode) rect.bottom + dpToPx(7f) else rect.bottom + dpToPx(15f)
+            canvas.drawLine(rect.left, lineInnerY, rect.right, lineInnerY, linePaint)
+            canvas.drawCircle(rect.left, lineInnerY, dotRadius, dotPaint)
+            canvas.drawCircle(rect.right, lineInnerY, dotRadius, dotPaint)
 
-        var currentX = rect.left
-        for (c in 0 until cols) {
-            val colRatio = activeWidths[c] / totalWVal
-            val sectionW = rect.width() * colRatio
-            val sX1 = currentX
-            val sX2 = currentX + sectionW
-            canvas.drawCircle(sX2, lineInnerY, dotRadius, dotPaint)
+            var currentX = rect.left
+            for (c in 0 until cols) {
+                val colRatio = activeWidths[c] / totalWVal
+                val sectionW = rect.width() * colRatio
+                val sX1 = currentX
+                val sX2 = currentX + sectionW
+                canvas.drawCircle(sX2, lineInnerY, dotRadius, dotPaint)
 
-            val panelVal = activeWidths[c].toInt()
+                val panelVal = activeWidths[c].toInt()
 
-            drawInteractiveBadge(
-                canvas,
-                (sX1 + sX2) / 2f,
-                lineInnerY,
-                panelVal.toString(),
-                DimensionType.SECTION_WIDTH,
-                c,
-                panelVal,
-            )
-            currentX += sectionW
+                drawInteractiveBadge(
+                    canvas,
+                    (sX1 + sX2) / 2f,
+                    lineInnerY,
+                    panelVal.toString(),
+                    DimensionType.SECTION_WIDTH,
+                    c,
+                    panelVal,
+                    isCompactMode = isCompactMode
+                )
+                currentX += sectionW
+            }
         }
 
         // 4. Línea horizontal principal (ancho total)
-        val lineOuterY = rect.bottom + dpToPx(38f)
+        val lineOuterY = if (isCompactMode) rect.bottom + dpToPx(15f) else rect.bottom + dpToPx(38f)
         canvas.drawLine(rect.left, lineOuterY, rect.right, lineOuterY, linePaint)
         canvas.drawCircle(rect.left, lineOuterY, dotRadius, dotPaint)
         canvas.drawCircle(rect.right, lineOuterY, dotRadius, dotPaint)
@@ -1095,6 +1247,7 @@ class WindowPreviewView @JvmOverloads constructor(
             DimensionType.TOTAL_WIDTH,
             0,
             anchoTotalMm,
+            isCompactMode = isCompactMode
         )
     }
 
@@ -1106,22 +1259,28 @@ class WindowPreviewView @JvmOverloads constructor(
         type: DimensionType,
         index: Int,
         currentValue: Int,
+        isCompactMode: Boolean = false
     ) {
-        val badgeW = dpToPx(32f)
-        val badgeH = dpToPx(13f)
+        val badgeW = if (isCompactMode) dpToPx(18f) else dpToPx(32f)
+        val badgeH = if (isCompactMode) dpToPx(8f) else dpToPx(13f)
+        val textSizeDp = if (isCompactMode) 6.8f else 11f
+
         val badgeRect = RectF(cX - badgeW / 2f, cY - badgeH / 2f, cX + badgeW / 2f, cY + badgeH / 2f)
 
-        val borderP = if (showTechnicalDetails) {
+        val borderP = if (showTechnicalDetails || isCompactMode) {
             Paint(badgeBorderPaint).apply { color = Color.parseColor("#444444") }
         } else badgeBorderPaint
 
-        val textP = if (showTechnicalDetails) {
-            Paint(textPaint).apply { color = Color.parseColor("#333333") }
+        val textP = if (showTechnicalDetails || isCompactMode) {
+            Paint(textPaint).apply {
+                color = Color.parseColor("#222222")
+                textSize = dpToPx(textSizeDp)
+            }
         } else textPaint
 
-        canvas.drawRoundRect(badgeRect, dpToPx(3f), dpToPx(3f), badgePaint)
-        canvas.drawRoundRect(badgeRect, dpToPx(3f), dpToPx(3f), borderP)
-        canvas.drawText(text, cX, cY + dpToPx(4f), textP)
+        canvas.drawRoundRect(badgeRect, dpToPx(2f), dpToPx(2f), badgePaint)
+        canvas.drawRoundRect(badgeRect, dpToPx(2f), dpToPx(2f), borderP)
+        canvas.drawText(text, cX, cY + dpToPx(if (isCompactMode) 2.5f else 4f), textP)
 
         badgeAreas.add(BadgeArea(badgeRect, type, index, currentValue))
     }

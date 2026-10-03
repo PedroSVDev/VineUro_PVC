@@ -236,16 +236,16 @@ class PdfPageSheetView @JvmOverloads constructor(
                     canvas.drawText(countText, countX, numY, textSecondaryPaint)
 
                     // Dibujo técnico de la ventana
-                    val drawMarginH = dpToPx(6f)
-                    val drawMarginV = dpToPx(16f)
+                    val drawMarginH = dpToPx(3f)
+                    val drawMarginV = dpToPx(14f)
                     val drawBounds = RectF(
                         cellLeft + drawMarginH,
                         cellTop + drawMarginV,
                         cellRight - drawMarginH,
-                        cellBottom - dpToPx(4f)
+                        cellBottom - dpToPx(2f)
                     )
 
-                    windowPreviewHelper.drawItem(canvas, drawBounds, item, showTechnicalDetails = true)
+                    windowPreviewHelper.drawItem(canvas, drawBounds, item, showTechnicalDetails = true, isCompactMode = true)
                 }
             }
         }

@@ -551,8 +551,8 @@
         <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginStart="64dp"
-            android:layout_marginEnd="64dp"
+            android:layout_marginStart="56dp"
+            android:layout_marginEnd="56dp"
             android:fillViewport="true"
             android:scrollbars="none">
 
@@ -566,11 +566,11 @@
 
     </FrameLayout>
 
-    <!-- Big Square Action Plus Button (+) at Bottom Left -->
+    <!-- Square Action Plus Button (+) at Bottom Left -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/btn_add_item"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
         android:clickable="true"
         android:focusable="true"
         android:foreground="?attr/selectableItemBackground"
@@ -582,8 +582,8 @@
         app:layout_constraintStart_toStartOf="parent">
 
         <ImageView
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:layout_gravity="center"
             android:contentDescription="Agregar elemento"
             android:src="@drawable/ic_menu_add"
@@ -594,8 +594,8 @@
     <!-- Green Square Action Compass Button (Herramientas Técnicas) at Bottom Right -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/btn_compass"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
         android:clickable="true"
         android:focusable="true"
         android:foreground="?attr/selectableItemBackground"
@@ -607,8 +607,8 @@
         app:layout_constraintEnd_toEndOf="parent">
 
         <ImageView
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:layout_gravity="center"
             android:contentDescription="Herramientas de dibujo técnico"
             android:src="@drawable/ic_compass"
