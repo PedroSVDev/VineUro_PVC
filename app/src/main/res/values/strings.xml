@@ -21,8 +21,6 @@
 
     <!-- Nuevo Cliente -->
     <string name="title_nuevo_cliente">Registro de Nuevo Cliente</string>
-    <string name="label_dni">DNI</string>
-    <string name="hint_dni">Ingrese DNI (8 dígitos)</string>
     <string name="label_nombres">Nombres</string>
     <string name="hint_nombres">Nombre(s) del cliente</string>
     <string name="label_apellidos">Apellidos</string>
@@ -31,20 +29,14 @@
     <string name="hint_telefono">Número de celular / teléfono</string>
     <string name="label_email">Correo Electrónico</string>
     <string name="hint_email">ejemplo@correo.com</string>
-    <string name="btn_buscar_dni">Buscar DNI</string>
     <string name="btn_guardar_cliente">GUARDAR CLIENTE</string>
-    <string name="error_dni_invalido">El DNI debe tener 8 dígitos</string>
-    <string name="dni_buscando">Buscando datos del DNI…</string>
-    <string name="dni_encontrado">Datos encontrados correctamente</string>
-    <string name="dni_no_encontrado">No se encontraron datos para este DNI</string>
     <string name="cliente_guardado">Cliente registrado con éxito</string>
 
     <!-- Clientes Guardados -->
-    <string name="hint_buscar_cliente">Buscar por DNI, Nombre o Email</string>
+    <string name="hint_buscar_cliente">Buscar por nombre, teléfono o email</string>
     <string name="sin_clientes">Sin clientes</string>
     <string name="empty_clientes_title">No hay clientes guardados</string>
     <string name="empty_clientes_desc">Los clientes que registres desde \'Nuevo Cliente\' aparecerán guardados aquí.</string>
-    <string name="label_dni_format">DNI: %1$s</string>
     <string name="label_tel_format">Tel: %1$s</string>
     <string name="label_email_format">Email: %1$s</string>
 
@@ -76,7 +68,7 @@
 
     <!-- Pedidos -->
     <string name="title_pedidos">Pedidos Guardados</string>
-    <string name="hint_buscar_pedido">Buscar por código, cliente o DNI</string>
+    <string name="hint_buscar_pedido">Buscar por código o cliente</string>
     <string name="empty_pedidos_title">No hay pedidos guardados</string>
     <string name="empty_pedidos_desc">Los pedidos se guardan al salir de la pantalla de diseño o con \'Guardar Cambios en la Nube\'.</string>
     <string name="pedidos_sincronizando">Sincronizando con la nube…</string>

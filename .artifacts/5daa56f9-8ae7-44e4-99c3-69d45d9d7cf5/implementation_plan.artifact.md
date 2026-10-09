@@ -1,40 +1,36 @@
-# Plan de Implementación: Ajuste Preciso de Selección Táctil de Cotas y Rebalanceo de Medidas
+# Plan de Implementación: Diagnóstico y Solución Definitiva de Edición de Paneles y Teclado Táctil
 
-Este plan resuelve de forma definitiva el problema reportado, donde la edición de la medida de un panel afectaba el ancho total de la ventana:
-
-1. **Mejora en la Detección Táctil de las Etiquetas de Medidas (`onTouchEvent`)**:
-   - Para evitar que al pulsar la cota de un panel (ej. 750 mm) el toque active por error la cota del Ancho Total (1500 mm) por cercanía táctil, se implementará un selector por **distancia euclidiana mínima al centro del toque**.
-   - Se mostrará el contexto en el diálogo: *"Editar Ancho Panel 1 (Ancho total actual: 1500 mm)"*.
-
-2. **Lógica Completa de Rebalanceo e Incremento Dinámico (`updateSectionWidth`)**:
-   - **Caso A (La medida del panel es menor que el Ancho Total, ej. poner 700 mm en ventana de 1500 mm)**:
-     - El Ancho Total se mantiene **estrictamente fijo en 1500 mm**.
-     - El Panel editado se fija en **700 mm**.
-     - El saldo restante ($1500 - 700 = 800\text{ mm}$) se asigna al otro panel (o se reparte de forma entera si hay 3 o más paneles).
-   - **Caso B (La medida del panel es mayor o igual al Ancho Total, ej. poner 1600 mm en ventana de 1500 mm)**:
-     - El Ancho Total se expande automáticamente a $1600 + \text{otros paneles}$ (ej. $1600 + 750 = 2350\text{ mm}$), permitiendo al usuario agrandar un panel sin romper la estructura.
+Este plan presenta el diagnóstico técnico completo de la causa del fallo y las soluciones requeridas para:
+1. **Solucionar la causa raíz del fallo de edición de paneles** (donde el ancho total cambiaba a 700 mm).
+2. **Hacer que el teclado numérico táctil del celular aparezca automáticamente** al abrir el diálogo de edición.
 
 ---
 
-## Cambios Propuestos
+## Diagnóstico Técnico de la Causa Raíz
 
-### 1. Mejorar el Algoritmo de Toque en `WindowPreviewView.kt`
-- En `onTouchEvent`:
-  - Buscar la etiqueta de cota (`BadgeArea`) que esté más cercana al punto de toque $(x, y)$ del dedo del usuario.
-  - Esto evita la confusión táctil entre la línea de paneles y la línea del ancho total.
+### Causa del Fallo en la Edición de Paneles:
+1. Al agregar una ventana de 2 paneles (ej. "2 Paneles V."), el objeto `OrderItem` se creaba por defecto con `sectionWidths = FloatArray(1) { 1500f }` (un arreglo de tamaño **1**).
+2. Al cargar esa ventana en pantalla (`cargarItemActivoEnCanvas`), el arreglo `sectionWidths` de tamaño **1** sobreescribía el arreglo interno de la vista (que era de tamaño **2**).
+3. Cuando el usuario pulsaba en el Panel 1 para editarlo a 700 mm, `updateSectionWidth` comprobaba el número de paneles en el arreglo (`numSections = sectionWidths.size`).
+4. Como `numSections` era **1** (y no 2), la condición de autocompletado fallaba y el sistema interpretaba que se estaba modificando el ancho completo de la ventana, reduciéndola a 700 mm y mostrando dos paneles de 350 mm.
 
-### 2. Reforzar la Lógica Matemática en `WindowPreviewView.kt`
-- En `updateSectionWidth` y `updateSectionHeight`:
-  - Si `newWidthMm < oldTotalInt`:
-    Mantener $W_{total}$ exacto. Asignar $W_{panel} = newWidthMm$. Repartir $W_{total} - newWidthMm$ de forma entera entre las demás secciones.
-  - Si `newWidthMm >= oldTotalInt`:
-    Crecer el total de la ventana a $newWidthMm + \sum W_{otros}$, asegurando que ningún panel quede con menos del mínimo técnico (50 mm).
+### Causa del Teclado Táctil No Visible:
+- Los cuadros emergentes (`AlertDialog`) en Android no abren automáticamente el teclado en pantalla (`Soft Keyboard`) a menos que la ventana del diálogo configure explícitamente el modo `SOFT_INPUT_STATE_ALWAYS_VISIBLE`.
 
-### 3. Claridad en el Diálogo en `CalculoPedidoFragment.kt`
-- Al abrir el diálogo de edición:
-  - Título: *"Editar Ancho Panel 1 (mm)"*
-  - Mensaje/Aviso: *"Ancho total de la ventana: 1500 mm"*
-  - Toast de confirmación claro: *"Panel 1: 700 mm (Panel 2: 800 mm | Total: 1500 mm)"*.
+---
+
+## Solución Propuesta
+
+### 1. Corrección de Arreglos de Medidas en `OrderItem` y `WindowPreviewView.kt`
+- **Inicialización correcta**: Al crear o cargar una ventana, inicializar `OrderItem.sectionWidths` y `sectionHeights` con la cantidad exacta de paneles/columnas según su diseño (ej. 2 elementos de 750 mm para 2 paneles de 1500 mm).
+- **Garantía en `WindowPreviewView`**: En `updateSectionWidth` y `updateSectionHeight`, verificar que el arreglo `sectionWidths` coincida con las columnas reales del diseño (`cols`). Si no coincide, sincronizarlo antes de rebalancear.
+- **Flujo de sincronización**: Eliminar sobreescrituras en `cargarItemActivoEnCanvas` que distorsionen los arreglos de secciones.
+
+### 2. Despliegue Automático del Teclado Numérico Táctil
+- En `mostrarDialogoEditarMedida`:
+  1. Configurar `input.requestFocus()`.
+  2. Activar `dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)`.
+  3. Esto garantizará que en dispositivos móviles y emuladores aparezca inmediatamente el teclado numérico táctil en la parte inferior de la pantalla sin requerir conexiones a internet ni librerías externas.
 
 ---
 
@@ -44,10 +40,10 @@ Este plan resuelve de forma definitiva el problema reportado, donde la edición 
 - Compilación limpia con Gradle (`app:assembleDebug`).
 
 ### Verificación Manual
-1. **Edición de Panel en Ventana de 1500 mm (2 paneles de 750 mm)**:
-   - Pulsar directamente sobre la etiqueta "750" del Panel 1.
-   - Ingresar `700` y presionar APLICAR.
-   - Verificar que el Panel 1 cambia a `700 mm`, el Panel 2 cambia a `800 mm` y el Ancho Total se mantiene **estrictamente en 1500 mm**.
-2. **Edición con Ampliación de Ventana**:
-   - En la misma ventana de 1500 mm, editar el Panel 1 e ingresar `1600`.
-   - Verificar que el Panel 1 cambia a `1600 mm`, el Panel 2 se mantiene en `800 mm` y el Ancho Total crece a `2400 mm`.
+1. **Prueba de Edición de Panel (Ventana 2 Paneles de 1500 mm)**:
+   - Crear una ventana de 2 paneles ("2 Paneles V.").
+   - Pulsar el Panel 1 ("750") y cambiar su valor a `700`.
+   - Verificar que el Panel 1 queda en `700 mm`, el Panel 2 en `800 mm` y el Ancho Total en `1500 mm`.
+2. **Prueba de Despliegue de Teclado Táctil**:
+   - Pulsar sobre cualquier medida para editar.
+   - Verificar que el teclado numérico táctil del sistema se abre automáticamente enfocado en el campo de texto.

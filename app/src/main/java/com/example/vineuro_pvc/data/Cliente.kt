@@ -4,10 +4,10 @@ import java.util.UUID
 
 /**
  * Modelo de datos para representar a un Cliente.
+ * Se identifica por [id] (UUID generado en el teléfono), que también es la clave primaria en Supabase.
  */
 data class Cliente(
     val id: String = UUID.randomUUID().toString(),
-    val dni: String,
     val nombres: String,
     val apellidos: String,
     val telefono: String = "",
@@ -18,7 +18,4 @@ data class Cliente(
 ) {
     val nombreCompleto: String
         get() = "$nombres $apellidos".trim()
-
-    val codigoCliente: String
-        get() = "CLI-$dni"
 }

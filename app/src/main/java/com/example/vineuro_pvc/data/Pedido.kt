@@ -13,7 +13,8 @@ import java.util.UUID
 data class Pedido(
     val id: String = UUID.randomUUID().toString(),
     val codigo: String = generarCodigo(),
-    val clienteDni: String,
+    /** id del cliente (Cliente.id). */
+    val clienteId: String,
     val clienteNombre: String,
     val items: List<OrderItem>,
     val estado: String = ESTADO_BORRADOR,
@@ -47,7 +48,7 @@ object PedidoJson {
     fun pedidoToJson(p: Pedido): JSONObject = JSONObject().apply {
         put("id", p.id)
         put("codigo", p.codigo)
-        put("cliente_dni", p.clienteDni)
+        put("cliente_id", p.clienteId)
         put("cliente_nombre", p.clienteNombre)
         put("items", itemsToJson(p.items))
         put("total_ventanas", p.totalVentanas)
@@ -67,7 +68,7 @@ object PedidoJson {
         return Pedido(
             id = o.optString("id"),
             codigo = o.optString("codigo").ifEmpty { Pedido.generarCodigo() },
-            clienteDni = o.optString("cliente_dni"),
+            clienteId = if (o.isNull("cliente_id")) "" else o.optString("cliente_id"),
             clienteNombre = o.optString("cliente_nombre"),
             items = itemsFromJson(itemsArray),
             estado = o.optString("estado", Pedido.ESTADO_BORRADOR),
@@ -108,6 +109,7 @@ object PedidoJson {
         put("pane_sandwich", mapToJson(item.paneSandwich))
         put("pane_cols", mapToJson(item.paneCols))
         put("color_bg_hex", item.colorBgHex)
+        put("opciones", item.opciones.toJson())
     }
 
     private fun itemFromJson(o: JSONObject, catalogo: List<WindowConfig>): OrderItem {
@@ -122,6 +124,7 @@ object PedidoJson {
             sectionHeights = jsonToFloats(o.optJSONArray("section_heights")) ?: floatArrayOf(600f, 600f, 600f),
             sectionWidths = jsonToFloats(o.optJSONArray("section_widths")) ?: floatArrayOf(1500f),
             colorBgHex = o.optString("color_bg_hex", "#42A5F5"),
+            opciones = OpcionesVentana.fromJson(o.optJSONObject("opciones")),
         )
         o.optJSONObject("pane_mechanisms")?.let { m -> m.keys().forEach { k -> item.paneMechanisms[k.toInt()] = m.getString(k) } }
         o.optJSONObject("pane_mosq_net")?.let { m -> m.keys().forEach { k -> item.paneMosqNet[k.toInt()] = m.getBoolean(k) } }

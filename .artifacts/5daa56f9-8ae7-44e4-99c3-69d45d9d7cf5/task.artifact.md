@@ -1,12 +1,11 @@
-# Tareas de Implementación - Selección Táctil de Cotas y Rebalanceo
+# Tareas de Implementación - Corrección Universal de Paneles y Teclado Táctil
 
-- [x] 1. Mejorar el selector táctil de etiquetas en `WindowPreviewView.kt`
-  - [x] Implementar la búsqueda del distintivo/cota (`BadgeArea`) por distancia euclidiana mínima a la posición de toque `(x, y)`
-- [x] 2. Reforzar la lógica matemática en `WindowPreviewView.kt`
-  - [x] Actualizar `updateSectionWidth` para mantener el ancho total estricto si `newWidthMm < totalWidth`
-  - [x] Expandir el ancho total automáticamente si `newWidthMm >= totalWidth`
-  - [x] Aplicar la misma lógica a `updateSectionHeight`
-- [x] 3. Mejorar la claridad de información en los diálogos de `CalculoPedidoFragment.kt`
-  - [x] Incluir el valor total actual en el título/mensaje del diálogo de edición
-  - [x] Mostrar un Toast detallado con los valores autocompletados de los demás paneles
-- [x] 4. Compilar con Gradle y verificar los cambios
+- [x] 1. Crear e inicializar correctamente `OrderItem` con la cantidad exacta de secciones/paneles
+  - [x] Crear función helper `createOrderItem` que calcula `cols` y `rows` del `WindowConfig` e inicializa `sectionWidths` y `sectionHeights` con la cantidad de elementos correcta (ej. 2 elementos para 2 paneles)
+  - [x] Usar `createOrderItem` en `CalculoPedidoFragment.kt` (en `inicializarOrdenSugerida` y `mostrarDialogoSeleccionCatalogGeneral`)
+- [x] 2. Garantizar la sincronización universal en `WindowPreviewView.kt`
+  - [x] Verificar en `updateSectionWidth` y `updateSectionHeight` que si `sectionWidths.size` difiere de `cols`, se redimensione limpiamente antes de editar
+  - [x] Implementar el rebalanceo entero proporcional para cualquier cantidad $X$ de paneles
+- [x] 3. Despliegue automático del teclado numérico táctil en los diálogos de edición
+  - [x] Configurar `input.requestFocus()` y `dialog.window?.setSoftInputMode(SOFT_INPUT_STATE_ALWAYS_VISIBLE)` en `CalculoPedidoFragment.kt`
+- [x] 4. Compilar con Gradle y verificar

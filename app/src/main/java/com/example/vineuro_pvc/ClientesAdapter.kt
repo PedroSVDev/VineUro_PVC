@@ -9,6 +9,7 @@ import com.example.vineuro_pvc.databinding.ItemClienteBinding
 
 class ClientesAdapter(
     private var listaClientes: List<Cliente> = emptyList(),
+    private val onEliminarClick: (Cliente) -> Unit = {},
     private val onClienteClick: (Cliente) -> Unit,
 ) : RecyclerView.Adapter<ClientesAdapter.ClienteViewHolder>() {
 
@@ -18,11 +19,7 @@ class ClientesAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ClienteViewHolder {
-        val binding = ItemClienteBinding.inflate(
-            LayoutInflater.from(parent.context),
-            parent,
-            false,
-        )
+        val binding = ItemClienteBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return ClienteViewHolder(binding)
     }
 
@@ -38,7 +35,6 @@ class ClientesAdapter(
         fun bind(cliente: Cliente) {
             val context = binding.root.context
             binding.tvNombreCliente.text = cliente.nombreCompleto
-            binding.tvDniCliente.text = context.getString(R.string.label_dni_format, cliente.dni)
 
             if (cliente.telefono.isNotEmpty()) {
                 binding.tvTelefonoCliente.text = context.getString(R.string.label_tel_format, cliente.telefono)
@@ -58,12 +54,10 @@ class ClientesAdapter(
                 if (cliente.nombres.isNotEmpty()) append(cliente.nombres.first().uppercaseChar())
                 if (cliente.apellidos.isNotEmpty()) append(cliente.apellidos.first().uppercaseChar())
             }.ifEmpty { "C" }
-
             binding.tvAvatarInitials.text = iniciales
 
-            binding.root.setOnClickListener {
-                onClienteClick(cliente)
-            }
+            binding.root.setOnClickListener { onClienteClick(cliente) }
+            binding.btnEliminarCliente.setOnClickListener { onEliminarClick(cliente) }
         }
     }
 }

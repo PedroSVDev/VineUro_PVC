@@ -19,6 +19,7 @@ import com.example.vineuro_pvc.data.OrderItem
 import com.example.vineuro_pvc.data.OrderItemHolder
 import com.example.vineuro_pvc.data.Pedido
 import com.example.vineuro_pvc.data.PedidoRepository
+import com.example.vineuro_pvc.data.PreciosRepository
 import com.example.vineuro_pvc.data.WindowConfig
 import com.example.vineuro_pvc.data.WindowConfigCatalog
 import com.example.vineuro_pvc.databinding.DialogSelectConfigBinding
@@ -48,8 +49,11 @@ class CalculoPedidoFragment : Fragment() {
     // ---- Persistencia del pedido (local + Supabase) ----
     private lateinit var pedidoRepository: PedidoRepository
     private var pedidoActual: Pedido? = null      // null = pedido nuevo aún no guardado
-    private var dniClienteActual: String = ""
+    private var clienteIdActual: String = ""
     private var nombreClienteActual: String = ""
+
+    // Precios (alimentan el menú lateral del compás)
+    private lateinit var preciosRepository: PreciosRepository
 
     private val listaMecanismosApertura = listOf(
         AperturaMechanism("1", "Desliz. Der.", R.drawable.ic_apertura_arrow_right),
@@ -76,23 +80,27 @@ class CalculoPedidoFragment : Fragment() {
 
         clientRepository = ClientRepository(requireContext())
         pedidoRepository = PedidoRepository(requireContext())
+        preciosRepository = PreciosRepository(requireContext())
         inicializarConfiguraciones()
+
+        // Traer en segundo plano los precios más recientes de Supabase (para el menú del compás)
+        viewLifecycleOwner.lifecycleScope.launch { preciosRepository.sincronizar() }
 
         // Si la vista se recrea (p. ej. al volver del PDF) se recarga el pedido ya autoguardado
         val pedidoId = pedidoActual?.id ?: arguments?.getString("pedido_id")
         pedidoActual = pedidoId?.let { pedidoRepository.obtenerPedido(it) } ?: pedidoActual
 
-        val dniCliente = pedidoActual?.clienteDni ?: arguments?.getString("dni_cliente") ?: ""
+        val clienteId = pedidoActual?.clienteId ?: arguments?.getString("cliente_id") ?: ""
         nombreClienteActual = pedidoActual?.clienteNombre ?: arguments?.getString("nombre_cliente") ?: "Cliente sin nombre"
-        dniClienteActual = dniCliente
+        clienteIdActual = clienteId
         var nombreHeader = nombreClienteActual
         val usarSugerenciaIa = arguments?.getBoolean("usar_sugerencia_ia", false) ?: false
 
-        if (dniCliente.isNotEmpty()) {
-            val cliente = clientRepository.obtenerClientePorDni(dniCliente)
+        if (clienteId.isNotEmpty()) {
+            val cliente = clientRepository.obtenerClientePorId(clienteId)
             cliente?.let {
                 nombreClienteActual = it.nombreCompleto
-                nombreHeader = "${it.nombreCompleto} : ${it.codigoCliente}"
+                nombreHeader = it.nombreCompleto
             }
         }
 
@@ -115,7 +123,7 @@ class CalculoPedidoFragment : Fragment() {
 
         // 4. Botón verde compás (Herramientas Técnicas de trazado)
         binding.btnCompass.setOnClickListener {
-            Toast.makeText(requireContext(), "Modo de calibración y compás técnico activo", Toast.LENGTH_SHORT).show()
+            mostrarPanelConfiguracionVentana()
         }
 
         // 5. Botón Eliminar / Papelera
@@ -157,6 +165,23 @@ class CalculoPedidoFragment : Fragment() {
         }
     }
 
+    // ===================== MENÚ LATERAL "CONFIGURACIÓN DE LA VENTANA" =====================
+
+    /** Abre el menú lateral con las opciones de la ventana activa (listas cargadas desde Precios). */
+    private fun mostrarPanelConfiguracionVentana() {
+        if (activeItemIndex !in itemsOrden.indices) {
+            Toast.makeText(requireContext(), "Agregue una ventana primero con el botón +", Toast.LENGTH_SHORT).show()
+            return
+        }
+        guardarEstadoItemActivo()
+        val item = itemsOrden[activeItemIndex]
+        PanelConfigVentana(requireContext(), preciosRepository.obtener(), item.opciones) { nuevasOpciones ->
+            item.opciones = nuevasOpciones
+            guardarPedido(mostrarResultado = false)
+            Toast.makeText(requireContext(), "Configuración de la ventana ${item.index} guardada", Toast.LENGTH_SHORT).show()
+        }.mostrar()
+    }
+
     // ===================== GUARDADO DEL PEDIDO =====================
 
     private fun cargarPedidoGuardado(pedido: Pedido) {
@@ -180,7 +205,7 @@ class CalculoPedidoFragment : Fragment() {
         val base = pedidoActual
         return if (base == null) {
             Pedido(
-                clienteDni = dniClienteActual,
+                clienteId = clienteIdActual,
                 clienteNombre = nombreClienteActual,
                 items = itemsOrden.toList(),
                 fechaCreacion = ahora,
@@ -188,7 +213,7 @@ class CalculoPedidoFragment : Fragment() {
             )
         } else {
             base.copy(
-                clienteDni = dniClienteActual,
+                clienteId = clienteIdActual,
                 clienteNombre = nombreClienteActual,
                 items = itemsOrden.toList(),
                 fechaActualizacion = ahora,
@@ -342,7 +367,7 @@ class CalculoPedidoFragment : Fragment() {
         // Buscar "2 Paneles V."
         val configSugerida = listaConfiguraciones.find { it.nombre == "2 Paneles V." } ?: listaConfiguraciones.first()
 
-        val window1 = OrderItem(
+        val window1 = OrderItem.create(
             index = 1,
             config = configSugerida,
             colorBgHex = "#42A5F5",
@@ -502,7 +527,7 @@ class CalculoPedidoFragment : Fragment() {
 
             val newIndex = itemsOrden.size + 1
             val bgHex = if (newIndex % 2 == 0) "#CE3B75" else "#42A5F5"
-            val newItem = OrderItem(
+            val newItem = OrderItem.create(
                 index = newIndex,
                 config = tempConfigSeleccionada,
                 colorBgHex = bgHex,
@@ -678,9 +703,11 @@ class CalculoPedidoFragment : Fragment() {
             setText(currentValue.toString())
             setSelection(text.length)
             hint = "Ingrese valor en mm"
+            isFocusable = true
+            isFocusableInTouchMode = true
         }
 
-        AlertDialog.Builder(requireContext())
+        val alertDialog = AlertDialog.Builder(requireContext())
             .setTitle(titulo)
             .setMessage(mensaje)
             .setView(input)
@@ -725,7 +752,11 @@ class CalculoPedidoFragment : Fragment() {
                 dialog.dismiss()
             }
             .setNegativeButton("CANCELAR") { dialog, _ -> dialog.dismiss() }
-            .show()
+            .create()
+
+        input.requestFocus()
+        alertDialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
+        alertDialog.show()
     }
 
     private fun actualizarTablaMatriz(config: WindowConfig) {

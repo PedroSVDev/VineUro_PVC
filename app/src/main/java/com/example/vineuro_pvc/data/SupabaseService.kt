@@ -12,23 +12,18 @@ import java.net.URL
  */
 class SupabaseService {
 
+    // ===================== CLIENTES =====================
+    // Se identifican por "id" (clave primaria). Ya no se usa DNI.
+
     suspend fun upsertCliente(cliente: Cliente): Boolean = withContext(Dispatchers.IO) {
         try {
-            val url = URL("${SupabaseConfig.REST_URL}/clientes")
-            val connection = (url.openConnection() as HttpURLConnection).apply {
-                requestMethod = "POST"
-                connectTimeout = 8000
-                readTimeout = 8000
-                setRequestProperty("apikey", SupabaseConfig.API_KEY)
-                setRequestProperty("Authorization", "Bearer ${SupabaseConfig.API_KEY}")
+            val connection = abrirConexion("clientes?on_conflict=id", "POST").apply {
                 setRequestProperty("Content-Type", "application/json")
-                setRequestProperty("Prefer", "resolution=merge-duplicates,return=representation")
+                setRequestProperty("Prefer", "resolution=merge-duplicates,return=minimal")
                 doOutput = true
             }
-
             val payload = JSONObject().apply {
                 put("id", cliente.id)
-                put("dni", cliente.dni)
                 put("nombres", cliente.nombres)
                 put("apellidos", cliente.apellidos)
                 put("telefono", cliente.telefono)
@@ -37,75 +32,62 @@ class SupabaseService {
                 put("nota", cliente.nota)
                 put("fecha_registro", cliente.fechaRegistro)
             }
-
-            connection.outputStream.use { os ->
-                os.write(payload.toString().toByteArray(Charsets.UTF_8))
-            }
-
-            val code = connection.responseCode
-            return@withContext (code in 200..299)
+            connection.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
+            val ok = connection.responseCode in 200..299
+            if (!ok) android.util.Log.w("SupabaseService", "upsertCliente: ${leerError(connection)}")
+            ok
         } catch (e: Exception) {
             e.printStackTrace()
-            return@withContext false
+            false
         }
     }
 
-    suspend fun fetchClientes(): List<Cliente> = withContext(Dispatchers.IO) {
-        val clientes = mutableListOf<Cliente>()
+    /** Lista de clientes de la nube, o null si no se pudo conectar (para no borrar la copia local). */
+    suspend fun fetchClientes(): List<Cliente>? = withContext(Dispatchers.IO) {
         try {
-            val url = URL("${SupabaseConfig.REST_URL}/clientes?select=*&order=fecha_registro.desc")
-            val connection = (url.openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                connectTimeout = 8000
-                readTimeout = 8000
-                setRequestProperty("apikey", SupabaseConfig.API_KEY)
-                setRequestProperty("Authorization", "Bearer ${SupabaseConfig.API_KEY}")
-                setRequestProperty("Accept", "application/json")
+            val connection = abrirConexion("clientes?select=*&order=fecha_registro.desc", "GET")
+            if (connection.responseCode !in 200..299) {
+                android.util.Log.w("SupabaseService", "fetchClientes: ${leerError(connection)}")
+                return@withContext null
             }
-
-            if (connection.responseCode in 200..299) {
-                val jsonStr = connection.inputStream.bufferedReader().use { it.readText() }
-                val array = JSONArray(jsonStr)
-                for (i in 0 until array.length()) {
-                    val obj = array.getJSONObject(i)
-                    val cliente = Cliente(
-                        id = obj.optString("id"),
-                        dni = obj.optString("dni"),
-                        nombres = obj.optString("nombres"),
-                        apellidos = obj.optString("apellidos"),
-                        telefono = obj.optString("telefono", ""),
-                        email = obj.optString("email", ""),
-                        direccion = obj.optString("direccion", ""),
-                        nota = obj.optString("nota", ""),
-                        fechaRegistro = obj.optLong("fecha_registro", System.currentTimeMillis()),
-                    )
-                    clientes.add(cliente)
-                }
+            val array = JSONArray(connection.inputStream.bufferedReader().use { it.readText() })
+            (0 until array.length()).mapNotNull { i ->
+                val obj = array.getJSONObject(i)
+                val id = obj.optString("id")
+                if (id.isBlank()) return@mapNotNull null
+                Cliente(
+                    id = id,
+                    nombres = obj.optString("nombres"),
+                    apellidos = obj.optString("apellidos"),
+                    telefono = textoONada(obj, "telefono"),
+                    email = textoONada(obj, "email"),
+                    direccion = textoONada(obj, "direccion"),
+                    nota = textoONada(obj, "nota"),
+                    fechaRegistro = obj.optLong("fecha_registro", System.currentTimeMillis()),
+                )
             }
         } catch (e: Exception) {
             e.printStackTrace()
+            null
         }
-        return@withContext clientes
     }
 
-    suspend fun deleteCliente(dni: String): Boolean = withContext(Dispatchers.IO) {
+    /** Elimina el cliente por id. Devuelve true si se borró (o ya no existía). */
+    suspend fun deleteCliente(id: String): Boolean = withContext(Dispatchers.IO) {
         try {
-            val url = URL("${SupabaseConfig.REST_URL}/clientes?dni=eq.$dni")
-            val connection = (url.openConnection() as HttpURLConnection).apply {
-                requestMethod = "DELETE"
-                connectTimeout = 8000
-                readTimeout = 8000
-                setRequestProperty("apikey", SupabaseConfig.API_KEY)
-                setRequestProperty("Authorization", "Bearer ${SupabaseConfig.API_KEY}")
-            }
-
-            val code = connection.responseCode
-            return@withContext (code in 200..299)
+            val connection = abrirConexion("clientes?id=eq.$id", "DELETE")
+            val ok = connection.responseCode in 200..299
+            if (!ok) android.util.Log.w("SupabaseService", "deleteCliente: ${leerError(connection)}")
+            ok
         } catch (e: Exception) {
             e.printStackTrace()
-            return@withContext false
+            false
         }
     }
+
+    /** Las columnas vacías llegan como null en JSON; optString las convertiría en el texto "null". */
+    private fun textoONada(obj: JSONObject, key: String): String =
+        if (obj.isNull(key)) "" else obj.optString(key, "")
 
     // ===================== PEDIDOS =====================
 
@@ -169,5 +151,70 @@ class SupabaseService {
             e.printStackTrace()
             "Sin conexión: ${e.message}"
         }
+    }
+
+    // ===================== PRECIOS =====================
+    // Tabla "precios" con una sola fila (id = "general") que guarda todo el apartado de precios en la columna jsonb "data".
+
+    /** Inserta o actualiza los precios. Devuelve null si OK, o un mensaje de error. */
+    suspend fun upsertPrecios(precios: Precios): String? = withContext(Dispatchers.IO) {
+        try {
+            val connection = abrirConexion("precios?on_conflict=id", "POST").apply {
+                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("Prefer", "resolution=merge-duplicates,return=minimal")
+                doOutput = true
+            }
+            val payload = JSONObject().apply {
+                put("id", PRECIOS_ID)
+                put("data", PreciosJson.toJson(precios))
+                put("fecha_actualizacion", precios.fechaActualizacion)
+            }
+            connection.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
+            if (connection.responseCode in 200..299) {
+                null
+            } else {
+                leerError(connection).also { android.util.Log.w("SupabaseService", "upsertPrecios: $it") }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            "Sin conexión: ${e.message}"
+        }
+    }
+
+    /**
+     * Descarga los precios.
+     * - Result.success(precios) si existe la fila
+     * - Result.success(null) si la tabla está vacía
+     * - Result.failure si no hubo conexión o la tabla no existe (para no pisar la copia local)
+     */
+    suspend fun fetchPrecios(): Result<Precios?> = withContext(Dispatchers.IO) {
+        try {
+            val connection = abrirConexion("precios?id=eq.$PRECIOS_ID&select=*", "GET")
+            if (connection.responseCode !in 200..299) {
+                val err = leerError(connection)
+                android.util.Log.w("SupabaseService", "fetchPrecios: $err")
+                return@withContext Result.failure(Exception(err))
+            }
+            val json = connection.inputStream.bufferedReader().use { it.readText() }
+            val array = JSONArray(json)
+            if (array.length() == 0) return@withContext Result.success(null)
+
+            val fila = array.getJSONObject(0)
+            val data = when (val raw = fila.opt("data")) {
+                is JSONObject -> raw
+                is String -> JSONObject(raw)
+                else -> return@withContext Result.success(null)
+            }
+            val precios = PreciosJson.fromJson(data)
+            val fecha = fila.optLong("fecha_actualizacion", precios.fechaActualizacion)
+            Result.success(precios.copy(fechaActualizacion = fecha))
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    companion object {
+        private const val PRECIOS_ID = "general"
     }
 }

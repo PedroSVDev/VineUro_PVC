@@ -36,8 +36,7 @@ class PedidoRepository(context: Context) {
         if (q.isEmpty()) return obtenerPedidos()
         return obtenerPedidos().filter {
             it.codigo.lowercase().contains(q) ||
-                it.clienteNombre.lowercase().contains(q) ||
-                it.clienteDni.lowercase().contains(q)
+                it.clienteNombre.lowercase().contains(q)
         }
     }
 

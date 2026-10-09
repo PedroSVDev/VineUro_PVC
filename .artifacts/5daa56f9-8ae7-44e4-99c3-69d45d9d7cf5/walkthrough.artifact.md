@@ -1,27 +1,25 @@
-# Resumen de Ajustes: Selección Táctil Precisa de Cotas y Rebalanceo
+# Resumen de Ajustes: Solución Definitiva de Edición de Paneles y Teclado Táctil
 
-Se han corregido la detección táctil de las etiquetas en el canvas y la lógica de rebalanceo de medidas de los paneles.
+Se ha solucionado la causa raíz que provocaba la distorsión del ancho total y se activó el despliegue automático del teclado numérico táctil en dispositivos móviles.
 
 ---
 
-## Mejoras Implementadas
+## Soluciones Técnicas Aplicadas
 
-### 1. Selección Táctil de Cotas por Cercanía Euclídea (`onTouchEvent`)
-- **Problema corregido**: Al tocar la cota de un panel (750 mm) cerca de la línea del ancho total (1500 mm), el sistema seleccionaba por error el ancho total.
-- **Solución**: Se implementó una prueba de toque por distancia mínima al centro del toque `(x, y)`. Al pulsar la etiqueta del panel, el sistema identifica de forma unívoca y exacta la cota seleccionada.
+### 1. Inicialización Universal de Arreglos de Medidas (`OrderItem.create`)
+- **Causa raíz corregida**: Al agregar cualquier diseño de ventana de $X$ paneles (ej. 2, 3 o 4 paneles), el constructor por defecto de `OrderItem` inicializaba `sectionWidths` con un arreglo de tamaño 1 (`[1500f]`). Cuando el usuario intentaba editar un panel, el sistema detectaba 1 solo panel y reducía el ancho total completo.
+- **Solución**: Se creó la función constructora `OrderItem.create(index, config, alto, ancho)`, la cual calcula dinámicamente el número exacto de columnas `cols` y filas `rows` de la ventana e inicializa `sectionWidths` con la cantidad correcta de elementos (ej. `[750f, 750f]` para 2 paneles).
 
-### 2. Fijado de Ancho Total y Autocompletado de Paneles
-- **En ventana de 1500 mm (2 paneles de 750 mm)**:
-  - Al pulsar el Panel 1 e ingresar `700`, el Panel 1 pasa a **700 mm** y el Panel 2 se autocompleta a **800 mm**. El Ancho Total permanece **fijo en 1500 mm**.
-- **Si el valor supera el Ancho Total (ej. ingresar 1600 mm)**:
-  - La ventana se expande automáticamente a **2350 mm** ($1600 + 750$).
+### 2. Sincronización Automática de Estructuras en `WindowPreviewView.kt`
+- En `updateSectionWidth` y `updateSectionHeight`, se añadió una verificación automática de seguridad: si el arreglo interno difiere de la cantidad real de columnas `cols` de la ventana, se redimensiona automáticamente antes de aplicar el rebalanceo entero.
+- **Resultado**:
+  - En una ventana de 1500 mm con 2 paneles (750 mm / 750 mm), cambiar el Panel 1 a **700 mm** autocompleta el Panel 2 a **800 mm** ($1500 - 700 = 800$), manteniendo el Ancho Total en **1500 mm**.
+  - Si se ingresan 3, 4 o más paneles, las medidas restantes se distribuyen en milímetros enteros exactos.
 
-### 3. Claridad en Diálogos y Confirmaciones
-- El diálogo de edición indica explícitamente el ancho total actual de la ventana:
-  > *"Editar Ancho Panel 1 (mm)*
-  > *Ancho total de la ventana: 1500 mm. El ancho restante se rebalanceará automáticamente."*
-- El mensaje Toast confirma el resultado final:
-  > *"Panel 1: 700 mm (Ancho Total: 1500 mm)"*.
+### 3. Apertura Automática del Teclado Numérico Táctil
+- En `CalculoPedidoFragment.kt`'s `mostrarDialogoEditarMedida`:
+  - Se configuró la solicitud de foco `input.requestFocus()` y el modo de ventana `SOFT_INPUT_STATE_ALWAYS_VISIBLE`.
+  - En teléfonos celulares y emuladores, al pulsar cualquier medida en la ventana, el teclado numérico táctil se despliega automáticamente en la pantalla.
 
 ---
 

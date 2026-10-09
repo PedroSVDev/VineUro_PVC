@@ -10,20 +10,35 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.GridLayout
-import android.widget.ImageButton
+import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.example.vineuro_pvc.data.FilaColor
+import com.example.vineuro_pvc.data.FilaSeleccion
+import com.example.vineuro_pvc.data.Precios
+import com.example.vineuro_pvc.data.PreciosRepository
 import com.example.vineuro_pvc.databinding.FragmentPreciosBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.util.Locale
 
+/**
+ * Apartado de Precios. Todo lo que se edita aquí se guarda en el teléfono al instante
+ * y se sube a Supabase (tabla "precios") al salir de la pantalla.
+ */
 class PreciosFragment : Fragment() {
 
     private var _binding: FragmentPreciosBinding? = null
     private val binding get() = _binding!!
+
+    private lateinit var repo: PreciosRepository
+    private var hayCambiosSinSubir = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -36,69 +51,191 @@ class PreciosFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        repo = PreciosRepository(requireContext())
         setupListeners()
-        addInitialData()
+
+        // 1. Mostrar al instante lo guardado en el teléfono
+        mostrarPrecios(repo.obtener())
+
+        // 2. Traer la versión de la nube (si es más reciente, reemplaza la pantalla)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val antes = repo.obtener().fechaActualizacion
+            val sincronizados = repo.sincronizar()
+            if (_binding == null || hayCambiosSinSubir) return@launch
+            if (sincronizados.fechaActualizacion != antes) mostrarPrecios(sincronizados)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        subirSiHayCambios()
     }
 
     private fun setupListeners() {
         binding.btnBack.setOnClickListener { findNavController().navigateUp() }
 
         // Botones de añadir
-        binding.btnAddPlanes.setOnClickListener { addRow(binding.tablePlanes, listOf("new_finance", "0", "0", "0"), true, colorType = 3) }
-        binding.btnAddVentanas.setOnClickListener { addRow(binding.tableVentanas, List(10) { "0" }, true, colorType = 4) }
-        binding.btnAddCristal.setOnClickListener { addRow(binding.tableCristal, List(10) { "0" }, true, colorType = 5) }
-        binding.btnAddUmbralExt.setOnClickListener { addRow(binding.tableUmbralExt, listOf("new_sill", "0", "0"), true, colorType = 6) }
-        binding.btnAddUmbralInt.setOnClickListener { addRow(binding.tableUmbralInt, listOf("new_sill", "0", "0"), true, colorType = 7) }
-        binding.btnAddMuebles.setOnClickListener { addRow(binding.tableMuebles, listOf("new_furniture", "0", "0", "0"), true, colorType = 8) }
-        binding.btnAddExtras.setOnClickListener { addSelectionRow(binding.tableExtras, "new_extra", "0", true) }
-        binding.btnAddEmpleos.setOnClickListener { addSelectionRow(binding.tableEmpleos, "new_job", "0", true) }
-        binding.btnAddMosquitera.setOnClickListener { addRow(binding.tableMosquitera, List(7) { "0" }, true, colorType = 11) }
-        binding.btnAddLaminacion.setOnClickListener { addRow(binding.tableLaminacion, listOf("new_lam", "0"), true, colorType = 12) }
-        binding.btnAddColors.setOnClickListener { 
+        binding.btnAddPlanes.setOnClickListener { addRow(binding.tablePlanes, listOf("new_finance", "0", "0", "0"), true, colorType = 3); onDatosCambiados() }
+        binding.btnAddVentanas.setOnClickListener { addRow(binding.tableVentanas, listOf("new_system") + List(9) { "0" }, true, colorType = 4); onDatosCambiados() }
+        binding.btnAddCristal.setOnClickListener { addRow(binding.tableCristal, listOf("new_glass") + List(9) { "0" }, true, colorType = 5); onDatosCambiados() }
+        binding.btnAddUmbralExt.setOnClickListener { addRow(binding.tableUmbralExt, listOf("new_sill", "0", "0"), true, colorType = 6); onDatosCambiados() }
+        binding.btnAddUmbralInt.setOnClickListener { addRow(binding.tableUmbralInt, listOf("new_sill", "0", "0"), true, colorType = 7); onDatosCambiados() }
+        binding.btnAddMuebles.setOnClickListener { addRow(binding.tableMuebles, listOf("new_furniture", "0", "0", "0"), true, colorType = 8); onDatosCambiados() }
+        binding.btnAddExtras.setOnClickListener { addSelectionRow(binding.tableExtras, "new_extra", "0", 0, true); onDatosCambiados() }
+        binding.btnAddEmpleos.setOnClickListener { addSelectionRow(binding.tableEmpleos, "new_job", "0", 0, true); onDatosCambiados() }
+        binding.btnAddMosquitera.setOnClickListener { addRow(binding.tableMosquitera, listOf("new_mosq_net") + List(6) { "0" }, true, colorType = 11); onDatosCambiados() }
+        binding.btnAddLaminacion.setOnClickListener { addRow(binding.tableLaminacion, listOf("new_lam", "0"), true, colorType = 12); onDatosCambiados() }
+        binding.btnAddColors.setOnClickListener {
             if (colorNameExists("new_color")) {
                 Toast.makeText(requireContext(), "El color 'new_color' ya existe. Cámbiale el nombre primero.", Toast.LENGTH_SHORT).show()
             } else {
                 addColorRow("new_color", Color.WHITE)
+                onDatosCambiados()
             }
         }
     }
 
-    private fun addInitialData() {
-        // Moneda e Impuesto (Sin botón de añadir)
-        addRow(binding.tableMoneda, listOf("€", "1.00", "€"), false, 1)
-        addRow(binding.tableImpuesto, listOf("IVA", "0"), false, 2)
+    // ===================== CARGA / GUARDADO =====================
 
-        // Iniciales ejemplos
-        addRow(binding.tablePlanes, listOf("discount 1%", "1", "0", "0"), true, 3)
-        addRow(binding.tableVentanas, listOf("PVC system A", "5.67", "5.58", "4.81", "0", "0", "1.67", "0.28", "0", "0"), true, 4)
-        
-        addSelectionRow(binding.tableExtras, "mounting foam", "12.30", true)
-        addSelectionRow(binding.tableEmpleos, "delivery", "6.00", true)
+    /** Todas las tablas simples (fila = lista de celdas) con su colorType. */
+    private fun tablasSimples(): List<Triple<TableLayout, Int, Boolean>> = listOf(
+        // tabla, colorType, tieneBotonEliminar
+        Triple(binding.tableMoneda, 1, false),
+        Triple(binding.tableImpuesto, 2, false),
+        Triple(binding.tablePlanes, 3, true),
+        Triple(binding.tableVentanas, 4, true),
+        Triple(binding.tableCristal, 5, true),
+        Triple(binding.tableUmbralExt, 6, true),
+        Triple(binding.tableUmbralInt, 7, true),
+        Triple(binding.tableMuebles, 8, true),
+        Triple(binding.tableMosquitera, 11, true),
+        Triple(binding.tableLaminacion, 12, true),
+    )
 
-        addColorRow("alder", Color.parseColor("#C49B7A"))
+    private fun datosDeTablas(p: Precios): List<List<List<String>>> = listOf(
+        p.moneda, p.impuesto, p.planes, p.ventanas, p.cristal,
+        p.umbralExt, p.umbralInt, p.muebles, p.mosquitera, p.laminacion,
+    )
+
+    /** Pinta en pantalla todos los precios (borra las filas actuales, deja los encabezados). */
+    private fun mostrarPrecios(p: Precios) {
+        val tablas = tablasSimples()
+        val datos = datosDeTablas(p)
+        tablas.forEachIndexed { i, (tabla, colorType, conEliminar) ->
+            limpiarTabla(tabla)
+            datos[i].forEach { fila -> addRow(tabla, fila, conEliminar, colorType) }
+        }
+        limpiarTabla(binding.tableExtras)
+        p.extras.forEach { addSelectionRow(binding.tableExtras, it.nombre, it.precio, it.unidad, true) }
+        limpiarTabla(binding.tableEmpleos)
+        p.empleos.forEach { addSelectionRow(binding.tableEmpleos, it.nombre, it.precio, it.unidad, true) }
+        limpiarTabla(binding.tableColors)
+        p.colores.forEach {
+            val color = runCatching { Color.parseColor(it.colorHex) }.getOrDefault(Color.WHITE)
+            addColorRow(it.nombre, color)
+        }
     }
+
+    /** Elimina todas las filas excepto la primera (encabezado). */
+    private fun limpiarTabla(tabla: ViewGroup) {
+        while (tabla.childCount > 1) tabla.removeViewAt(1)
+    }
+
+    /** Lee de la pantalla el estado actual de todas las tablas. */
+    private fun recolectarPrecios(): Precios {
+        val simples = tablasSimples().map { (tabla, _, _) -> leerTablaSimple(tabla) }
+        return Precios(
+            moneda = simples[0],
+            impuesto = simples[1],
+            planes = simples[2],
+            ventanas = simples[3],
+            cristal = simples[4],
+            umbralExt = simples[5],
+            umbralInt = simples[6],
+            muebles = simples[7],
+            mosquitera = simples[8],
+            laminacion = simples[9],
+            extras = leerTablaSeleccion(binding.tableExtras),
+            empleos = leerTablaSeleccion(binding.tableEmpleos),
+            colores = leerTablaColores(),
+        )
+    }
+
+    private fun filasDe(tabla: ViewGroup): List<TableRow> =
+        (1 until tabla.childCount).mapNotNull { tabla.getChildAt(it) as? TableRow }
+
+    private fun celdasConTag(row: TableRow, tag: String): List<View> =
+        (0 until row.childCount).map { row.getChildAt(it) }.filter { it.tag == tag }
+
+    private fun leerTablaSimple(tabla: ViewGroup): List<List<String>> =
+        filasDe(tabla).map { row -> celdasConTag(row, TAG_VALOR).map { (it as TextView).text.toString() } }
+            .filter { it.isNotEmpty() }
+
+    private fun leerTablaSeleccion(tabla: ViewGroup): List<FilaSeleccion> =
+        filasDe(tabla).mapNotNull { row ->
+            val valores = celdasConTag(row, TAG_VALOR).map { (it as TextView).text.toString() }
+            if (valores.size < 2) return@mapNotNull null
+            val unidad = celdasConTag(row, TAG_UNIDAD).indexOfFirst { it.isSelected }
+            FilaSeleccion(valores[0], valores[1], unidad)
+        }
+
+    private fun leerTablaColores(): List<FilaColor> =
+        filasDe(binding.tableColors).mapNotNull { row ->
+            val nombre = (celdasConTag(row, TAG_VALOR).firstOrNull() as? TextView)?.text?.toString() ?: return@mapNotNull null
+            val celdaColor = celdasConTag(row, TAG_COLOR).firstOrNull() ?: return@mapNotNull null
+            val color = (celdaColor.background as? ColorDrawable)?.color ?: Color.WHITE
+            FilaColor(nombre, String.format("#%06X", 0xFFFFFF and color))
+        }
+
+    /** Se llama tras cualquier edición: guarda en el teléfono al instante. */
+    private fun onDatosCambiados() {
+        if (_binding == null) return
+        repo.guardarLocal(recolectarPrecios())
+        hayCambiosSinSubir = true
+    }
+
+    /** Sube a Supabase (en segundo plano, aunque se cierre la pantalla). */
+    private fun subirSiHayCambios() {
+        if (!hayCambiosSinSubir) return
+        hayCambiosSinSubir = false
+        val appContext = requireContext().applicationContext
+        val repoSubida = repo
+        CoroutineScope(SupervisorJob() + Dispatchers.Main).launch {
+            val error = repoSubida.subir()
+            if (error != null) {
+                Toast.makeText(appContext, "Precios guardados en el teléfono. La nube respondió: $error", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    // ===================== FILAS =====================
 
     private fun addRow(table: ViewGroup, data: List<String>, hasDelete: Boolean, colorType: Int) {
         val row = TableRow(requireContext())
         val isEven = table.childCount % 2 == 0
         row.setBackgroundColor(if (isEven) Color.parseColor("#F9F9F9") else Color.WHITE)
 
-        val bgColor = when(colorType) {
+        val bgColor = when (colorType) {
             3 -> Color.parseColor("#FF69B4") // Rosa
             4 -> Color.parseColor("#FFA500") // Naranja
             5 -> Color.parseColor("#1E90FF") // Azul
             else -> Color.TRANSPARENT
         }
 
-        data.forEach { text ->
+        data.forEachIndexed { index, text ->
             val cell = TextView(requireContext()).apply {
                 layoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1f)
                 setPadding(20, 20, 20, 20)
                 this.text = text
+                tag = TAG_VALOR
                 gravity = android.view.Gravity.CENTER
                 setTextColor(Color.BLACK)
                 if (bgColor != Color.TRANSPARENT) setBackgroundColor(bgColor)
-                setOnClickListener { if (text.any { it.isLetter() }) showTextKeypad(this) else showNumericKeypad(this) }
+                setOnClickListener {
+                    // La primera columna es el nombre (texto); el resto son números salvo que contengan letras/símbolos
+                    val esTexto = index == 0 || this.text.toString().toDoubleOrNull() == null
+                    if (esTexto) showTextKeypad(this) else showNumericKeypad(this)
+                }
             }
             row.addView(cell)
         }
@@ -109,26 +246,28 @@ class PreciosFragment : Fragment() {
                 setPadding(20, 20, 20, 20)
                 setTextColor(Color.parseColor("#CE3B75"))
                 gravity = android.view.Gravity.CENTER
-                setOnClickListener { showDeleteConfirmation(table, row, data[0]) }
+                setOnClickListener { showDeleteConfirmation(table, row, nombreDeFila(row)) }
             }
             row.addView(deleteCell)
         }
         table.addView(row)
     }
 
-    private fun addSelectionRow(table: ViewGroup, name: String, price: String, hasDelete: Boolean) {
+    private fun addSelectionRow(table: ViewGroup, name: String, price: String, unidad: Int, hasDelete: Boolean) {
         val row = TableRow(requireContext())
         row.setBackgroundColor(Color.parseColor("#F9F9F9"))
 
         // Nombre
         row.addView(TextView(requireContext()).apply {
             text = name
+            tag = TAG_VALOR
             setPadding(20, 20, 20, 20)
             setOnClickListener { showTextKeypad(this) }
         })
         // Precio
         row.addView(TextView(requireContext()).apply {
             text = price
+            tag = TAG_VALOR
             setPadding(20, 20, 20, 20)
             setBackgroundColor(Color.parseColor("#C5E1A5"))
             setOnClickListener { showNumericKeypad(this) }
@@ -140,7 +279,7 @@ class PreciosFragment : Fragment() {
             R.drawable.bg_sel_option_2,
             R.drawable.bg_sel_option_3,
             R.drawable.bg_sel_option_4,
-            R.drawable.bg_sel_option_5
+            R.drawable.bg_sel_option_5,
         )
 
         // Botones de selección (pc, m2, m...)
@@ -149,8 +288,11 @@ class PreciosFragment : Fragment() {
                 val size = dpToPx(24)
                 layoutParams = TableRow.LayoutParams(size, size).apply { setMargins(10, 10, 10, 10) }
                 setBackgroundResource(drawables[i])
+                tag = TAG_UNIDAD
+                isSelected = (i == unidad)
                 setOnClickListener { clicked ->
                     selectionBoxes.forEach { it.isSelected = (it == clicked) }
+                    onDatosCambiados()
                 }
             }
             selectionBoxes.add(box)
@@ -161,11 +303,15 @@ class PreciosFragment : Fragment() {
             row.addView(TextView(requireContext()).apply {
                 text = "X"
                 setPadding(20, 20, 20, 20)
-                setOnClickListener { showDeleteConfirmation(table, row, name) }
+                setOnClickListener { showDeleteConfirmation(table, row, nombreDeFila(row)) }
             })
         }
         table.addView(row)
     }
+
+    /** Nombre actual de la fila (la primera celda), aunque se haya editado después de crearla. */
+    private fun nombreDeFila(row: TableRow): String =
+        (celdasConTag(row, TAG_VALOR).firstOrNull() as? TextView)?.text?.toString() ?: ""
 
     private fun colorNameExists(name: String): Boolean {
         val table = binding.tableColors
@@ -196,16 +342,18 @@ class PreciosFragment : Fragment() {
     private fun addColorRow(name: String, colorValue: Int) {
         val table = binding.tableColors
         val row = TableRow(requireContext())
-        
+
         row.addView(TextView(requireContext()).apply {
             text = name
+            tag = TAG_VALOR
             setPadding(20, 20, 20, 20)
             setOnClickListener { showTextKeypad(this, isColorName = true) }
         })
-        
+
         val colorCell = View(requireContext()).apply {
             layoutParams = TableRow.LayoutParams(dpToPx(80), dpToPx(40)).apply { setMargins(10, 10, 10, 10) }
             setBackgroundColor(colorValue)
+            tag = TAG_COLOR
             setOnClickListener { showColorPicker(this) }
         }
         row.addView(colorCell)
@@ -213,7 +361,7 @@ class PreciosFragment : Fragment() {
         row.addView(TextView(requireContext()).apply {
             text = "X"
             setPadding(20, 20, 20, 20)
-            setOnClickListener { showDeleteConfirmation(table, row, name) }
+            setOnClickListener { showDeleteConfirmation(table, row, nombreDeFila(row)) }
         })
 
         table.addView(row)
@@ -251,6 +399,7 @@ class PreciosFragment : Fragment() {
         }
         dialogView.findViewById<View>(R.id.btnKeypadDone).setOnClickListener {
             target.text = formatDecimal(display.text.toString())
+            onDatosCambiados()
             dialog.dismiss()
         }
         dialog.show()
@@ -295,6 +444,7 @@ class PreciosFragment : Fragment() {
                 }
             }
             target.text = newName
+            onDatosCambiados()
             dialog.dismiss()
         }
 
@@ -379,6 +529,7 @@ class PreciosFragment : Fragment() {
 
         dialogView.findViewById<View>(R.id.btnColorYes).setOnClickListener {
             target.setBackgroundColor(selectedColor)
+            onDatosCambiados()
             dialog.dismiss()
         }
         dialogView.findViewById<View>(R.id.btnColorNo).setOnClickListener { dialog.dismiss() }
@@ -389,10 +540,11 @@ class PreciosFragment : Fragment() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_confirm_delete, null)
         val dialog = AlertDialog.Builder(requireContext()).setView(dialogView).create()
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        
-        dialogView.findViewById<TextView>(R.id.tvConfirmMessage).text = "eliminar el ($itemName) A partir del tabe?"
+
+        dialogView.findViewById<TextView>(R.id.tvConfirmMessage).text = "¿Eliminar \"$itemName\" de la tabla?"
         dialogView.findViewById<View>(R.id.btnAccept).setOnClickListener {
             parent.removeView(row)
+            onDatosCambiados()
             dialog.dismiss()
         }
         dialogView.findViewById<View>(R.id.btnCancel).setOnClickListener { dialog.dismiss() }
@@ -413,5 +565,11 @@ class PreciosFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    companion object {
+        private const val TAG_VALOR = "valor"
+        private const val TAG_UNIDAD = "unidad"
+        private const val TAG_COLOR = "color"
     }
 }

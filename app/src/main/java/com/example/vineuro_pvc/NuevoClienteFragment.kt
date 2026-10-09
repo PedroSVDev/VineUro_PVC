@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.example.vineuro_pvc.data.ClientRepository
 import com.example.vineuro_pvc.data.Cliente
@@ -38,16 +39,10 @@ class NuevoClienteFragment : Fragment() {
     }
 
     private fun guardarCliente() {
-        var dni = binding.etDni.text.toString().trim()
         val nombres = binding.etNombres.text.toString().trim()
         val apellidos = binding.etApellidos.text.toString().trim()
         val telefono = binding.etTelefono.text.toString().trim()
         val email = binding.etEmail.text.toString().trim()
-
-        // Hacer que el DNI sea completamente OPCIONAL. Si no hay DNI, generamos un identificador temporal.
-        if (dni.isEmpty()) {
-            dni = "SD-" + (1000..9999).random().toString()
-        }
 
         if (nombres.isEmpty()) {
             binding.tilNombres.error = "Ingrese el nombre"
@@ -63,30 +58,27 @@ class NuevoClienteFragment : Fragment() {
             binding.tilApellidos.error = null
         }
 
+        val clientRepository = ClientRepository(requireContext())
+
+        // El cliente se identifica por su id (UUID generado automáticamente)
         val nuevoCliente = Cliente(
-            dni = dni,
             nombres = nombres,
             apellidos = apellidos,
             telefono = telefono,
             email = email,
         )
 
-        val clientRepository = ClientRepository(requireContext())
-        val guardadoOk = clientRepository.guardarCliente(nuevoCliente)
+        if (clientRepository.guardarCliente(nuevoCliente)) {
+            Toast.makeText(requireContext(), "Cliente ${nuevoCliente.nombreCompleto} guardado", Toast.LENGTH_SHORT).show()
 
-        if (guardadoOk) {
-            Toast.makeText(
-                requireContext(),
-                "Cliente $nombres guardado localmente.\nSincronizando con la nube...",
-                Toast.LENGTH_LONG,
-            ).show()
-            findNavController().popBackStack()
+            // Ir directo a "Información del Cliente". Al volver atrás no se regresa a este formulario.
+            val bundle = Bundle().apply { putString("cliente_id", nuevoCliente.id) }
+            val opciones = NavOptions.Builder()
+                .setPopUpTo(R.id.NuevoClienteFragment, true)
+                .build()
+            findNavController().navigate(R.id.DetallePedidoClienteFragment, bundle, opciones)
         } else {
-            Toast.makeText(
-                requireContext(),
-                "Error al guardar el cliente",
-                Toast.LENGTH_SHORT,
-            ).show()
+            Toast.makeText(requireContext(), "Error al guardar el cliente", Toast.LENGTH_SHORT).show()
         }
     }
 

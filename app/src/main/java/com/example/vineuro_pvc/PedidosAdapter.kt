@@ -30,7 +30,7 @@ class PedidosAdapter(
         fun bind(p: Pedido) {
             b.tvBadgeVentanas.text = p.totalVentanas.toString()
             b.tvCodigoPedido.text = p.codigo
-            b.tvClientePedido.text = if (p.clienteDni.isNotEmpty()) "${p.clienteNombre} · DNI ${p.clienteDni}" else p.clienteNombre
+            b.tvClientePedido.text = p.clienteNombre.ifBlank { "Cliente sin nombre" }
             val ventanas = if (p.totalVentanas == 1) "1 ventana" else "${p.totalVentanas} ventanas"
             b.tvResumenPedido.text = String.format(Locale.US, "%s · %.2f m² · %s", ventanas, p.areaTotalM2, p.fechaActualizacionTexto)
             b.root.setOnClickListener { onClick(p) }

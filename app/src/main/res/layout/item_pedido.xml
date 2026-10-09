@@ -61,7 +61,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/badge_container"
             app:layout_constraintTop_toBottomOf="@id/tv_codigo_pedido"
-            tools:text="Juan Pérez · DNI 12345678" />
+            tools:text="Juan Pérez" />
 
         <TextView
             android:id="@+id/tv_resumen_pedido"

@@ -112,7 +112,7 @@ class FirstFragment : Fragment() {
     private fun navegarAPedido(pedido: Pedido) {
         val bundle = Bundle().apply {
             putString("pedido_id", pedido.id)
-            putString("dni_cliente", pedido.clienteDni)
+            putString("cliente_id", pedido.clienteId)
             putString("nombre_cliente", pedido.clienteNombre)
         }
         findNavController().navigate(R.id.CalculoPedidoFragment, bundle)

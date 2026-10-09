@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícono de cliente: silueta dentro de un círculo (azul oscuro) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Fondo blanco + aro -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#0B3D66"
+        android:strokeWidth="2.5"
+        android:pathData="M24,2.5a21.5,21.5 0,1 1,0 43a21.5,21.5 0,1 1,0 -43z" />
+    <!-- Cabeza -->
+    <path
+        android:fillColor="#0B3D66"
+        android:pathData="M24,10.5c4.2,0 7.2,3.4 7.2,7.9c0,4.7 -3.1,8.6 -7.2,8.6s-7.2,-3.9 -7.2,-8.6C16.8,13.9 19.8,10.5 24,10.5z" />
+    <!-- Hombros (recortados por el círculo) -->
+    <path
+        android:fillColor="#0B3D66"
+        android:pathData="M10.2,39.6C11.6,33.1 16.6,29.4 24,29.4s12.4,3.7 13.8,10.2C34.1,42.8 29.3,44.5 24,44.5S13.9,42.8 10.2,39.6z" />
+</vector>

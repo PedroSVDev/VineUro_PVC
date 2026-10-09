@@ -36,37 +36,35 @@
                 android:orientation="vertical"
                 android:padding="20dp">
 
+                <!-- Encabezado: ícono de cliente + título -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
+                    <ImageView
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
+                        android:contentDescription="Cliente"
+                        android:src="@drawable/ic_cliente_avatar" />
+
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
                         android:layout_weight="1"
                         android:text="@string/title_detalle_cliente_pedido"
-                        android:textColor="#666666"
-                        android:textSize="13sp"
+                        android:textColor="#0B3D66"
+                        android:textSize="20sp"
                         android:textStyle="bold" />
-
-                    <!-- Client Code Badge -->
-                    <TextView
-                        android:id="@+id/tv_codigo_cliente"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/ic_launcher_background"
-                        android:backgroundTint="@color/menu_nuevo_orden"
-                        android:paddingStart="12dp"
-                        android:paddingTop="6dp"
-                        android:paddingEnd="12dp"
-                        android:paddingBottom="6dp"
-                        android:textColor="@color/white"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        tools:text="CLI-12345678" />
                 </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="14dp"
+                    android:background="#DDDDDD" />
 
                 <TextView
                     android:id="@+id/tv_nombre_cliente"
@@ -77,15 +75,6 @@
                     android:textSize="19sp"
                     android:textStyle="bold"
                     tools:text="JUAN PEDRO PEREZ GARCIA" />
-
-                <TextView
-                    android:id="@+id/tv_dni_cliente"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:textColor="#555555"
-                    android:textSize="14sp"
-                    tools:text="DNI: 12345678" />
 
                 <TextView
                     android:id="@+id/tv_contacto_cliente"

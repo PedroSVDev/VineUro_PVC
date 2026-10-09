@@ -238,6 +238,16 @@ class WindowPreviewView @JvmOverloads constructor(
     }
 
     fun updateSectionHeight(index: Int, newHeightMm: Int) {
+        val cfg = this.config
+        if (cfg != null) {
+            val rows = getActiveLayoutRows(cfg)
+            if (sectionHeights.size != rows) {
+                val totalH = if (sectionHeights.isNotEmpty()) sectionHeights.sum() else 1800f
+                val defaultH = totalH / rows
+                sectionHeights = FloatArray(rows) { defaultH }
+            }
+        }
+
         if ((index in sectionHeights.indices) && (newHeightMm >= 50)) {
             val oldTotalInt = sectionHeights.sum().toInt()
             val numSections = sectionHeights.size
@@ -305,6 +315,16 @@ class WindowPreviewView @JvmOverloads constructor(
     }
 
     fun updateSectionWidth(index: Int, newWidthMm: Int) {
+        val cfg = this.config
+        if (cfg != null) {
+            val cols = getActiveLayoutCols(cfg)
+            if (sectionWidths.size != cols) {
+                val totalW = if (sectionWidths.isNotEmpty()) sectionWidths.sum() else 1500f
+                val defaultW = totalW / cols
+                sectionWidths = FloatArray(cols) { defaultW }
+            }
+        }
+
         if ((index in sectionWidths.indices) && (newWidthMm >= 50)) {
             val oldTotalInt = sectionWidths.sum().toInt()
             val numSections = sectionWidths.size

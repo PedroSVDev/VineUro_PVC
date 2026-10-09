@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Menú lateral "configuración de la ventana" (botón verde del compás en Cálculo de Pedido) -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#EFEFEF"
+    android:orientation="vertical">
+
+    <com.example.vineuro_pvc.views.StrokeTextView
+        android:id="@+id/tvTituloPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#B5CC7A"
+        android:gravity="center"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:text="configuración de la ventana"
+        android:textSize="20sp" />
+
+    <ScrollView
+        android:id="@+id/scrollPanel"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fadeScrollbars="false">
+
+        <LinearLayout
+            android:id="@+id/contenedorPanel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="16dp" />
+    </ScrollView>
+
+    <com.example.vineuro_pvc.views.StrokeTextView
+        android:id="@+id/btnAceptarPanel"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:background="#B5CC7A"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackground"
+        android:gravity="center"
+        android:text="ACEPTAR"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+</LinearLayout>
