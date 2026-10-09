@@ -65,7 +65,7 @@ class PedidoRepository(context: Context) {
         return supabaseService.upsertPedido(pedido)
     }
 
-    /** Elimina local y en la nube. Devuelve null si todo OK, o el mensaje de error de la nube. */
+    /** Elimina local y en la nube. Devuelve null si se eliminó correctamente, o el mensaje de error de la nube. */
     suspend fun eliminarPedido(id: String): String? {
         guardarLista(obtenerPedidos().filterNot { it.id == id })
         return supabaseService.deletePedido(id)
