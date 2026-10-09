@@ -8,10 +8,12 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.example.vineuro_pvc.data.ClientRepository
 import com.example.vineuro_pvc.data.Pedido
 import com.example.vineuro_pvc.data.PedidoRepository
 import com.example.vineuro_pvc.databinding.FragmentFirstBinding
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 /**
  * Fragmento principal que muestra el menú de opciones.
@@ -51,6 +53,39 @@ class FirstFragment : Fragment() {
 
         binding.btnCompartirDatos.setOnClickListener {
             findNavController().navigate(R.id.action_FirstFragment_to_CompartirDatosFragment)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        actualizarResumen()
+    }
+
+    /** Llena la cabecera con datos reales del teléfono (clientes, pedidos, ventanas y último pedido). */
+    private fun actualizarResumen() {
+        val ctx = context ?: return
+        val pedidos = PedidoRepository(ctx).obtenerPedidos()
+        val totalClientes = ClientRepository(ctx).obtenerClientes().size
+
+        binding.tvSaludo.text = when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
+            in 5..11 -> "Buenos días 👋"
+            in 12..18 -> "Buenas tardes 👋"
+            else -> "Buenas noches 👋"
+        }
+        binding.tvStatClientes.text = totalClientes.toString()
+        binding.tvStatPedidos.text = pedidos.size.toString()
+        binding.tvStatVentanas.text = pedidos.sumOf { it.totalVentanas }.toString()
+
+        val ultimo = pedidos.maxByOrNull { it.fechaActualizacion }
+        binding.tvSubUltimoPedido.text = if (ultimo != null) {
+            "${ultimo.codigo} · ${ultimo.clienteNombre}"
+        } else {
+            "Aún no hay pedidos guardados"
+        }
+        binding.tvSubPedidos.text = when (pedidos.size) {
+            0 -> "Ver y abrir pedidos guardados"
+            1 -> "1 pedido guardado"
+            else -> "${pedidos.size} pedidos guardados"
         }
     }
 

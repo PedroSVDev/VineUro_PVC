@@ -81,4 +81,10 @@
     <string name="empty_pedidos_desc">Los pedidos se guardan al salir de la pantalla de diseño o con \'Guardar Cambios en la Nube\'.</string>
     <string name="pedidos_sincronizando">Sincronizando con la nube…</string>
     <string name="pedidos_sincronizados">Mantén presionado un pedido para eliminarlo</string>
+    <!-- Menú principal -->
+    <string name="app_brand">VINEURO PVC</string>
+    <string name="app_brand_tagline">Ventanas Europeas de PVC · Cotizador</string>
+    <string name="menu_saludo_default">Bienvenido</string>
+    <string name="menu_section_title">¿QUÉ DESEAS HACER?</string>
+    <string name="menu_footer">VINEURO PVC · Trujillo, Perú · v1.0</string>
 </resources>
