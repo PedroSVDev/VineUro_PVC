@@ -22,7 +22,17 @@
         <action
             android:id="@+id/action_FirstFragment_to_CompartirDatosFragment"
             app:destination="@id/CompartirDatosFragment" />
+
+        <action
+            android:id="@+id/action_FirstFragment_to_PedidosFragment"
+            app:destination="@id/PedidosFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/PedidosFragment"
+        android:name="com.example.vineuro_pvc.PedidosFragment"
+        android:label="@string/title_pedidos"
+        tools:layout="@layout/fragment_pedidos" />
 
     <fragment
         android:id="@+id/PreciosFragment"

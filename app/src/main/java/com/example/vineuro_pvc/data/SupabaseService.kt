@@ -106,4 +106,68 @@ class SupabaseService {
             return@withContext false
         }
     }
+
+    // ===================== PEDIDOS =====================
+
+    private fun abrirConexion(path: String, method: String): HttpURLConnection =
+        (URL("${SupabaseConfig.REST_URL}/$path").openConnection() as HttpURLConnection).apply {
+            requestMethod = method
+            connectTimeout = 10000
+            readTimeout = 10000
+            setRequestProperty("apikey", SupabaseConfig.API_KEY)
+            setRequestProperty("Authorization", "Bearer ${SupabaseConfig.API_KEY}")
+            setRequestProperty("Accept", "application/json")
+        }
+
+    private fun leerError(connection: HttpURLConnection): String {
+        val body = runCatching { connection.errorStream?.bufferedReader()?.use { it.readText() } }.getOrNull()
+        val msg = runCatching { JSONObject(body ?: "").optString("message") }.getOrNull()
+        return "HTTP ${connection.responseCode}: ${msg?.ifBlank { null } ?: body ?: "sin detalle"}"
+    }
+
+    /** Inserta o actualiza el pedido. Devuelve null si OK, o un mensaje de error. */
+    suspend fun upsertPedido(pedido: Pedido): String? = withContext(Dispatchers.IO) {
+        try {
+            val connection = abrirConexion("pedidos?on_conflict=id", "POST").apply {
+                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("Prefer", "resolution=merge-duplicates,return=minimal")
+                doOutput = true
+            }
+            connection.outputStream.use {
+                it.write(PedidoJson.pedidoToJson(pedido).toString().toByteArray(Charsets.UTF_8))
+            }
+            if (connection.responseCode in 200..299) null else leerError(connection)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            "Sin conexión: ${e.message}"
+        }
+    }
+
+    /** Lista todos los pedidos. Devuelve null si no se pudo conectar (para no borrar la copia local). */
+    suspend fun fetchPedidos(): List<Pedido>? = withContext(Dispatchers.IO) {
+        try {
+            val connection = abrirConexion("pedidos?select=*&order=fecha_actualizacion.desc", "GET")
+            if (connection.responseCode !in 200..299) {
+                android.util.Log.w("SupabaseService", "fetchPedidos: ${leerError(connection)}")
+                return@withContext null
+            }
+            val json = connection.inputStream.bufferedReader().use { it.readText() }
+            val array = JSONArray(json)
+            (0 until array.length()).map { PedidoJson.pedidoFromJson(array.getJSONObject(it)) }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    /** Elimina el pedido por id. Devuelve null si OK, o un mensaje de error. */
+    suspend fun deletePedido(id: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val connection = abrirConexion("pedidos?id=eq.$id", "DELETE")
+            if (connection.responseCode in 200..299) null else leerError(connection)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            "Sin conexión: ${e.message}"
+        }
+    }
 }

@@ -73,4 +73,12 @@
     <string name="row_precio">precio</string>
     <string name="row_todas_ventanas">todas las ventanas</string>
     <string name="row_costo">costo</string>
+
+    <!-- Pedidos -->
+    <string name="title_pedidos">Pedidos Guardados</string>
+    <string name="hint_buscar_pedido">Buscar por código, cliente o DNI</string>
+    <string name="empty_pedidos_title">No hay pedidos guardados</string>
+    <string name="empty_pedidos_desc">Los pedidos se guardan al salir de la pantalla de diseño o con \'Guardar Cambios en la Nube\'.</string>
+    <string name="pedidos_sincronizando">Sincronizando con la nube…</string>
+    <string name="pedidos_sincronizados">Mantén presionado un pedido para eliminarlo</string>
 </resources>

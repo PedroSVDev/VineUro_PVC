@@ -12,10 +12,13 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.widget.PopupMenu
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.vineuro_pvc.data.ClientRepository
 import com.example.vineuro_pvc.data.OrderItem
 import com.example.vineuro_pvc.data.OrderItemHolder
+import com.example.vineuro_pvc.data.Pedido
+import com.example.vineuro_pvc.data.PedidoRepository
 import com.example.vineuro_pvc.data.WindowConfig
 import com.example.vineuro_pvc.data.WindowConfigCatalog
 import com.example.vineuro_pvc.databinding.DialogSelectConfigBinding
@@ -25,6 +28,7 @@ import com.example.vineuro_pvc.databinding.ItemOrderWindowTabBinding
 import com.example.vineuro_pvc.views.WindowPreviewView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 /**
@@ -40,6 +44,12 @@ class CalculoPedidoFragment : Fragment() {
 
     private val itemsOrden = mutableListOf<OrderItem>()
     private var activeItemIndex: Int = 0
+
+    // ---- Persistencia del pedido (local + Supabase) ----
+    private lateinit var pedidoRepository: PedidoRepository
+    private var pedidoActual: Pedido? = null      // null = pedido nuevo aún no guardado
+    private var dniClienteActual: String = ""
+    private var nombreClienteActual: String = ""
 
     private val listaMecanismosApertura = listOf(
         AperturaMechanism("1", "Desliz. Der.", R.drawable.ic_apertura_arrow_right),
@@ -65,15 +75,23 @@ class CalculoPedidoFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         clientRepository = ClientRepository(requireContext())
+        pedidoRepository = PedidoRepository(requireContext())
         inicializarConfiguraciones()
 
-        val dniCliente = arguments?.getString("dni_cliente") ?: ""
-        var nombreHeader = arguments?.getString("nombre_cliente") ?: "Aleksander White : S1"
+        // Si la vista se recrea (p. ej. al volver del PDF) se recarga el pedido ya autoguardado
+        val pedidoId = pedidoActual?.id ?: arguments?.getString("pedido_id")
+        pedidoActual = pedidoId?.let { pedidoRepository.obtenerPedido(it) } ?: pedidoActual
+
+        val dniCliente = pedidoActual?.clienteDni ?: arguments?.getString("dni_cliente") ?: ""
+        nombreClienteActual = pedidoActual?.clienteNombre ?: arguments?.getString("nombre_cliente") ?: "Cliente sin nombre"
+        dniClienteActual = dniCliente
+        var nombreHeader = nombreClienteActual
         val usarSugerenciaIa = arguments?.getBoolean("usar_sugerencia_ia", false) ?: false
 
         if (dniCliente.isNotEmpty()) {
             val cliente = clientRepository.obtenerClientePorDni(dniCliente)
             cliente?.let {
+                nombreClienteActual = it.nombreCompleto
                 nombreHeader = "${it.nombreCompleto} : ${it.codigoCliente}"
             }
         }
@@ -129,11 +147,85 @@ class CalculoPedidoFragment : Fragment() {
             mostrarMenuOpcionesSuperiores(viewAnchor)
         }
 
-        if (usarSugerenciaIa) {
+        val pedidoCargado = pedidoActual
+        if (pedidoCargado != null) {
+            cargarPedidoGuardado(pedidoCargado)
+        } else if (usarSugerenciaIa) {
             inicializarOrdenSugerida()
         } else {
             inicializarOrdenVacia()
         }
+    }
+
+    // ===================== GUARDADO DEL PEDIDO =====================
+
+    private fun cargarPedidoGuardado(pedido: Pedido) {
+        itemsOrden.clear()
+        itemsOrden.addAll(pedido.items)
+        activeItemIndex = 0
+        renderizarPestanasInferiores()
+        if (itemsOrden.isNotEmpty()) {
+            cargarItemActivoEnCanvas()
+        } else {
+            binding.wpvMainCanvas.resetCanvas()
+            limpiarTablaMatriz()
+        }
+        Toast.makeText(requireContext(), "Pedido ${pedido.codigo} cargado (${pedido.totalVentanas} ventanas)", Toast.LENGTH_SHORT).show()
+    }
+
+    /** Construye el Pedido con el estado actual de la pantalla (mantiene id y código si ya existía). */
+    private fun construirPedido(): Pedido {
+        guardarEstadoItemActivo()
+        val ahora = System.currentTimeMillis()
+        val base = pedidoActual
+        return if (base == null) {
+            Pedido(
+                clienteDni = dniClienteActual,
+                clienteNombre = nombreClienteActual,
+                items = itemsOrden.toList(),
+                fechaCreacion = ahora,
+                fechaActualizacion = ahora,
+            )
+        } else {
+            base.copy(
+                clienteDni = dniClienteActual,
+                clienteNombre = nombreClienteActual,
+                items = itemsOrden.toList(),
+                fechaActualizacion = ahora,
+            )
+        }
+    }
+
+    /**
+     * Guarda el pedido en el teléfono y en Supabase.
+     * @param mostrarResultado true cuando lo pide el usuario desde el menú (muestra Toast con el resultado real).
+     */
+    private fun guardarPedido(mostrarResultado: Boolean) {
+        if (itemsOrden.isEmpty()) {
+            if (mostrarResultado) {
+                Toast.makeText(requireContext(), "Agregue al menos una ventana antes de guardar", Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+        val pedido = construirPedido()
+        pedidoActual = pedido
+        val appContext = requireContext().applicationContext
+        lifecycleScope.launch {
+            val error = pedidoRepository.guardarPedido(pedido)
+            if (!mostrarResultado) return@launch
+            val msg = if (error == null) {
+                "Pedido ${pedido.codigo} guardado en la nube ✅"
+            } else {
+                "Guardado en el teléfono. La nube respondió: $error"
+            }
+            Toast.makeText(appContext, msg, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Autoguardado al salir de la pantalla para no perder el trabajo
+        if (_binding != null) guardarPedido(mostrarResultado = false)
     }
 
     private fun mostrarMenuOpcionesFlotante() {
@@ -202,7 +294,7 @@ class CalculoPedidoFragment : Fragment() {
                     true
                 }
                 2 -> {
-                    Toast.makeText(requireContext(), "Orden sincronizada y guardada exitosamente en Supabase Cloud", Toast.LENGTH_SHORT).show()
+                    guardarPedido(mostrarResultado = true)
                     true
                 }
                 3 -> {
