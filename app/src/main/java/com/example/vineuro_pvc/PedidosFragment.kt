@@ -39,6 +39,7 @@ class PedidosFragment : Fragment() {
             onClick = { abrirPedido(it) },
             onLongClick = { confirmarEliminar(it) },
         )
+        adapter.precios = com.example.vineuro_pvc.data.PreciosRepository(requireContext()).obtener()
         binding.rvPedidos.adapter = adapter
 
         binding.etSearchPedido.doOnTextChanged { text, _, _, _ -> mostrar(repo.buscarPedidos(text?.toString() ?: "")) }

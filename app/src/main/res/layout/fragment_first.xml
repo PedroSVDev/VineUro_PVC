@@ -10,7 +10,7 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical">
 
         <!-- ===== CABECERA DE MARCA ===== -->
@@ -19,10 +19,10 @@
             android:layout_height="wrap_content"
             android:background="@drawable/bg_menu_header"
             android:orientation="vertical"
-            android:paddingStart="24dp"
-            android:paddingTop="24dp"
-            android:paddingEnd="24dp"
-            android:paddingBottom="24dp">
+            android:paddingStart="20dp"
+            android:paddingTop="14dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="14dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -30,11 +30,23 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <ImageView
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="52dp"
                     android:layout_height="52dp"
-                    android:contentDescription="@string/app_brand"
-                    android:src="@drawable/ic_brand_window" />
+                    app:cardBackgroundColor="#FFFFFF"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
+
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:adjustViewBounds="true"
+                        android:contentDescription="@string/app_brand"
+                        android:padding="6dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/logo_simbolo" />
+                </com.google.android.material.card.MaterialCardView>
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -58,7 +70,7 @@
                         android:letterSpacing="0.05"
                         android:text="@string/app_brand"
                         android:textColor="@color/white"
-                        android:textSize="24sp"
+                        android:textSize="20sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -75,18 +87,20 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="12dp"
                 android:orientation="horizontal">
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="4dp"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
                     android:background="@drawable/bg_stat_chip"
                     android:gravity="center"
                     android:orientation="vertical"
-                    android:paddingVertical="10dp">
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp">
 
                     <TextView
                         android:id="@+id/tv_stat_clientes"
@@ -94,7 +108,7 @@
                         android:layout_height="wrap_content"
                         android:text="0"
                         android:textColor="@color/white"
-                        android:textSize="20sp"
+                        android:textSize="17sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -109,12 +123,14 @@
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="4dp"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
                     android:background="@drawable/bg_stat_chip"
                     android:gravity="center"
                     android:orientation="vertical"
-                    android:paddingVertical="10dp">
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp">
 
                     <TextView
                         android:id="@+id/tv_stat_pedidos"
@@ -122,7 +138,7 @@
                         android:layout_height="wrap_content"
                         android:text="0"
                         android:textColor="@color/white"
-                        android:textSize="20sp"
+                        android:textSize="17sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -137,12 +153,14 @@
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="4dp"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
                     android:background="@drawable/bg_stat_chip"
                     android:gravity="center"
                     android:orientation="vertical"
-                    android:paddingVertical="10dp">
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp">
 
                     <TextView
                         android:id="@+id/tv_stat_ventanas"
@@ -150,7 +168,7 @@
                         android:layout_height="wrap_content"
                         android:text="0"
                         android:textColor="@color/white"
-                        android:textSize="20sp"
+                        android:textSize="17sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -165,13 +183,19 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Espacio flexible: centra las opciones en el espacio libre -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
         <!-- ===== OPCIONES ===== -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="24dp"
-            android:layout_marginTop="20dp"
-            android:layout_marginBottom="10dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="8dp"
             android:letterSpacing="0.08"
             android:text="@string/menu_section_title"
             android:textColor="#6B7280"
@@ -191,11 +215,11 @@
                 android:id="@+id/btn_nuevo_orden"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="10dp"
                 android:clickable="true"
                 android:focusable="true"
                 app:cardBackgroundColor="@color/menu_nuevo_orden"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="14dp"
                 app:cardElevation="4dp"
                 app:rippleColor="#40FFFFFF"
                 app:strokeWidth="0dp">
@@ -204,21 +228,21 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:minHeight="76dp"
+                    android:minHeight="66dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="8dp"
                     android:paddingEnd="12dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="8dp">
 
                     <FrameLayout
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
                         android:background="@drawable/bg_icon_circle">
 
                         <ImageView
-                            android:layout_width="26dp"
-                            android:layout_height="26dp"
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
                             android:layout_gravity="center"
                             android:contentDescription="Nuevo orden"
                             android:src="@drawable/ic_menu_add"
@@ -238,7 +262,7 @@
                             android:letterSpacing="0.03"
                             android:text="@string/menu_nuevo_orden"
                             android:textColor="@color/white"
-                            android:textSize="17sp"
+                            android:textSize="16sp"
                             android:textStyle="bold" />
 
                         <TextView
@@ -251,7 +275,7 @@
                             android:maxLines="1"
                             android:text="Crear una cotización para un cliente"
                             android:textColor="@color/white"
-                            android:textSize="13sp" />
+                            android:textSize="12sp" />
                     </LinearLayout>
 
                     <ImageView
@@ -268,11 +292,11 @@
                 android:id="@+id/btn_ultimo_pedido"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="10dp"
                 android:clickable="true"
                 android:focusable="true"
                 app:cardBackgroundColor="@color/menu_ultimo_pedido"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="14dp"
                 app:cardElevation="4dp"
                 app:rippleColor="#40FFFFFF"
                 app:strokeWidth="0dp">
@@ -281,21 +305,21 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:minHeight="76dp"
+                    android:minHeight="66dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="8dp"
                     android:paddingEnd="12dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="8dp">
 
                     <FrameLayout
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
                         android:background="@drawable/bg_icon_circle">
 
                         <ImageView
-                            android:layout_width="26dp"
-                            android:layout_height="26dp"
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
                             android:layout_gravity="center"
                             android:contentDescription="Último pedido"
                             android:src="@drawable/ic_menu_edit"
@@ -315,7 +339,7 @@
                             android:letterSpacing="0.03"
                             android:text="@string/menu_ultimo_pedido"
                             android:textColor="@color/white"
-                            android:textSize="17sp"
+                            android:textSize="16sp"
                             android:textStyle="bold" />
 
                         <TextView
@@ -328,7 +352,7 @@
                             android:maxLines="1"
                             android:text="Continuar donde te quedaste"
                             android:textColor="@color/white"
-                            android:textSize="13sp" />
+                            android:textSize="12sp" />
                     </LinearLayout>
 
                     <ImageView
@@ -345,11 +369,11 @@
                 android:id="@+id/btn_pedidos"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="10dp"
                 android:clickable="true"
                 android:focusable="true"
                 app:cardBackgroundColor="@color/menu_pedidos"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="14dp"
                 app:cardElevation="4dp"
                 app:rippleColor="#40FFFFFF"
                 app:strokeWidth="0dp">
@@ -358,21 +382,21 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:minHeight="76dp"
+                    android:minHeight="66dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="8dp"
                     android:paddingEnd="12dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="8dp">
 
                     <FrameLayout
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
                         android:background="@drawable/bg_icon_circle">
 
                         <ImageView
-                            android:layout_width="26dp"
-                            android:layout_height="26dp"
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
                             android:layout_gravity="center"
                             android:contentDescription="Pedidos"
                             android:src="@drawable/ic_menu_briefcase"
@@ -392,7 +416,7 @@
                             android:letterSpacing="0.03"
                             android:text="@string/menu_pedidos"
                             android:textColor="@color/white"
-                            android:textSize="17sp"
+                            android:textSize="16sp"
                             android:textStyle="bold" />
 
                         <TextView
@@ -405,7 +429,7 @@
                             android:maxLines="1"
                             android:text="Ver y abrir pedidos guardados"
                             android:textColor="@color/white"
-                            android:textSize="13sp" />
+                            android:textSize="12sp" />
                     </LinearLayout>
 
                     <ImageView
@@ -422,11 +446,11 @@
                 android:id="@+id/btn_precios"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="10dp"
                 android:clickable="true"
                 android:focusable="true"
                 app:cardBackgroundColor="@color/menu_precios"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="14dp"
                 app:cardElevation="4dp"
                 app:rippleColor="#40FFFFFF"
                 app:strokeWidth="0dp">
@@ -435,21 +459,21 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:minHeight="76dp"
+                    android:minHeight="66dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="8dp"
                     android:paddingEnd="12dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="8dp">
 
                     <FrameLayout
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
                         android:background="@drawable/bg_icon_circle">
 
                         <ImageView
-                            android:layout_width="26dp"
-                            android:layout_height="26dp"
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
                             android:layout_gravity="center"
                             android:contentDescription="Precios"
                             android:src="@drawable/ic_menu_dollar"
@@ -469,7 +493,7 @@
                             android:letterSpacing="0.03"
                             android:text="@string/menu_precios"
                             android:textColor="@color/white"
-                            android:textSize="17sp"
+                            android:textSize="16sp"
                             android:textStyle="bold" />
 
                         <TextView
@@ -482,7 +506,7 @@
                             android:maxLines="1"
                             android:text="Perfiles, vidrios, accesorios y márgenes"
                             android:textColor="@color/white"
-                            android:textSize="13sp" />
+                            android:textSize="12sp" />
                     </LinearLayout>
 
                     <ImageView
@@ -499,11 +523,11 @@
                 android:id="@+id/btn_compartir_datos"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="10dp"
                 android:clickable="true"
                 android:focusable="true"
                 app:cardBackgroundColor="@color/menu_compartir"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="14dp"
                 app:cardElevation="4dp"
                 app:rippleColor="#40FFFFFF"
                 app:strokeWidth="0dp">
@@ -512,21 +536,21 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:minHeight="76dp"
+                    android:minHeight="66dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="8dp"
                     android:paddingEnd="12dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="8dp">
 
                     <FrameLayout
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
                         android:background="@drawable/bg_icon_circle">
 
                         <ImageView
-                            android:layout_width="26dp"
-                            android:layout_height="26dp"
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
                             android:layout_gravity="center"
                             android:contentDescription="Compartir datos"
                             android:src="@drawable/ic_menu_send"
@@ -546,7 +570,7 @@
                             android:letterSpacing="0.03"
                             android:text="@string/menu_compartir_datos"
                             android:textColor="@color/white"
-                            android:textSize="17sp"
+                            android:textSize="16sp"
                             android:textStyle="bold" />
 
                         <TextView
@@ -559,7 +583,7 @@
                             android:maxLines="1"
                             android:text="Enviar o recibir datos por Bluetooth"
                             android:textColor="@color/white"
-                            android:textSize="13sp" />
+                            android:textSize="12sp" />
                     </LinearLayout>
 
                     <ImageView
@@ -573,12 +597,17 @@
 
         </LinearLayout>
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
         <TextView
             android:id="@+id/tv_footer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:layout_marginBottom="20dp"
+            android:layout_marginBottom="12dp"
             android:gravity="center"
             android:text="@string/menu_footer"
             android:textColor="#9CA3AF"

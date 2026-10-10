@@ -70,8 +70,15 @@ class PdfPageSheetView @JvmOverloads constructor(
     private var offerId: String = ""
     private var totalOrderCount: Int = 0
     private var totalOrderAreaM2: Double = 0.0
+    private var requisitos: com.example.vineuro_pvc.data.RequisitosDocumento = com.example.vineuro_pvc.data.RequisitosDocumento()
 
     private val windowPreviewHelper = WindowPreviewView(context)
+
+    /** Logo de la empresa (se carga una sola vez). */
+    private val logoBitmap: android.graphics.Bitmap by lazy {
+        android.graphics.BitmapFactory.decodeResource(context.resources, com.example.vineuro_pvc.R.drawable.logo_vineuro)
+    }
+    private val logoPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
     fun bindData(
         pageIndex: Int,
@@ -83,8 +90,10 @@ class PdfPageSheetView @JvmOverloads constructor(
         clientEmail: String = "aistmail@mail.com",
         offerId: String = "",
         totalOrderCount: Int = 0,
-        totalOrderAreaM2: Double = 0.0
+        totalOrderAreaM2: Double = 0.0,
+        requisitos: com.example.vineuro_pvc.data.RequisitosDocumento = com.example.vineuro_pvc.data.RequisitosDocumento(),
     ) {
+        this.requisitos = requisitos
         this.pageIndex = pageIndex
         this.totalPages = totalPages
         this.pageItems = pageItems
@@ -150,42 +159,45 @@ class PdfPageSheetView @JvmOverloads constructor(
         textBoldPaint.textSize = dpToPx(7.5f)
         textSecondaryPaint.textSize = dpToPx(7.5f)
 
-        drawTruncatedText(canvas, "EJECUTANTE : ......", leftX, yPos, textSecondaryPaint, maxHeaderTextW)
-        yPos += lineH
-        drawTruncatedText(canvas, "dirección : ......", leftX, yPos, textSecondaryPaint, maxHeaderTextW)
-        yPos += lineH
-        drawTruncatedText(canvas, "teléfono : ......", leftX, yPos, textSecondaryPaint, maxHeaderTextW)
-        yPos += lineH
-        drawTruncatedText(canvas, "correo electrónico : ......", leftX, yPos, textSecondaryPaint, maxHeaderTextW)
-        yPos += lineH
-        drawTruncatedText(canvas, "página web : ......", leftX, yPos, textSecondaryPaint, maxHeaderTextW)
+        // Datos del ejecutante: salen de "Configurar requisitos" (editables por la empresa)
+        fun v(s: String) = s.ifBlank { "......" }
+        val lineEj = dpToPx(10.8f)
+        drawTruncatedText(canvas, "EJECUTANTE : ${v(requisitos.ejecutante)}", leftX, yPos, textBoldPaint, maxHeaderTextW)
+        yPos += lineEj
+        drawTruncatedText(canvas, "RUC : ${v(requisitos.ruc)}", leftX, yPos, textSecondaryPaint, maxHeaderTextW)
+        yPos += lineEj
+        drawTruncatedText(canvas, "dirección : ${v(requisitos.direccion)}", leftX, yPos, textSecondaryPaint, maxHeaderTextW)
+        yPos += lineEj
+        drawTruncatedText(canvas, "teléfono : ${v(requisitos.telefono)}", leftX, yPos, textSecondaryPaint, maxHeaderTextW)
+        yPos += lineEj
+        drawTruncatedText(canvas, "correo electrónico : ${v(requisitos.correo)}", leftX, yPos, textSecondaryPaint, maxHeaderTextW)
+        yPos += lineEj
+        drawTruncatedText(canvas, "página web : ${v(requisitos.paginaWeb)}", leftX, yPos, textSecondaryPaint, maxHeaderTextW)
 
-        // Centro: Logo de la Empresa
+        // Centro: Logo de VINEURO PVC (imagen res/drawable-nodpi/logo_vineuro.png)
         val logoCenterX = margin + colW * 1.5f
-        val logoCenterY = margin + headerH / 2f
-        val logoSize = dpToPx(36f)
-        val logoRect = RectF(logoCenterX - logoSize / 2f, logoCenterY - logoSize / 2f, logoCenterX + logoSize / 2f, logoCenterY + logoSize / 2f)
-
-        val logoBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
-            style = Paint.Style.FILL
+        val logoMaxW = colW - dpToPx(8f)
+        val logoMaxH = headerH - dpToPx(22f) // deja espacio para la cabecera debajo
+        val logoW: Float
+        val logoH: Float
+        if (logoBitmap.width / logoBitmap.height.toFloat() > logoMaxW / logoMaxH) {
+            logoW = logoMaxW; logoH = logoMaxW * logoBitmap.height / logoBitmap.width
+        } else {
+            logoH = logoMaxH; logoW = logoMaxH * logoBitmap.width / logoBitmap.height
         }
-        val logoBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.parseColor("#ECA836")
-            style = Paint.Style.STROKE
-            strokeWidth = dpToPx(1.5f)
-        }
-        canvas.drawRoundRect(logoRect, dpToPx(4f), dpToPx(4f), logoBgPaint)
-        canvas.drawRoundRect(logoRect, dpToPx(4f), dpToPx(4f), logoBorderPaint)
+        val logoTop = margin + dpToPx(4f)
+        val logoRect = RectF(logoCenterX - logoW / 2f, logoTop, logoCenterX + logoW / 2f, logoTop + logoH)
+        canvas.drawBitmap(logoBitmap, null, logoRect, logoPaint)
 
-        // Dibujar ícono de ventana miniatura en el logo
-        val iconPadding = dpToPx(5f)
-        val windowInnerRect = RectF(logoRect.left + iconPadding, logoRect.top + iconPadding, logoRect.right - iconPadding, logoRect.bottom - iconPadding)
-        val windowGlassPaint = Paint().apply { color = Color.parseColor("#42A5F5"); style = Paint.Style.FILL }
-        val windowLinePaint = Paint().apply { color = Color.WHITE; style = Paint.Style.STROKE; strokeWidth = dpToPx(1.2f) }
-        canvas.drawRect(windowInnerRect, windowGlassPaint)
-        canvas.drawLine(windowInnerRect.left, windowInnerRect.centerY(), windowInnerRect.right, windowInnerRect.centerY(), windowLinePaint)
-        canvas.drawLine(windowInnerRect.centerX(), windowInnerRect.top, windowInnerRect.centerX(), windowInnerRect.bottom, windowLinePaint)
+        // Cabecera del documento (p. ej. "OFERTA COMERCIAL") debajo del logo
+        val tituloPaint = Paint(textBoldPaint).apply {
+            textSize = dpToPx(8.5f)
+            textAlign = Paint.Align.CENTER
+            color = Color.parseColor("#1E3A5F")
+        }
+        var titulo = requisitos.cabecera.ifBlank { "Oferta comercial" }.uppercase(Locale("es", "PE"))
+        while (titulo.length > 3 && tituloPaint.measureText(titulo) > colW - dpToPx(6f)) titulo = titulo.dropLast(1)
+        canvas.drawText(titulo, logoCenterX, margin + headerH - dpToPx(7f), tituloPaint)
 
         // Derecha: CLIENTE
         val rightX = margin + colW * 2f + dpToPx(6f)

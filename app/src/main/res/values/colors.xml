@@ -34,4 +34,6 @@
     <color name="table_border">#CCCCCC</color>
     <color name="table_row_even">#F9F9F9</color>
     <color name="table_row_odd">#FFFFFF</color>
+    <!-- Marca -->
+    <color name="brand_dark">#1E3A5F</color>
 </resources>

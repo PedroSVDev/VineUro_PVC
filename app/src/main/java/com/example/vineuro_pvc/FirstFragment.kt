@@ -58,7 +58,14 @@ class FirstFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        // La cabecera azul ya muestra la marca: se oculta la barra superior solo en el menú principal
+        (activity as? androidx.appcompat.app.AppCompatActivity)?.supportActionBar?.hide()
         actualizarResumen()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        (activity as? androidx.appcompat.app.AppCompatActivity)?.supportActionBar?.show()
     }
 
     /** Llena la cabecera con datos reales del teléfono (clientes, pedidos, ventanas y último pedido). */
@@ -78,7 +85,10 @@ class FirstFragment : Fragment() {
 
         val ultimo = pedidos.maxByOrNull { it.fechaActualizacion }
         binding.tvSubUltimoPedido.text = if (ultimo != null) {
-            "${ultimo.codigo} · ${ultimo.clienteNombre}"
+            val precios = com.example.vineuro_pvc.data.PreciosRepository(ctx).obtener()
+            val simbolo = precios.moneda.firstOrNull()?.getOrNull(2)?.takeIf { it.isNotBlank() } ?: "S/"
+            val total = com.example.vineuro_pvc.data.CalculadoraPrecios.totalPedido(ultimo.items, precios)
+            String.format(java.util.Locale.US, "%s · %s · %s %.2f", ultimo.codigo, ultimo.clienteNombre, simbolo, total)
         } else {
             "Aún no hay pedidos guardados"
         }

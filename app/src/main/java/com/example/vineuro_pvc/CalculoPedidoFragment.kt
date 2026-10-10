@@ -14,11 +14,13 @@ import androidx.appcompat.widget.PopupMenu
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.example.vineuro_pvc.data.CalculadoraPrecios
 import com.example.vineuro_pvc.data.ClientRepository
 import com.example.vineuro_pvc.data.OrderItem
 import com.example.vineuro_pvc.data.OrderItemHolder
 import com.example.vineuro_pvc.data.Pedido
 import com.example.vineuro_pvc.data.PedidoRepository
+import com.example.vineuro_pvc.data.Precios
 import com.example.vineuro_pvc.data.PreciosRepository
 import com.example.vineuro_pvc.data.WindowConfig
 import com.example.vineuro_pvc.data.WindowConfigCatalog
@@ -54,6 +56,7 @@ class CalculoPedidoFragment : Fragment() {
 
     // Precios (alimentan el menú lateral del compás)
     private lateinit var preciosRepository: PreciosRepository
+    private var precios: Precios = Precios.porDefecto()
 
     private val listaMecanismosApertura = listOf(
         AperturaMechanism("1", "Desliz. Der.", R.drawable.ic_apertura_arrow_right),
@@ -84,7 +87,11 @@ class CalculoPedidoFragment : Fragment() {
         inicializarConfiguraciones()
 
         // Traer en segundo plano los precios más recientes de Supabase (para el menú del compás)
-        viewLifecycleOwner.lifecycleScope.launch { preciosRepository.sincronizar() }
+        precios = preciosRepository.obtener()
+        viewLifecycleOwner.lifecycleScope.launch {
+            precios = preciosRepository.sincronizar()
+            refrescarTablaMatriz()
+        }
 
         // Si la vista se recrea (p. ej. al volver del PDF) se recarga el pedido ya autoguardado
         val pedidoId = pedidoActual?.id ?: arguments?.getString("pedido_id")
@@ -119,6 +126,14 @@ class CalculoPedidoFragment : Fragment() {
         // 3. Botón azul inferior (+): Abre el CATÁLOGO GENERAL
         binding.btnAddItem.setOnClickListener {
             mostrarDialogoSeleccionCatalogGeneral()
+        }
+
+        // "param. comprobar": muestra sobre el dibujo las opciones elegidas en el compás
+        val prefsUi = requireContext().getSharedPreferences("pref_ui", android.content.Context.MODE_PRIVATE)
+        binding.cbParamComprobar.isChecked = prefsUi.getBoolean("param_comprobar", true)
+        binding.cbParamComprobar.setOnCheckedChangeListener { _, marcado ->
+            prefsUi.edit().putBoolean("param_comprobar", marcado).apply()
+            actualizarPanelParametros()
         }
 
         // 4. Botón verde compás (Herramientas Técnicas de trazado)
@@ -177,6 +192,7 @@ class CalculoPedidoFragment : Fragment() {
         val item = itemsOrden[activeItemIndex]
         PanelConfigVentana(requireContext(), preciosRepository.obtener(), item.opciones) { nuevasOpciones ->
             item.opciones = nuevasOpciones
+            refrescarTablaMatriz()
             guardarPedido(mostrarResultado = false)
             Toast.makeText(requireContext(), "Configuración de la ventana ${item.index} guardada", Toast.LENGTH_SHORT).show()
         }.mostrar()
@@ -265,7 +281,11 @@ class CalculoPedidoFragment : Fragment() {
         dialogBinding.btnPdfSoloProyectos.setOnClickListener {
             guardarEstadoItemActivo()
             OrderItemHolder.items = itemsOrden.toList()
-            OrderItemHolder.clientName = binding.tvHeaderClienteNombre.text.toString()
+            OrderItemHolder.clientName = nombreClienteActual
+            OrderItemHolder.clienteId = clienteIdActual
+            // Guardar antes de generar el PDF para tener el código del pedido
+            guardarPedido(mostrarResultado = false)
+            OrderItemHolder.codigoPedido = pedidoActual?.codigo ?: ""
             dialog.dismiss()
             findNavController().navigate(R.id.action_CalculoPedidoFragment_to_PdfPreviewFragment)
         }
@@ -290,12 +310,15 @@ class CalculoPedidoFragment : Fragment() {
 
         // 5. CONFIGURAR REQUISITOS
         dialogBinding.btnConfigurarRequisitos.setOnClickListener {
-            Toast.makeText(requireContext(), "Configuración de requisitos técnicos de la orden", Toast.LENGTH_SHORT).show()
             dialog.dismiss()
+            DialogRequisitos(this).mostrar()
         }
 
         // 6. CERRAR EL MENÚ
         dialogBinding.btnCerrarMenu.setOnClickListener {
+            dialog.dismiss()
+        }
+        dialogBinding.btnCerrarMenuX.setOnClickListener {
             dialog.dismiss()
         }
 
@@ -598,6 +621,7 @@ class CalculoPedidoFragment : Fragment() {
 
             guardarEstadoItemActivo()
             renderizarPestanasInferiores()
+            refrescarTablaMatriz()
 
             dialog.dismiss()
 
@@ -639,6 +663,7 @@ class CalculoPedidoFragment : Fragment() {
     }
 
     private fun limpiarTablaMatriz() {
+        _binding?.cardParametros?.visibility = View.GONE
         binding.cellVZona.text = "-"
         binding.cellVMarcos.text = "-"
         binding.cellVImpostas.text = "-"
@@ -759,73 +784,162 @@ class CalculoPedidoFragment : Fragment() {
         alertDialog.show()
     }
 
-    private fun actualizarTablaMatriz(config: WindowConfig) {
-        val altoTotalMm = binding.wpvMainCanvas.altoTotalMm
-        val anchoTotalMm = binding.wpvMainCanvas.anchoTotalMm
+    /** Recalcula la tabla con la ventana activa (se llama al cambiar medidas, paños, opciones o precios). */
+    private fun refrescarTablaMatriz() {
+        if (_binding == null) return
+        if (activeItemIndex in itemsOrden.indices) {
+            actualizarTablaMatriz(itemsOrden[activeItemIndex].config)
+        } else {
+            limpiarTablaMatriz()
+        }
+    }
 
-        val altoM = altoTotalMm / 1000.0
-        val anchoM = anchoTotalMm / 1000.0
-
-        val areaZonaVal = altoM * anchoM
-        val marcosMVal = (2 * altoM) + (2 * anchoM)
-        val impostasMVal = if (config.rows > 1) (config.rows - 1) * anchoM else 0.0
-        val glazMVal = marcosMVal * config.cols
-        val cauchoMVal = marcosMVal * config.cols
-
-        val areaZona = String.format(Locale.US, "%.2f m2", areaZonaVal)
-        val marcosM = String.format(Locale.US, "%.2f m", marcosMVal)
-        val impostasM = if (impostasMVal > 0) String.format(Locale.US, "%.2f m", impostasMVal) else "-"
-        val glazM = String.format(Locale.US, "%.2f m", glazMVal)
-        val cauchoM = String.format(Locale.US, "%.2f m", cauchoMVal)
-
-        // Fila Ventana
-        binding.cellVZona.text = areaZona
-        binding.cellVMarcos.text = marcosM
-        binding.cellVImpostas.text = impostasM
-        binding.cellVGlaz.text = glazM
-        binding.cellVCaucho.text = cauchoM
-        binding.cellVHojas.text = if (config.hojasCount > 1) "${config.hojasCount}" else "-"
-        binding.cellVHojasP.text = if (config.categoria == "Puerta-Ventana") "1" else "-"
-        binding.cellVTotal.text = "0 S/"
-
-        // Fila Precio (azul)
-        binding.cellPZona.text = "-"
-        binding.cellPMarcos.text = "-"
-        binding.cellPImpostas.text = "-"
-        binding.cellPGlaz.text = "-"
-        binding.cellPCaucho.text = "-"
-        binding.cellPHojas.text = "-"
-        binding.cellPHojasP.text = "-"
-        binding.cellPTotal.text = "0.00 (-0%)"
-
-        // Sumatoria para 'todas las ventanas' en la orden
-        var totalAreaOrden = 0.0
-        var totalMarcosOrden = 0.0
-        for (item in itemsOrden) {
-            val hM = item.altoTotalMm / 1000.0
-            val wM = item.anchoTotalMm / 1000.0
-            totalAreaOrden += (hM * wM)
-            totalMarcosOrden += ((2 * hM) + (2 * wM))
+    /**
+     * Tabla inferior del diseñador:
+     *  - ventana:            cantidades de la ventana activa (x cantidad) y su precio total
+     *  - precio:             precio de venta por concepto de UNA ventana activa (descuento aplicado)
+     *  - todas las ventanas: cantidades sumadas de todo el pedido y total del pedido
+     *  - costo:              costo por concepto de todo el pedido y margen de ganancia
+     */
+    private fun actualizarTablaMatriz(@Suppress("UNUSED_PARAMETER") config: WindowConfig) {
+        guardarEstadoItemActivo()
+        if (activeItemIndex !in itemsOrden.indices) {
+            limpiarTablaMatriz()
+            return
         }
 
-        binding.cellTvZona.text = String.format(Locale.US, "%.2f m2", totalAreaOrden)
-        binding.cellTvMarcos.text = String.format(Locale.US, "%.2f m", totalMarcosOrden)
-        binding.cellTvImpostas.text = impostasM
-        binding.cellTvGlaz.text = glazM
-        binding.cellTvCaucho.text = cauchoM
-        binding.cellTvHojas.text = if (config.hojasCount > 1) "${config.hojasCount}" else "-"
-        binding.cellTvHojasP.text = if (config.categoria == "Puerta-Ventana") "1" else "-"
-        binding.cellTvTotal.text = "0 S/"
+        fun m(v: Double) = if (v > 0.0001) String.format(Locale.US, "%.2f m", v) else "-"
+        fun m2(v: Double) = if (v > 0.0001) String.format(Locale.US, "%.2f m2", v) else "-"
+        fun n(v: Int) = if (v > 0) v.toString() else "-"
+        fun dinero(v: Double) = if (v > 0.004) String.format(Locale.US, "%.2f", v) else "-"
 
-        // Fila Costo (rojo)
-        binding.cellCZona.text = "-"
-        binding.cellCMarcos.text = "-"
-        binding.cellCImpostas.text = "-"
-        binding.cellCGlaz.text = "-"
-        binding.cellCCaucho.text = "-"
-        binding.cellCHojas.text = "-"
-        binding.cellCHojasP.text = "-"
-        binding.cellCTotal.text = "0.00 (-0%)"
+        val activo = CalculadoraPrecios.calcular(itemsOrden[activeItemIndex], precios)
+        val resultados = itemsOrden.map { CalculadoraPrecios.calcular(it, precios) }
+        val s = activo.simbolo
+        val k = activo.cantidad.toDouble()
+        val qa = activo.cantidades
+
+        // ---- Fila VENTANA (activa, x cantidad) ----
+        binding.cellVZona.text = m2(qa.areaM2 * k)
+        binding.cellVMarcos.text = m(qa.marcoM * k)
+        binding.cellVImpostas.text = m(qa.impostaM * k)
+        binding.cellVGlaz.text = m(qa.glazingM * k)
+        binding.cellVCaucho.text = m(qa.cauchoM * k)
+        binding.cellVHojas.text = n(qa.hojas * activo.cantidad)
+        binding.cellVHojasP.text = n(qa.hojasPuerta * activo.cantidad)
+        binding.cellVTotal.text = String.format(Locale.US, "%.2f %s", activo.totalVenta, s) +
+            if (activo.cantidad > 1) " (x${activo.cantidad})" else ""
+
+        // ---- Fila PRECIO (venta por concepto de UNA ventana) ----
+        val pu = activo.precioUnitario
+        binding.cellPZona.text = dinero(pu.zona)
+        binding.cellPMarcos.text = dinero(pu.marco)
+        binding.cellPImpostas.text = dinero(pu.imposta)
+        binding.cellPGlaz.text = dinero(pu.glazing)
+        binding.cellPCaucho.text = dinero(pu.caucho)
+        binding.cellPHojas.text = dinero(pu.hoja)
+        binding.cellPHojasP.text = dinero(pu.hojaPuerta)
+        binding.cellPTotal.text = String.format(Locale.US, "%.2f (-%.0f%%)", pu.total, activo.descuentoPct)
+
+        // ---- Fila TODAS LAS VENTANAS (cantidades del pedido completo) ----
+        fun suma(f: (CalculadoraPrecios.Resultado) -> Double) = resultados.sumOf { f(it) * it.cantidad }
+        binding.cellTvZona.text = m2(suma { it.cantidades.areaM2 })
+        binding.cellTvMarcos.text = m(suma { it.cantidades.marcoM })
+        binding.cellTvImpostas.text = m(suma { it.cantidades.impostaM })
+        binding.cellTvGlaz.text = m(suma { it.cantidades.glazingM })
+        binding.cellTvCaucho.text = m(suma { it.cantidades.cauchoM })
+        binding.cellTvHojas.text = n(suma { it.cantidades.hojas.toDouble() }.toInt())
+        binding.cellTvHojasP.text = n(suma { it.cantidades.hojasPuerta.toDouble() }.toInt())
+        val totalPedido = resultados.sumOf { it.totalVenta }
+        binding.cellTvTotal.text = String.format(Locale.US, "%.2f %s", totalPedido, s)
+
+        // ---- Fila COSTO (todo el pedido, sin margen ni impuesto) ----
+        val costoPedido = resultados.fold(CalculadoraPrecios.Costos.CERO) { acc, r -> acc + r.costoUnitario * r.cantidad.toDouble() }
+        binding.cellCZona.text = dinero(costoPedido.zona)
+        binding.cellCMarcos.text = dinero(costoPedido.marco)
+        binding.cellCImpostas.text = dinero(costoPedido.imposta)
+        binding.cellCGlaz.text = dinero(costoPedido.glazing)
+        binding.cellCCaucho.text = dinero(costoPedido.caucho)
+        binding.cellCHojas.text = dinero(costoPedido.hoja)
+        binding.cellCHojasP.text = dinero(costoPedido.hojaPuerta)
+        val ventaSinImpuesto = resultados.sumOf { it.totalVenta / (1 + it.impuestoPct / 100.0) }
+        val margenPedido = if (costoPedido.total > 0) (ventaSinImpuesto / costoPedido.total - 1) * 100 else 0.0
+        binding.cellCTotal.text = String.format(Locale.US, "%.2f (%+.0f%%)", costoPedido.total, margenPedido)
+        actualizarPanelParametros()
+    }
+
+    // ===================== "PARAM. COMPROBAR" =====================
+
+    /** Muestra u oculta la tarjeta con las opciones del compás de la ventana activa. */
+    private fun actualizarPanelParametros() {
+        val b = _binding ?: return
+        if (!b.cbParamComprobar.isChecked || activeItemIndex !in itemsOrden.indices) {
+            b.cardParametros.visibility = View.GONE
+            return
+        }
+        val item = itemsOrden[activeItemIndex]
+        b.tvParametrosTitulo.text = "Ventana ${item.index} · ${item.config.nombre}"
+        b.tvParametros.text = textoParametros(item)
+        b.cardParametros.visibility = View.VISIBLE
+    }
+
+    private fun textoParametros(item: OrderItem): CharSequence {
+        val op = item.opciones
+        val sb = android.text.SpannableStringBuilder()
+        fun linea(etiqueta: String, valor: String?) {
+            if (valor.isNullOrBlank()) return
+            if (sb.isNotEmpty()) sb.append("\n")
+            val ini = sb.length
+            sb.append(etiqueta).append(": ")
+            sb.setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), ini, sb.length, 0)
+            sb.append(valor)
+        }
+        fun lista(set: Set<String>) = set.sorted().joinToString(", ").ifBlank { null }
+
+        linea("Medidas", "${item.anchoTotalMm} x ${item.altoTotalMm} mm")
+        if (op.cantidad > 1) linea("Cantidad", "${op.cantidad}")
+        linea("Plan", op.planFinanciacion)
+        linea("Sistema", op.sistemaVentana)
+        linea("Cristal", op.tipoCristal)
+        linea("Umbral ext.", lista(op.umbralesExternos))
+        linea("Umbral int.", lista(op.umbralesInternos))
+        linea("Herrajes", op.mueble)
+        linea("Extras", lista(op.extras))
+        linea("Trabajos", lista(op.trabajos))
+        linea("Mosquitero", op.mosquitero)
+        linea("Lam. interna", op.laminacionInterna)
+        linea("Lam. externa", op.laminacionExterna)
+        linea("Color", op.color)
+        linea("Adicionales", lista(op.adicionales))
+        resumenPerfiles(op.perfiles).forEach { (k, v) -> linea(k, v) }
+        linea("Precio propio", op.precioPropio.takeIf { it.isNotBlank() && (it.replace(",", ".").toDoubleOrNull() ?: 0.0) > 0 })
+        linea("Nota", op.nota)
+
+        // Solo hay medidas: aún no se configuró nada en el compás
+        if (!sb.contains("\n")) {
+            sb.append("\n")
+            val ini = sb.length
+            sb.append("Sin opciones. Configúralas con el compás.")
+            sb.setSpan(android.text.style.ForegroundColorSpan(Color.parseColor("#999999")), ini, sb.length, 0)
+        }
+        return sb
+    }
+
+    /** "juntas:0", "extensor:40:1"... -> "Juntas: izq., sup." / "Extensor 40 mm: sup." */
+    private fun resumenPerfiles(perfiles: Set<String>): List<Pair<String, String>> {
+        val lados = mapOf("0" to "izq.", "1" to "sup.", "2" to "inf.", "3" to "der.")
+        val nombres = mapOf("juntas" to "Juntas", "juntas90" to "Juntas 90°", "juntas135" to "Juntas 135°", "huecos" to "Perf. huecos")
+        val grupos = linkedMapOf<String, MutableList<String>>()
+        perfiles.sorted().forEach { clave ->
+            val p = clave.split(":")
+            val (titulo, lado) = when {
+                p.size == 3 && p[0] == "extensor" -> "Extensor ${p[1]} mm" to p[2]
+                p.size == 2 -> (nombres[p[0]] ?: p[0]) to p[1]
+                else -> return@forEach
+            }
+            grupos.getOrPut(titulo) { mutableListOf() }.add(lados[lado] ?: lado)
+        }
+        return grupos.map { (t, l) -> t to l.joinToString(", ") }
     }
 
     override fun onDestroyView() {

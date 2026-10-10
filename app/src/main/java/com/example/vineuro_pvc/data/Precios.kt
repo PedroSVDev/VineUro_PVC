@@ -35,8 +35,8 @@ data class Precios(
 
         /** Valores iniciales cuando todavía no hay nada guardado (ni en el teléfono ni en la nube). */
         fun porDefecto(): Precios = Precios(
-            moneda = listOf(listOf("€", "1.00", "€")),
-            impuesto = listOf(listOf("IVA", "0.00")),
+            moneda = listOf(listOf("S/", "1.00", "S/")),
+            impuesto = listOf(listOf("IGV", "18.00")),
             planes = listOf(
                 listOf("discount 1%", "1.00", "0.00", "0.00"),
                 listOf("discount 3%", "3.00", "0.00", "0.00"),

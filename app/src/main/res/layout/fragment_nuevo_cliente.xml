@@ -98,13 +98,18 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:hint="@string/label_telefono">
+                    android:hint="@string/label_telefono"
+                    app:counterEnabled="true"
+                    app:counterMaxLength="9"
+                    app:helperText="9 dígitos (opcional)">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_telefono"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:digits="0123456789"
                         android:inputType="phone"
+                        android:maxLength="9"
                         android:textSize="16sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 

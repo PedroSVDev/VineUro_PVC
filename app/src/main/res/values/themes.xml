@@ -25,4 +25,10 @@
         <item name="android:padding">20dp</item>
         <item name="android:scaleType">fitCenter</item>
     </style>
+
+    <!-- Título de la barra superior: más pequeño que el predeterminado -->
+    <style name="TextAppearance.Vineuro.ToolbarTitle" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textSize">17sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
 </resources>

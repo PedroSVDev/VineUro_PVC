@@ -58,6 +58,14 @@ class NuevoClienteFragment : Fragment() {
             binding.tilApellidos.error = null
         }
 
+        // Teléfono opcional, pero si se escribe debe tener exactamente 9 dígitos
+        if (telefono.isNotEmpty() && !Regex("^\\d{9}$").matches(telefono)) {
+            binding.tilTelefono.error = "El teléfono debe tener 9 dígitos"
+            return
+        } else {
+            binding.tilTelefono.error = null
+        }
+
         val clientRepository = ClientRepository(requireContext())
 
         // El cliente se identifica por su id (UUID generado automáticamente)
