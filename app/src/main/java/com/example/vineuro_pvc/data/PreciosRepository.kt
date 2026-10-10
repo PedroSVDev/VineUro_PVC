@@ -1,23 +1,30 @@
 package com.example.vineuro_pvc.data
 
+import android.content.ContentValues
 import android.content.Context
-import androidx.core.content.edit
+import android.database.sqlite.SQLiteDatabase
 import org.json.JSONObject
 
 /**
- * Repositorio híbrido de Precios: copia local (SharedPreferences) + fila única en la tabla "precios" de Supabase.
+ * Repositorio de Precios: base de datos local SQLite (tabla "precios") + fila única en la tabla "precios" de Supabase.
  * La copia local permite trabajar sin Internet; al sincronizar gana la versión más reciente.
  */
 class PreciosRepository(context: Context) {
 
-    private val prefs = context.applicationContext.getSharedPreferences("pref_precios", Context.MODE_PRIVATE)
+    private val db = VineuroDatabase.get(context)
     private val supabaseService = SupabaseService()
 
-    fun tieneDatosLocales(): Boolean = prefs.contains(KEY)
+    private fun leerJsonLocal(): String? =
+        db.readableDatabase.query(
+            VineuroDatabase.T_PRECIOS, arrayOf("data"), "id = ?", arrayOf(VineuroDatabase.PRECIOS_ID),
+            null, null, null,
+        ).use { c -> if (c.moveToFirst()) c.getString(0) else null }
+
+    fun tieneDatosLocales(): Boolean = leerJsonLocal() != null
 
     /** Precios guardados en el teléfono (o los valores por defecto si aún no hay nada). */
     fun obtener(): Precios {
-        val json = prefs.getString(KEY, null) ?: return Precios.porDefecto()
+        val json = leerJsonLocal() ?: return Precios.porDefecto()
         return try {
             PreciosJson.fromJson(JSONObject(json))
         } catch (e: Exception) {
@@ -34,7 +41,12 @@ class PreciosRepository(context: Context) {
     }
 
     private fun escribir(precios: Precios) {
-        prefs.edit { putString(KEY, PreciosJson.toJson(precios).toString()) }
+        val cv = ContentValues().apply {
+            put("id", VineuroDatabase.PRECIOS_ID)
+            put("data", PreciosJson.toJson(precios).toString())
+            put("fecha_actualizacion", precios.fechaActualizacion)
+        }
+        db.writableDatabase.insertWithOnConflict(VineuroDatabase.T_PRECIOS, null, cv, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
     /** Sube a Supabase lo que hay en el teléfono. Devuelve null si OK o el mensaje de error. */
@@ -69,9 +81,5 @@ class PreciosRepository(context: Context) {
             }
             else -> local
         }
-    }
-
-    companion object {
-        private const val KEY = "precios_json"
     }
 }

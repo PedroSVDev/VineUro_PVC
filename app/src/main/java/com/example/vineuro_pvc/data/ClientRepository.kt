@@ -1,94 +1,98 @@
 package com.example.vineuro_pvc.data
 
+import android.content.ContentValues
 import android.content.Context
-import androidx.core.content.edit
+import android.database.Cursor
+import android.database.sqlite.SQLiteDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import org.json.JSONArray
-import org.json.JSONObject
 
 /**
- * Repositorio híbrido de clientes (SharedPreferences + Supabase). Los clientes se identifican por su id.
+ * Repositorio de clientes: base de datos local SQLite (tabla "clientes") + Supabase.
+ * Los clientes se identifican por su id.
  *
- * Para trabajar sin Internet se guardan dos listas de pendientes:
- *  - pendientes de subir: clientes guardados que aún no llegaron a la nube
- *  - pendientes de eliminar: clientes borrados que aún no se borraron en la nube
+ * Sin Internet, las operaciones con la nube quedan registradas en la tabla "pendientes_sync"
+ * y se reintentan al sincronizar.
  */
 class ClientRepository(context: Context) {
 
-    private val prefs = context.applicationContext.getSharedPreferences("pref_clientes", Context.MODE_PRIVATE)
+    private val db = VineuroDatabase.get(context)
     private val supabaseService = SupabaseService()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    // ---------- Local ----------
+    // ---------- Local (SQLite) ----------
 
-    fun obtenerClientes(): List<Cliente> {
-        val jsonString = prefs.getString(KEY_LISTA, null) ?: return emptyList()
-        val clientesList = mutableListOf<Cliente>()
-        try {
-            val jsonArray = JSONArray(jsonString)
-            for (i in 0 until jsonArray.length()) {
-                val obj = jsonArray.getJSONObject(i)
-                val id = obj.optString("id")
-                if (id.isBlank()) continue
-                clientesList.add(
-                    Cliente(
-                        id = id,
-                        nombres = obj.optString("nombres"),
-                        apellidos = obj.optString("apellidos"),
-                        telefono = obj.optString("telefono"),
-                        email = obj.optString("email"),
-                        direccion = obj.optString("direccion"),
-                        nota = obj.optString("nota"),
-                        fechaRegistro = obj.optLong("fechaRegistro", System.currentTimeMillis()),
-                    ),
-                )
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return clientesList
-    }
+    fun obtenerClientes(): List<Cliente> = consultar(null, null)
 
-    fun obtenerClientePorId(id: String): Cliente? = obtenerClientes().find { it.id == id }
+    fun obtenerClientePorId(id: String): Cliente? = consultar("id = ?", arrayOf(id)).firstOrNull()
 
     fun buscarClientes(query: String): List<Cliente> {
-        val todos = obtenerClientes()
-        if (query.isBlank()) return todos
-        val q = query.trim().lowercase()
-        return todos.filter { c ->
-            c.nombreCompleto.lowercase().contains(q) ||
-                c.telefono.lowercase().contains(q) ||
-                c.email.lowercase().contains(q) ||
-                c.direccion.lowercase().contains(q)
-        }
+        if (query.isBlank()) return obtenerClientes()
+        val q = "%${query.trim()}%"
+        return consultar(
+            "(nombres || ' ' || apellidos) LIKE ? OR telefono LIKE ? OR email LIKE ? OR direccion LIKE ?",
+            arrayOf(q, q, q, q),
+        )
     }
+
+    private fun consultar(where: String?, args: Array<String>?): List<Cliente> {
+        val lista = mutableListOf<Cliente>()
+        db.readableDatabase.query(
+            VineuroDatabase.T_CLIENTES, null, where, args, null, null, "fecha_registro DESC",
+        ).use { c -> while (c.moveToNext()) lista.add(leer(c)) }
+        return lista
+    }
+
+    private fun leer(c: Cursor) = Cliente(
+        id = c.getString(c.getColumnIndexOrThrow("id")),
+        nombres = c.getString(c.getColumnIndexOrThrow("nombres")),
+        apellidos = c.getString(c.getColumnIndexOrThrow("apellidos")),
+        telefono = c.getString(c.getColumnIndexOrThrow("telefono")),
+        email = c.getString(c.getColumnIndexOrThrow("email")),
+        direccion = c.getString(c.getColumnIndexOrThrow("direccion")),
+        nota = c.getString(c.getColumnIndexOrThrow("nota")),
+        fechaRegistro = c.getLong(c.getColumnIndexOrThrow("fecha_registro")),
+    )
+
+    private fun valores(cliente: Cliente) = ContentValues().apply {
+        put("id", cliente.id)
+        put("nombres", cliente.nombres)
+        put("apellidos", cliente.apellidos)
+        put("telefono", cliente.telefono)
+        put("email", cliente.email)
+        put("direccion", cliente.direccion)
+        put("nota", cliente.nota)
+        put("fecha_registro", cliente.fechaRegistro)
+    }
+
+    private fun guardarLocal(cliente: Cliente): Boolean =
+        db.writableDatabase.insertWithOnConflict(
+            VineuroDatabase.T_CLIENTES, null, valores(cliente), SQLiteDatabase.CONFLICT_REPLACE,
+        ) != -1L
 
     // ---------- Local + Nube ----------
 
-    /** Guarda (o actualiza) en el teléfono y lo sube a Supabase en segundo plano. */
+    /** Guarda (o actualiza) en SQLite y lo sube a Supabase en segundo plano. */
     fun guardarCliente(cliente: Cliente): Boolean {
-        val lista = obtenerClientes().toMutableList()
-        val index = lista.indexOfFirst { it.id == cliente.id }
-        if (index >= 0) lista[index] = cliente else lista.add(0, cliente)
-        val localOk = guardarLista(lista)
-
-        marcar(KEY_PEND_SUBIR, cliente.id, true)
+        val localOk = guardarLocal(cliente)
+        db.marcarPendiente(VineuroDatabase.PEND_CLIENTE_SUBIR, cliente.id, true)
         scope.launch {
-            if (supabaseService.upsertCliente(cliente)) marcar(KEY_PEND_SUBIR, cliente.id, false)
+            if (supabaseService.upsertCliente(cliente)) {
+                db.marcarPendiente(VineuroDatabase.PEND_CLIENTE_SUBIR, cliente.id, false)
+            }
         }
         return localOk
     }
 
-    /** Elimina del teléfono al instante y de Supabase (si no hay Internet, se reintenta al sincronizar). */
+    /** Elimina de SQLite al instante y de Supabase (si no hay Internet, se reintenta al sincronizar). */
     suspend fun eliminarCliente(id: String): Boolean {
-        guardarLista(obtenerClientes().filterNot { it.id == id })
-        marcar(KEY_PEND_SUBIR, id, false)
-        marcar(KEY_PEND_ELIMINAR, id, true)
+        db.writableDatabase.delete(VineuroDatabase.T_CLIENTES, "id = ?", arrayOf(id))
+        db.marcarPendiente(VineuroDatabase.PEND_CLIENTE_SUBIR, id, false)
+        db.marcarPendiente(VineuroDatabase.PEND_CLIENTE_ELIMINAR, id, true)
         val ok = supabaseService.deleteCliente(id)
-        if (ok) marcar(KEY_PEND_ELIMINAR, id, false)
+        if (ok) db.marcarPendiente(VineuroDatabase.PEND_CLIENTE_ELIMINAR, id, false)
         return ok
     }
 
@@ -98,70 +102,35 @@ class ClientRepository(context: Context) {
      * Si no hay conexión, devuelve la lista local.
      */
     suspend fun sincronizarConSupabase(): List<Cliente> {
-        // 1. Pendientes
-        leer(KEY_PEND_ELIMINAR).forEach { id ->
-            if (supabaseService.deleteCliente(id)) marcar(KEY_PEND_ELIMINAR, id, false)
+        db.pendientes(VineuroDatabase.PEND_CLIENTE_ELIMINAR).forEach { id ->
+            if (supabaseService.deleteCliente(id)) db.marcarPendiente(VineuroDatabase.PEND_CLIENTE_ELIMINAR, id, false)
         }
-        val locales = obtenerClientes()
-        leer(KEY_PEND_SUBIR).forEach { id ->
-            val c = locales.find { it.id == id }
-            if (c == null || supabaseService.upsertCliente(c)) marcar(KEY_PEND_SUBIR, id, false)
+        db.pendientes(VineuroDatabase.PEND_CLIENTE_SUBIR).forEach { id ->
+            val c = obtenerClientePorId(id)
+            if (c == null || supabaseService.upsertCliente(c)) db.marcarPendiente(VineuroDatabase.PEND_CLIENTE_SUBIR, id, false)
         }
 
-        // 2. Descargar
         val nube = supabaseService.fetchClientes() ?: return obtenerClientes()
-        val eliminados = leer(KEY_PEND_ELIMINAR)
-        val pendientes = leer(KEY_PEND_SUBIR)
+        val eliminados = db.pendientes(VineuroDatabase.PEND_CLIENTE_ELIMINAR)
+        val pendientes = db.pendientes(VineuroDatabase.PEND_CLIENTE_SUBIR)
 
-        val resultado = LinkedHashMap<String, Cliente>()
-        nube.filter { it.id !in eliminados }.forEach { resultado[it.id] = it }
-        // Lo que aún no se pudo subir se conserva tal cual está en el teléfono
-        obtenerClientes().filter { it.id in pendientes }.forEach { resultado[it.id] = it }
-
-        val lista = resultado.values.sortedByDescending { it.fechaRegistro }
-        guardarLista(lista)
-        return lista
-    }
-
-    // ---------- Ayudantes ----------
-
-    private fun guardarLista(lista: List<Cliente>): Boolean {
-        return try {
-            val jsonArray = JSONArray()
-            for (cliente in lista) {
-                jsonArray.put(
-                    JSONObject().apply {
-                        put("id", cliente.id)
-                        put("nombres", cliente.nombres)
-                        put("apellidos", cliente.apellidos)
-                        put("telefono", cliente.telefono)
-                        put("email", cliente.email)
-                        put("direccion", cliente.direccion)
-                        put("nota", cliente.nota)
-                        put("fechaRegistro", cliente.fechaRegistro)
-                    },
-                )
+        val w = db.writableDatabase
+        w.beginTransaction()
+        try {
+            // Se conservan solo los clientes locales que aún no se pudieron subir
+            if (pendientes.isEmpty()) {
+                w.delete(VineuroDatabase.T_CLIENTES, null, null)
+            } else {
+                val marcas = pendientes.joinToString(",") { "?" }
+                w.delete(VineuroDatabase.T_CLIENTES, "id NOT IN ($marcas)", pendientes.toTypedArray())
             }
-            prefs.edit { putString(KEY_LISTA, jsonArray.toString()) }
-            true
-        } catch (e: Exception) {
-            e.printStackTrace()
-            false
+            nube.filter { it.id !in eliminados && it.id !in pendientes }.forEach {
+                w.insertWithOnConflict(VineuroDatabase.T_CLIENTES, null, valores(it), SQLiteDatabase.CONFLICT_REPLACE)
+            }
+            w.setTransactionSuccessful()
+        } finally {
+            w.endTransaction()
         }
-    }
-
-    private fun leer(key: String): Set<String> = prefs.getStringSet(key, emptySet())?.toSet() ?: emptySet()
-
-    @Synchronized
-    private fun marcar(key: String, id: String, agregar: Boolean) {
-        val set = leer(key).toMutableSet()
-        if (agregar) set.add(id) else set.remove(id)
-        prefs.edit { putStringSet(key, set) }
-    }
-
-    companion object {
-        private const val KEY_LISTA = "lista_clientes"
-        private const val KEY_PEND_SUBIR = "pendientes_subir"
-        private const val KEY_PEND_ELIMINAR = "pendientes_eliminar"
+        return obtenerClientes()
     }
 }

@@ -38,7 +38,7 @@ data class Pedido(
 }
 
 /**
- * Conversión Pedido <-> JSON. Se usa tanto para SharedPreferences como para la columna jsonb de Supabase.
+ * Conversión Pedido <-> JSON. Se usa para la columna "items" (SQLite) y la columna jsonb de Supabase.
  */
 object PedidoJson {
 

@@ -117,7 +117,7 @@ data class Precios(
         tabla.mapNotNull { it.firstOrNull()?.trim() }.filter { it.isNotEmpty() }.distinct()
 }
 
-/** Conversión Precios <-> JSON (SharedPreferences y columna jsonb "data" de Supabase). */
+/** Conversión Precios <-> JSON (columna "data" de SQLite y columna jsonb "data" de Supabase). */
 object PreciosJson {
 
     fun toJson(p: Precios): JSONObject = JSONObject().apply {
