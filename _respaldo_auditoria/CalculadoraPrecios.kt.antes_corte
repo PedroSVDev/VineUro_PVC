@@ -1,0 +1,630 @@
+package com.example.vineuro_pvc.data
+
+import kotlin.math.max
+
+/**
+ * Motor de cálculo de la cotización.
+ *
+ * Toma una ventana (OrderItem + sus OpcionesVentana del compás) y la lista de Precios,
+ * y devuelve cantidades de material, costo y precio de venta.
+ *
+ * Columnas del apartado Precios que se usan (índice 0 = nombre de la fila):
+ *  - moneda:      [1] tarifa (tipo de cambio), [2] símbolo del resultado
+ *  - impuesto:    [1] impuesto %
+ *  - planes:      [1] descuento %, [2] margen construcción y materiales %, [3] margen trabajos %
+ *  - ventanas:    37 columnas (ver COL_*): perfiles marco/imposta/hoja/hoja puerta, sándwich, shtapik, caucho,
+ *                 glazing bars y conector, refuerzos, kits de herraje por tipo de apertura, esquineros,
+ *                 conector de imposta, perfiles de asiento/dorsill/jamba, juntas, huecos y extensores 15..100
+ *  - cristal:     [1..3] vidrio 1..3 /m2, [4] película/m2, [5] spacer/m, [6] secante/m,
+ *                 [7] butilo/m, [8] sellado/m, [9] gas/m2
+ *  - umbral ext/int: [1] cuerpo /m, [2] tapón /pc
+ *  - muebles:     [1] manija regular /pc, [2] manija con cerradura /pc, [3] manija balcón /pc
+ *  - mosquitera:  [1] red/m2, [2] perfil/m, [3] sellador/m, [4] esquina/pc, [5] soporte/pc, [6] tirador/pc
+ *  - laminación:  [1] /m2
+ *  - extras / trabajos: precio y unidad (0 pieza, 1 área, 2 perímetro, 3 pendientes, 4 ancho, 5 alto)
+ *
+ * GEOMETRÍA: se calcula desde los paños REALES que dibuja WindowPreviewView (medidas de cada sección,
+ * puertas, travesaños, subdivisiones), no desde conteos del catálogo. Se usan las medidas de perfil de la
+ * original: marco 48 mm, imposta 52 mm, hoja 62 mm, hoja de puerta 94 mm, solape de hoja 13 mm.
+ *
+ * PRECIO (misma secuencia que la app original):
+ *   concepto = factor x cantidad x precio, con factor materiales = (1 + margen mat/100) x tarifa
+ *   y factor trabajos = tarifa x (1 + margen trab/100).
+ *   precio de ventana = suma de conceptos, o el PRECIO PROPIO (que reemplaza esa suma);
+ *   luego descuento (x (1 - desc/100)) y finalmente el impuesto sobre el total del pedido.
+ */
+object CalculadoraPrecios {
+
+    /** Mecanismo "5" = paño fijo (no lleva hoja ni manija). */
+    private const val MECANISMO_FIJO = "5"
+
+    // Medidas del sistema verificadas en la app original (en metros)
+    private const val ANCHO_MARCO_M = 0.048     // perfil de marco visible
+    private const val ANCHO_IMPOSTA_M = 0.052   // perfil de imposta (las secciones se miden a ejes)
+    private const val PERFIL_HOJA_M = 0.062     // perfil de hoja
+    private const val PERFIL_PUERTA_M = 0.094   // perfil de hoja de puerta
+    private const val SOLAPE_HOJA_M = 0.013     // la hoja (y la red) montan 13 mm sobre el marco por lado
+
+    data class Cantidades(
+        val areaM2: Double,
+        val marcoM: Double,
+        val impostaM: Double,
+        val glazingM: Double,
+        val cauchoM: Double,
+        val hojaM: Double,
+        val hojaPuertaM: Double,
+        val vidrioM2: Double,
+        val sandwichM2: Double,
+        val hojas: Int,
+        val hojasPuerta: Int,
+        val panosMosquitero: Int,
+        val anchoM: Double,
+        val altoM: Double,
+        val vidrioPerimM: Double,     // perímetro de vidrio (paños que no son sándwich)
+        val mosqAreaM2: Double,       // área de red de los paños con mosquitero
+        val mosqPerimM: Double,       // perímetro de los paños con mosquitero
+        val impostaN: Int,            // nº de piezas de imposta (cada una lleva 2 conectores)
+        val hojasDetalle: List<HojaCalc>,
+        val lamInternaM2: Double,     // superficie de perfil a laminar, cara interior
+        val lamExternaM2: Double,     // superficie de perfil a laminar, cara exterior
+    )
+
+    /** Costos (sin margen) por concepto, en la moneda base de la lista de precios. */
+    data class Costos(
+        val zona: Double,       // vidrio + panel sándwich + laminación
+        val marco: Double,
+        val imposta: Double,
+        val glazing: Double,
+        val caucho: Double,
+        val hoja: Double,
+        val hojaPuerta: Double,
+        val accesorios: Double, // umbrales, manijas, mosquitero, extras
+        val trabajos: Double,   // mano de obra / servicios
+    ) {
+        val materiales: Double get() = zona + marco + imposta + glazing + caucho + hoja + hojaPuerta + accesorios
+        val total: Double get() = materiales + trabajos
+
+        operator fun times(f: Double) = Costos(
+            zona * f, marco * f, imposta * f, glazing * f, caucho * f, hoja * f, hojaPuerta * f, accesorios * f, trabajos * f,
+        )
+
+        operator fun plus(o: Costos) = Costos(
+            zona + o.zona, marco + o.marco, imposta + o.imposta, glazing + o.glazing, caucho + o.caucho,
+            hoja + o.hoja, hojaPuerta + o.hojaPuerta, accesorios + o.accesorios, trabajos + o.trabajos,
+        )
+
+        companion object {
+            val CERO = Costos(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        }
+    }
+
+    data class Resultado(
+        val cantidades: Cantidades,
+        val cantidad: Int,            // nº de ventanas iguales (opción "cantidad" del compás)
+        val costoUnitario: Costos,    // costo de UNA ventana, sin margen ni impuesto
+        val precioUnitario: Costos,   // venta de UNA ventana por concepto (con margen, descuento e impuesto)
+        val precioUnitarioTotal: Double, // total de venta de UNA ventana (incluye el caso de precio propio)
+        val descuentoPct: Double,
+        val margenPct: Double,        // margen promedio efectivo sobre el costo
+        val impuestoPct: Double,
+        val totalVenta: Double,       // precio final x cantidad (convertido a la moneda de resultado)
+        val totalCosto: Double,       // costo x cantidad (convertido a la moneda de resultado)
+        val precioPropioAplicado: Boolean,
+        val simbolo: String,
+    )
+
+    // ===================================================================================
+
+    fun calcular(item: OrderItem, precios: Precios): Resultado {
+        val op = item.opciones
+        val q = cantidades(item)
+
+        // Sin fila elegida => esa partida cuesta 0 (la original tampoco inventa un sistema/vidrio).
+        val sistema = filaElegida(precios.ventanas, op.sistemaVentana)
+        val cristal = filaElegida(precios.cristal, op.tipoCristal)
+        val plan = op.planFinanciacion?.let { fila(precios.planes, it) }
+        val impuestoPct = num(precios.impuesto.firstOrNull(), 1)
+        val tarifa = num(precios.moneda.firstOrNull(), 1).takeIf { it > 0 } ?: 1.0
+        val simbolo = precios.moneda.firstOrNull()?.getOrNull(2)?.takeIf { it.isNotBlank() } ?: "S/"
+
+        // ---- Sistema de ventanas (misma estructura que la pestaña "sistema" de la original) ----
+        // Columnas de precios.ventanas: ver COL_* al final del objeto.
+        fun s(c: Int) = num(sistema, c)
+
+        // Marco: perímetro x (perfil + refuerzo) + 4 esquineros de refuerzo
+        val marco = q.marcoM * (s(COL_MARCO) + s(COL_REFUERZO_MARCO)) + 4 * s(COL_ESQUINERO_MARCO)
+
+        // Imposta: longitud x (perfil + refuerzo) + 2 conectores por pieza
+        val imposta = q.impostaM * (s(COL_IMPOSTA) + s(COL_REFUERZO_IMPOSTA)) + q.impostaN * s(COL_CONECTOR_IMPOSTA) * 2
+
+        // Hojas: perímetro x (perfil + refuerzo) + 4 esquineros + herraje según el tipo de apertura
+        fun herraje(mecanismo: String): Double = when (mecanismo) {
+            "1", "3" -> s(COL_KIT_CORREDERA) + s(COL_GUIAS_CORREDERA)      // corrediza
+            "2" -> s(COL_KIT_HORIZONTAL)                                    // oscilante (abatible superior)
+            "4", "6" -> s(COL_KIT_VERTICAL)                                 // practicable (giro lateral)
+            "7", "8" -> s(COL_KIT_ROTACION)                                 // oscilobatiente
+            else -> 0.0                                                     // fijo
+        }
+        var hoja = 0.0
+        var hojaPuerta = 0.0
+        q.hojasDetalle.forEach { h ->
+            val parcial = if (h.esPuerta) {
+                h.perimetroM * (s(COL_HOJA_PUERTA) + s(COL_REFUERZO_PUERTA))
+            } else {
+                h.perimetroM * (s(COL_HOJA) + s(COL_REFUERZO_HOJA))
+            } + 4 * s(COL_ESQUINERO_HOJA) + herraje(h.mecanismo)
+            if (h.esPuerta) hojaPuerta += parcial else hoja += parcial
+        }
+
+        val glazing = q.glazingM * s(COL_SHTAPIK)
+        val caucho = q.cauchoM * s(COL_CAUCHO)
+
+        // ---- Zona: vidrio + panel sándwich + laminación ----
+        // Vidrio (regla de la original): por m2 = vidrio 1+2+3 + película + gas;
+        // por metro = secante + sellador + mantequilla + espaciador, donde la mantequilla va x2
+        // (x4 si hay 3 vidrios con precio) y el espaciador x2 solo con 3 vidrios.
+        val v1 = num(cristal, 1); val v2 = num(cristal, 2); val v3 = num(cristal, 3)
+        val triple = v1 != 0.0 && v2 != 0.0 && v3 != 0.0
+        val vidrioPorM2 = v1 + v2 + v3 + num(cristal, 4) + num(cristal, 9)
+        val butilo = num(cristal, 7) * (if (triple) 4 else 2)
+        val espaciador = num(cristal, 5) * (if (triple) 2 else 1)
+        val vidrioPorM = espaciador + butilo + num(cristal, 8) + num(cristal, 6)
+        var zona = q.vidrioM2 * vidrioPorM2 + q.vidrioPerimM * vidrioPorM + q.sandwichM2 * s(COL_SANDWICH)
+        // La laminación es película sobre los PERFILES (no sobre el vidrio): se cobra la superficie de perfil.
+        op.laminacionInterna?.let { zona += q.lamInternaM2 * num(fila(precios.laminacion, it), 1) }
+        op.laminacionExterna?.let { zona += q.lamExternaM2 * num(fila(precios.laminacion, it), 1) }
+
+        // ---- Accesorios ----
+        val anchoM = item.anchoTotalMm / 1000.0
+        var accesorios = 0.0
+        op.umbralesExternos.forEach { n -> fila(precios.umbralExt, n)?.let { accesorios += anchoM * num(it, 1) + 2 * num(it, 2) } }
+        op.umbralesInternos.forEach { n -> fila(precios.umbralInt, n)?.let { accesorios += anchoM * num(it, 1) + 2 * num(it, 2) } }
+        op.mueble?.let { n ->
+            fila(precios.muebles, n)?.let { accesorios += q.hojas * num(it, 1) + q.hojasPuerta * num(it, 2) }
+        }
+        if (q.panosMosquitero > 0) {
+            val mosq = filaElegida(precios.mosquitera, op.mosquitero)
+            accesorios += q.mosqAreaM2 * num(mosq, 1) +
+                q.mosqPerimM * (num(mosq, 2) + num(mosq, 3)) +
+                q.panosMosquitero * (4 * num(mosq, 4) + 4 * num(mosq, 5) + 2 * num(mosq, 6))
+        }
+        // Perfiles adicionales (selección del panel de la ventana)
+        if ("perfil del asiento" in op.adicionales) accesorios += q.anchoM * s(COL_PERFIL_ASIENTO)
+        if ("dorsill" in op.adicionales) accesorios += q.anchoM * s(COL_DORSILL)
+        if ("jamba de la esquina" in op.adicionales) accesorios += q.altoM * s(COL_JAMBA_ESQUINA)
+        // Lados: 0 izquierda, 1 arriba, 2 abajo, 3 derecha (izq./der. miden el alto; arriba/abajo el ancho)
+        fun largoLado(lado: Int) = if (lado == 0 || lado == 3) q.altoM else q.anchoM
+        op.perfiles.forEach { clave ->
+            val p = clave.split(":")
+            val lado = p.lastOrNull()?.toIntOrNull() ?: return@forEach
+            val col = when {
+                p[0] == "juntas" -> COL_JUNTA
+                p[0] == "juntas90" -> COL_JUNTA_90
+                p[0] == "juntas135" -> COL_JUNTA_135
+                p[0] == "huecos" -> COL_HUECO
+                p[0] == "extensor" && p.size == 3 -> when (p[1]) {
+                    "15" -> COL_EXT_15; "20" -> COL_EXT_20; "40" -> COL_EXT_40
+                    "60" -> COL_EXT_60; "80" -> COL_EXT_80; "100" -> COL_EXT_100
+                    else -> return@forEach
+                }
+                else -> return@forEach
+            }
+            accesorios += largoLado(lado) * s(col)
+        }
+        op.extras.forEach { n -> precios.extras.find { it.nombre == n }?.let { accesorios += precioSeleccion(it, q) } }
+
+        // ---- Trabajos ----
+        var trabajos = 0.0
+        op.trabajos.forEach { n -> precios.empleos.find { it.nombre == n }?.let { trabajos += precioSeleccion(it, q) } }
+
+        val costo = Costos(zona, marco, imposta, glazing, caucho, hoja, hojaPuerta, accesorios, trabajos)
+
+        // ---- Margen, descuento, impuesto ----
+        val descuentoPct = num(plan, 1)
+        val margenMat = num(plan, 2)
+        val margenTrab = num(plan, 3)
+        val fDesc = 1 - descuentoPct / 100.0
+        val fImp = 1 + impuestoPct / 100.0
+        val fMat = (1 + margenMat / 100.0) * fDesc * fImp
+        val fTrab = (1 + margenTrab / 100.0) * fDesc * fImp
+
+        var precio = Costos(
+            zona * fMat, marco * fMat, imposta * fMat, glazing * fMat, caucho * fMat,
+            hoja * fMat, hojaPuerta * fMat, accesorios * fMat, trabajos * fTrab,
+        )
+
+        // Precio propio (en la moneda de resultado): reemplaza la SUMA de conceptos de UNA ventana y
+        // después recibe el descuento y el impuesto, igual que en la original.
+        val precioPropio = op.precioPropio.replace(",", ".").toDoubleOrNull()?.takeIf { it > 0 }
+        val unitarioBase = if (precioPropio != null) precioPropio / tarifa * fDesc * fImp else precio.total
+        if (precioPropio != null && precio.total > 0) {
+            precio = precio * (unitarioBase / precio.total)
+        }
+
+        val cantidad = max(1, op.cantidad)
+        val totalVenta = unitarioBase * cantidad * tarifa
+        val totalCosto = costo.total * cantidad * tarifa
+        val margenEfectivo = if (costo.total > 0) ((unitarioBase / fImp / fDesc) / costo.total - 1) * 100 else 0.0
+
+        return Resultado(
+            cantidades = q,
+            cantidad = cantidad,
+            costoUnitario = costo * tarifa,
+            precioUnitario = precio * tarifa,
+            precioUnitarioTotal = unitarioBase * tarifa,
+            descuentoPct = descuentoPct,
+            margenPct = margenEfectivo,
+            impuestoPct = impuestoPct,
+            totalVenta = totalVenta,
+            totalCosto = totalCosto,
+            precioPropioAplicado = precioPropio != null,
+            simbolo = simbolo,
+        )
+    }
+
+    /** Total de venta (con impuesto) de todo el pedido. */
+    fun totalPedido(items: List<OrderItem>, precios: Precios): Double = items.sumOf { calcular(it, precios).totalVenta }
+
+    /**
+     * Desglose del pedido como en la original: el descuento ya está aplicado a cada ventana y el
+     * impuesto se aplica UNA vez sobre el total descontado del pedido.
+     */
+    data class ResumenPedido(val neto: Double, val impuesto: Double, val total: Double, val impuestoPct: Double)
+
+    fun resumenPedido(resultados: List<Resultado>): ResumenPedido {
+        val pct = resultados.firstOrNull()?.impuestoPct ?: 0.0
+        val total = resultados.sumOf { it.totalVenta }
+        val neto = total / (1 + pct / 100.0)
+        return ResumenPedido(neto = neto, impuesto = total - neto, total = total, impuestoPct = pct)
+    }
+
+    // ===================== GEOMETRÍA =====================
+
+    /**
+     * Paño real (ya subdividido). [clave] es la que usan los mapas del OrderItem; [padre] el paño sin subdividir.
+     * Las medidas son las del paño NOMINAL; el hueco real (dentro de los perfiles) y el vidrio se calculan aparte.
+     */
+    data class Pano(
+        val clave: Int, val padre: Int, val anchoM: Double, val altoM: Double,
+        val izq: Boolean, val arr: Boolean, val der: Boolean, val aba: Boolean, // true = lado apoyado en el marco
+    ) {
+        val areaM2: Double get() = anchoM * altoM
+        val perimetroM: Double get() = 2 * (anchoM + altoM)
+        private fun inset(marco: Boolean) = if (marco) ANCHO_MARCO_M else ANCHO_IMPOSTA_M / 2
+        /** Hueco libre entre perfiles. */
+        val huecoAncho: Double get() = (anchoM - inset(izq) - inset(der)).coerceAtLeast(0.0)
+        val huecoAlto: Double get() = (altoM - inset(arr) - inset(aba)).coerceAtLeast(0.0)
+    }
+
+    data class Geometria(val panos: List<Pano>, val impostaM: Double, val impostaN: Int)
+
+    /** Hoja calculada: perímetro EXTERIOR de la hoja (hueco + 13 mm por lado) y su tipo. */
+    data class HojaCalc(val perimetroM: Double, val altoM: Double, val esPuerta: Boolean, val mecanismo: String)
+
+    /** Reparte [totalMm] según las proporciones de [valores] (igual que getScaledActive* del dibujo). */
+    private fun escalar(valores: FloatArray, n: Int, totalMm: Int): DoubleArray {
+        val suma = valores.sumOf { it.toDouble() }
+        return if (valores.size == n && suma > 0.0) DoubleArray(n) { valores[it].toDouble() / suma * totalMm / 1000.0 }
+        else DoubleArray(n) { totalMm / 1000.0 / n }
+    }
+
+    private fun filasActivas(c: WindowConfig): Int = when (c.layoutType) {
+        WindowConfig.LayoutType.TOP_TRANSOM, WindowConfig.LayoutType.BOTTOM_TRANSOM,
+        WindowConfig.LayoutType.DOOR_L_LEFT, WindowConfig.LayoutType.DOOR_L_RIGHT, WindowConfig.LayoutType.DOOR_T_CENTER,
+        WindowConfig.LayoutType.DOOR_L_LEFT_TRANSOM, WindowConfig.LayoutType.DOOR_L_RIGHT_TRANSOM,
+        WindowConfig.LayoutType.DOOR_T_CENTER_TRANSOM -> 2
+        WindowConfig.LayoutType.TOP_BOTTOM_TRANSOM -> 3
+        else -> max(1, c.rows)
+    }
+
+    private fun colsActivas(c: WindowConfig): Int = when (c.layoutType) {
+        WindowConfig.LayoutType.DOOR_T_CENTER, WindowConfig.LayoutType.DOOR_T_CENTER_TRANSOM -> max(3, c.cols)
+        WindowConfig.LayoutType.DOOR_L_LEFT, WindowConfig.LayoutType.DOOR_L_RIGHT,
+        WindowConfig.LayoutType.DOOR_L_LEFT_TRANSOM, WindowConfig.LayoutType.DOOR_L_RIGHT_TRANSOM -> max(2, c.cols)
+        else -> max(1, c.cols)
+    }
+
+    private class Base(val idx: Int, val w: Double, val h: Double, val l: Boolean, val t: Boolean, val r: Boolean, val b: Boolean)
+
+    /**
+     * Paños e impostas tal como los dibuja WindowPreviewView. Los índices de paño coinciden con los
+     * del dibujo (los mismos con los que se guardan mecanismo, puerta, sándwich, mosquitero y subdivisión).
+     */
+    fun geometria(item: OrderItem): Geometria {
+        val cfg = item.config
+        val W = item.anchoTotalMm / 1000.0
+        val H = item.altoTotalMm / 1000.0
+        val base = mutableListOf<Base>()
+        var imposta = 0.0
+        var piezas = 0
+
+        when (cfg.layoutType) {
+            WindowConfig.LayoutType.GRID, WindowConfig.LayoutType.ASYMMETRIC_SPLIT -> {
+                val rows = filasActivas(cfg); val cols = colsActivas(cfg)
+                val hs = escalar(item.sectionHeights, rows, item.altoTotalMm)
+                val ws = escalar(item.sectionWidths, cols, item.anchoTotalMm)
+                for (r in 0 until rows) for (c in 0 until cols)
+                    base += Base(r * cols + c, ws[c], hs[r], c == 0, r == 0, c == cols - 1, r == rows - 1)
+                imposta = (cols - 1) * H + (rows - 1) * W
+                piezas = (cols - 1) + (rows - 1)
+            }
+            WindowConfig.LayoutType.TOP_TRANSOM -> {
+                val cols = colsActivas(cfg); val hs = escalar(item.sectionHeights, 2, item.altoTotalMm)
+                base += Base(0, W, hs[0], true, true, true, false)
+                for (c in 0 until cols) base += Base(c + 1, W / cols, hs[1], c == 0, false, c == cols - 1, true)
+                imposta = W + (cols - 1) * hs[1]; piezas = 1 + (cols - 1)
+            }
+            WindowConfig.LayoutType.BOTTOM_TRANSOM -> {
+                val cols = colsActivas(cfg); val hs = escalar(item.sectionHeights, 2, item.altoTotalMm)
+                for (c in 0 until cols) base += Base(c, W / cols, hs[0], c == 0, true, c == cols - 1, false)
+                base += Base(cols, W, hs[1], true, false, true, true)
+                imposta = W + (cols - 1) * hs[0]; piezas = 1 + (cols - 1)
+            }
+            WindowConfig.LayoutType.TOP_BOTTOM_TRANSOM -> {
+                val cols = colsActivas(cfg); val hs = escalar(item.sectionHeights, 3, item.altoTotalMm)
+                base += Base(0, W, hs[0], true, true, true, false)
+                for (c in 0 until cols) base += Base(c + 1, W / cols, hs[1], c == 0, false, c == cols - 1, false)
+                base += Base(cols + 1, W, hs[2], true, false, true, true)
+                imposta = 2 * W + (cols - 1) * hs[1]; piezas = 2 + (cols - 1)
+            }
+            WindowConfig.LayoutType.DOOR_L_LEFT, WindowConfig.LayoutType.DOOR_L_RIGHT,
+            WindowConfig.LayoutType.DOOR_L_LEFT_TRANSOM, WindowConfig.LayoutType.DOOR_L_RIGHT_TRANSOM -> {
+                val izquierda = cfg.layoutType == WindowConfig.LayoutType.DOOR_L_LEFT ||
+                    cfg.layoutType == WindowConfig.LayoutType.DOOR_L_LEFT_TRANSOM
+                val conTravesano = cfg.layoutType == WindowConfig.LayoutType.DOOR_L_LEFT_TRANSOM ||
+                    cfg.layoutType == WindowConfig.LayoutType.DOOR_L_RIGHT_TRANSOM
+                val altoVentana = escalar(item.sectionHeights, 2, item.altoTotalMm)[0] // la parte baja de un lado queda libre
+                val anchoPuerta = 0.45 * W
+                val anchoVent = 0.55 * W
+                val izq = if (izquierda) anchoPuerta to H else anchoVent to altoVentana
+                val der = if (izquierda) anchoVent to altoVentana else anchoPuerta to H
+                if (conTravesano) {
+                    val t = 0.22 * H
+                    base += Base(0, izq.first, t, true, true, false, false)
+                    base += Base(1, izq.first, izq.second - t, true, false, false, true)
+                    base += Base(2, der.first, t, false, true, true, false)
+                    base += Base(3, der.first, der.second - t, false, false, true, true)
+                    imposta = W + altoVentana; piezas = 3
+                } else {
+                    base += Base(0, izq.first, izq.second, true, true, false, true)
+                    base += Base(1, der.first, der.second, false, true, true, true)
+                    imposta = altoVentana; piezas = 1
+                }
+            }
+            WindowConfig.LayoutType.DOOR_T_CENTER -> {
+                val altoVentana = escalar(item.sectionHeights, 2, item.altoTotalMm)[0]
+                base += Base(0, 0.33 * W, altoVentana, true, true, false, true)
+                base += Base(1, 0.34 * W, H, false, true, false, true)
+                base += Base(2, 0.33 * W, altoVentana, false, true, true, true)
+                imposta = 2 * altoVentana; piezas = 2
+            }
+            WindowConfig.LayoutType.DOOR_T_CENTER_TRANSOM -> {
+                val altoVentana = escalar(item.sectionHeights, 2, item.altoTotalMm)[0]
+                base += Base(0, W, altoVentana, true, true, true, false)
+                base += Base(1, 0.33 * W, H - altoVentana, true, false, false, true)
+                base += Base(2, 0.34 * W, H - altoVentana, false, false, false, true)
+                base += Base(3, 0.33 * W, H - altoVentana, false, false, true, true)
+                imposta = W + 2 * (H - altoVentana); piezas = 3
+            }
+        }
+
+        // Subdivisión de un paño en n columnas iguales (travesaños verticales dentro del paño)
+        val panos = mutableListOf<Pano>()
+        for (b in base) {
+            val n = item.paneCols[b.idx] ?: 1
+            if (n > 1) {
+                for (sc in 0 until n) {
+                    panos += Pano(b.idx * 10 + sc, b.idx, b.w / n, b.h, b.l && sc == 0, b.t, b.r && sc == n - 1, b.b)
+                }
+                imposta += (n - 1) * b.h
+                piezas += n - 1
+            } else {
+                panos += Pano(b.idx, b.idx, b.w, b.h, b.l, b.t, b.r, b.b)
+            }
+        }
+        return Geometria(panos, imposta, piezas)
+    }
+
+    /** Detalle de cada paño según sus opciones (hoja/fijo, puerta, sándwich, mosquitero). */
+    private class Detalle(val pano: Pano, val hoja: Boolean, val puerta: Boolean, val sandwich: Boolean, val mosq: Boolean, val mec: String) {
+        /** Perfil visible de la hoja: 62 mm (94 mm en puerta). */
+        val perfilHoja: Double get() = if (puerta) PERFIL_PUERTA_M else PERFIL_HOJA_M
+        /** Vidrio real: fijo = hueco; hoja = hueco reducido en (perfil - 13 mm) por lado. */
+        val vidrioAncho: Double get() = if (hoja) (pano.huecoAncho - 2 * (perfilHoja - SOLAPE_HOJA_M)).coerceAtLeast(0.0) else pano.huecoAncho
+        val vidrioAlto: Double get() = if (hoja) (pano.huecoAlto - 2 * (perfilHoja - SOLAPE_HOJA_M)).coerceAtLeast(0.0) else pano.huecoAlto
+        val vidrioPerimetro: Double get() = 2 * (vidrioAncho + vidrioAlto)
+        val hojaAncho: Double get() = pano.huecoAncho + 2 * SOLAPE_HOJA_M
+        val hojaAlto: Double get() = pano.huecoAlto + 2 * SOLAPE_HOJA_M
+    }
+
+    private fun detalles(item: OrderItem, g: Geometria): List<Detalle> = g.panos.map { p ->
+        val puerta = item.panePuerta[p.clave] ?: item.panePuerta[p.padre] ?: false
+        val mec = item.paneMechanisms[p.clave] ?: item.paneMechanisms[p.padre] ?: MECANISMO_FIJO
+        Detalle(
+            p, hoja = puerta || mec != MECANISMO_FIJO, puerta = puerta,
+            sandwich = item.paneSandwich[p.clave] ?: item.paneSandwich[p.padre] ?: false,
+            mosq = item.paneMosqNet[p.clave] ?: item.paneMosqNet[p.padre] ?: false,
+            mec = mec,
+        )
+    }
+
+    fun cantidades(item: OrderItem): Cantidades {
+        val g = geometria(item)
+        val d = detalles(item, g)
+        val altoM = item.altoTotalMm / 1000.0
+        val anchoM = item.anchoTotalMm / 1000.0
+        val area = altoM * anchoM
+        val perimetroMarco = 2 * (altoM + anchoM)
+
+        val hojas = d.filter { it.hoja }.map { HojaCalc(2 * (it.hojaAncho + it.hojaAlto), it.hojaAlto, it.puerta, it.mec) }
+        val sandwiches = d.filter { it.sandwich }
+        val vidrios = d.filter { !it.sandwich }
+        val mosqs = d.filter { it.mosq }
+
+        // Red del mosquitero: hueco + 13 mm por lado
+        val mosqAreas = mosqs.map { (it.pano.huecoAncho + 2 * SOLAPE_HOJA_M) * (it.pano.huecoAlto + 2 * SOLAPE_HOJA_M) }
+        val mosqPerims = mosqs.map { 2 * ((it.pano.huecoAncho + 2 * SOLAPE_HOJA_M) + (it.pano.huecoAlto + 2 * SOLAPE_HOJA_M)) }
+
+        // Superficie laminable (película sobre el perfil). Cara interior = ancho de perfil;
+        // cara exterior = ancho + 27 mm (sobre el marco/imposta) o + 14 mm (hoja), como en la original.
+        val hojasNormales = hojas.filter { !it.esPuerta }
+        val hojasPuerta = hojas.filter { it.esPuerta }
+        val lamInterna = perimetroMarco * ANCHO_MARCO_M + g.impostaM * ANCHO_IMPOSTA_M +
+            hojasNormales.sumOf { it.perimetroM } * (PERFIL_HOJA_M + 0.012) +
+            hojasPuerta.sumOf { it.perimetroM } * (PERFIL_PUERTA_M + 0.012)
+        val lamExterna = perimetroMarco * (ANCHO_MARCO_M + 0.027) + g.impostaM * (ANCHO_IMPOSTA_M + 0.054) +
+            hojasNormales.sumOf { it.perimetroM } * (PERFIL_HOJA_M + 0.014) +
+            hojasPuerta.sumOf { it.perimetroM } * (PERFIL_PUERTA_M + 0.014)
+
+        val glazing = d.sumOf { it.vidrioPerimetro }
+        val hojaPerim = hojasNormales.sumOf { it.perimetroM }
+        val puertaPerim = hojasPuerta.sumOf { it.perimetroM }
+
+        return Cantidades(
+            areaM2 = area,
+            marcoM = perimetroMarco,
+            impostaM = g.impostaM,
+            glazingM = glazing,
+            cauchoM = glazing + hojaPerim + puertaPerim, // junta del vidrio + junta de las hojas
+            hojaM = hojaPerim,
+            hojaPuertaM = puertaPerim,
+            vidrioM2 = vidrios.sumOf { it.vidrioAncho * it.vidrioAlto },
+            sandwichM2 = sandwiches.sumOf { it.vidrioAncho * it.vidrioAlto },
+            hojas = hojasNormales.count { it.mecanismo != MECANISMO_FIJO },
+            hojasPuerta = hojasPuerta.size,
+            panosMosquitero = mosqs.size,
+            anchoM = anchoM,
+            altoM = altoM,
+            vidrioPerimM = vidrios.sumOf { it.vidrioPerimetro },
+            mosqAreaM2 = mosqAreas.sum(),
+            mosqPerimM = mosqPerims.sum(),
+            impostaN = g.impostaN,
+            hojasDetalle = hojas,
+            lamInternaM2 = lamInterna,
+            lamExternaM2 = lamExterna,
+        )
+    }
+
+    // ===================== ADVERTENCIAS =====================
+
+    /**
+     * Problemas que harían que la ventana se cotice por MENOS de lo que cuesta (precios faltantes o en cero,
+     * materiales elegidos que ya no existen en Precios). La original avisa "this materials not found in prices".
+     */
+    fun advertencias(item: OrderItem, precios: Precios): List<String> {
+        val op = item.opciones
+        val out = mutableListOf<String>()
+        val q = cantidades(item)
+
+        fun sinPrecios(f: List<String>?) = f == null || f.drop(1).none { (it.replace(",", ".").toDoubleOrNull() ?: 0.0) > 0 }
+
+        // Sistema de ventanas
+        val sis = op.sistemaVentana?.let { fila(precios.ventanas, it) }
+        when {
+            op.sistemaVentana == null -> out += "No hay sistema de ventanas elegido: perfiles y herrajes se cotizan en 0."
+            sis == null -> out += "El sistema \"${op.sistemaVentana}\" ya no existe en Precios."
+            sinPrecios(sis) -> out += "El sistema \"${op.sistemaVentana}\" no tiene ningún precio cargado."
+            else -> {
+                if (num(sis, COL_MARCO) == 0.0) out += "El sistema no tiene precio de perfil de marco."
+                if (q.impostaM > 0 && num(sis, COL_IMPOSTA) == 0.0) out += "La ventana lleva impostas pero el sistema no tiene precio de imposta."
+                if (q.hojaM > 0 && num(sis, COL_HOJA) == 0.0) out += "La ventana lleva hojas pero el sistema no tiene precio de perfil de hoja."
+                if (q.hojaPuertaM > 0 && num(sis, COL_HOJA_PUERTA) == 0.0) out += "La ventana lleva hoja de puerta pero el sistema no tiene precio de perfil de hoja puerta."
+                if (q.sandwichM2 > 0 && num(sis, COL_SANDWICH) == 0.0) out += "Hay paños sándwich pero el sistema no tiene precio de panel sándwich."
+                q.hojasDetalle.map { it.mecanismo }.distinct().forEach { m ->
+                    val (col, nombre) = when (m) {
+                        "1", "3" -> COL_KIT_CORREDERA to "corredizo"
+                        "2" -> COL_KIT_HORIZONTAL to "oscilante"
+                        "4", "6" -> COL_KIT_VERTICAL to "practicable"
+                        "7", "8" -> COL_KIT_ROTACION to "oscilobatiente"
+                        else -> 0 to ""
+                    }
+                    if (col != 0 && num(sis, col) == 0.0) out += "Hay hojas con apertura $nombre pero el sistema no tiene precio de ese kit de herraje."
+                }
+            }
+        }
+
+        // Cristal
+        val cri = op.tipoCristal?.let { fila(precios.cristal, it) }
+        when {
+            op.tipoCristal == null -> if (q.vidrioM2 > 0) out += "No hay tipo de cristal elegido: el vidrio se cotiza en 0."
+            cri == null -> out += "El cristal \"${op.tipoCristal}\" ya no existe en Precios."
+            num(cri, 1) + num(cri, 2) + num(cri, 3) == 0.0 -> out += "El cristal \"${op.tipoCristal}\" no tiene precio de vidrio (columnas vidrio 1, 2, 3)."
+        }
+
+        // Elecciones que ya no existen en las tablas
+        op.planFinanciacion?.let { if (fila(precios.planes, it) == null) out += "El plan \"$it\" ya no existe en Precios (se cotiza sin descuento ni márgenes)." }
+        if (op.planFinanciacion == null) out += "No hay plan de financiamiento: no se aplican márgenes (se vende al costo)."
+        op.mueble?.let { if (fila(precios.muebles, it) == null) out += "El mueble \"$it\" ya no existe en Precios." }
+        op.umbralesExternos.filter { fila(precios.umbralExt, it) == null }.forEach { out += "El umbral exterior \"$it\" ya no existe en Precios." }
+        op.umbralesInternos.filter { fila(precios.umbralInt, it) == null }.forEach { out += "El umbral interior \"$it\" ya no existe en Precios." }
+        op.extras.filter { n -> precios.extras.none { it.nombre == n } }.forEach { out += "El extra \"$it\" ya no existe en Precios." }
+        op.trabajos.filter { n -> precios.empleos.none { it.nombre == n } }.forEach { out += "El trabajo \"$it\" ya no existe en Precios." }
+        op.laminacionInterna?.let { if (fila(precios.laminacion, it) == null) out += "La laminación interior \"$it\" ya no existe en Precios." }
+        op.laminacionExterna?.let { if (fila(precios.laminacion, it) == null) out += "La laminación exterior \"$it\" ya no existe en Precios." }
+        op.color?.let { c -> if (precios.colores.none { it.nombre == c }) out += "El color \"$c\" ya no existe en Precios." }
+
+        // Mosquitero
+        if (q.panosMosquitero > 0) {
+            val m = op.mosquitero?.let { fila(precios.mosquitera, it) }
+            when {
+                op.mosquitero == null -> out += "Hay paños con mosquitero pero no elegiste el sistema de mosquitero: se cotiza en 0."
+                m == null -> out += "El mosquitero \"${op.mosquitero}\" ya no existe en Precios."
+                sinPrecios(m) -> out += "El mosquitero \"${op.mosquitero}\" no tiene precios cargados."
+            }
+        }
+
+        // Dimensiones imposibles
+        val g = geometria(item)
+        if (g.panos.any { it.huecoAncho <= 0.0 || it.huecoAlto <= 0.0 }) out += "Alguna sección es demasiado pequeña para los perfiles (el hueco es 0 o negativo)."
+        if (g.panos.any { d -> val h = item.paneMechanisms[d.clave] ?: item.paneMechanisms[d.padre]; h != null && h != MECANISMO_FIJO && (d.huecoAncho < 0.25 || d.huecoAlto < 0.25) }) {
+            out += "Hay una hoja practicable/corrediza con menos de 25 cm de hueco: revisa las medidas."
+        }
+        return out
+    }
+
+    // ===================== AYUDANTES =====================
+
+    // Columnas de Precios.ventanas (índice 0 = nombre). Mismo orden que la pestaña "sistema" de la original.
+    const val COL_MARCO = 1; const val COL_IMPOSTA = 2; const val COL_HOJA = 3; const val COL_HOJA_PUERTA = 4
+    const val COL_SANDWICH = 5; const val COL_SHTAPIK = 6; const val COL_CAUCHO = 7
+    const val COL_BARRAS = 8; const val COL_CONECTOR_BARRAS = 9
+    const val COL_REFUERZO_MARCO = 10; const val COL_REFUERZO_IMPOSTA = 11
+    const val COL_REFUERZO_HOJA = 12; const val COL_REFUERZO_PUERTA = 13
+    const val COL_KIT_ROTACION = 14; const val COL_KIT_HORIZONTAL = 15; const val COL_KIT_VERTICAL = 16
+    const val COL_KIT_CORREDERA = 17; const val COL_KIT_CORREDERA_VERT = 18
+    const val COL_KIT_FRANCESA = 19; const val COL_IMPOSTA_FRANCESA = 20; const val COL_GUIAS_CORREDERA = 21
+    const val COL_ESQUINERO_MARCO = 22; const val COL_ESQUINERO_HOJA = 23; const val COL_CONECTOR_IMPOSTA = 24
+    const val COL_PERFIL_ASIENTO = 25; const val COL_DORSILL = 26; const val COL_JAMBA_ESQUINA = 27
+    const val COL_JUNTA = 28; const val COL_JUNTA_90 = 29; const val COL_JUNTA_135 = 30; const val COL_HUECO = 31
+    const val COL_EXT_15 = 32; const val COL_EXT_20 = 33; const val COL_EXT_40 = 34
+    const val COL_EXT_60 = 35; const val COL_EXT_80 = 36; const val COL_EXT_100 = 37
+    /** Cantidad de columnas numéricas del sistema (sin el nombre). */
+    const val COLUMNAS_SISTEMA = 37
+
+
+    /**
+     * Unidad de extras/trabajos, en el orden de los 6 botones (igual que la original):
+     * 0 pieza · 1 área · 2 perímetro · 3 pendientes (W + 2H, inferido) · 4 ancho · 5 alto.
+     */
+    private fun precioSeleccion(f: FilaSeleccion, q: Cantidades): Double {
+        val p = f.precio.replace(",", ".").toDoubleOrNull() ?: 0.0
+        return when (f.unidad) {
+            1 -> p * q.areaM2
+            2 -> p * q.marcoM
+            3 -> p * (q.anchoM + 2 * q.altoM)
+            4 -> p * q.anchoM
+            5 -> p * q.altoM
+            else -> p // 0 = por pieza
+        }
+    }
+
+    private fun fila(tabla: List<List<String>>, nombre: String): List<String>? =
+        tabla.find { it.firstOrNull()?.trim() == nombre.trim() }
+
+    /** Fila elegida en el compás; si no se eligió nada devuelve null (la partida vale 0). */
+    private fun filaElegida(tabla: List<List<String>>, nombre: String?): List<String>? =
+        nombre?.let { fila(tabla, it) }
+
+    private fun num(fila: List<String>?, i: Int): Double =
+        fila?.getOrNull(i)?.replace(",", ".")?.trim()?.toDoubleOrNull() ?: 0.0
+}

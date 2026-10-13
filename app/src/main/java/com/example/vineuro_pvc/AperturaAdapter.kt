@@ -11,6 +11,8 @@ data class AperturaMechanism(
     val id: String,
     val nombre: String,
     val iconRes: Int,
+    /** Icono dibujado por código (aperturas múltiples); si es null se usa [iconRes]. */
+    val icono: (() -> android.graphics.drawable.Drawable)? = null,
 )
 
 class AperturaAdapter(
@@ -40,7 +42,8 @@ class AperturaAdapter(
         fun bind(mechanism: AperturaMechanism) {
             binding.wpvConfigPreview.visibility = View.GONE
             binding.ivConfigIcon.visibility = View.VISIBLE
-            binding.ivConfigIcon.setImageResource(mechanism.iconRes)
+            val dib = mechanism.icono?.invoke()
+            if (dib != null) binding.ivConfigIcon.setImageDrawable(dib) else binding.ivConfigIcon.setImageResource(mechanism.iconRes)
             binding.tvConfigNombre.text = mechanism.nombre
 
             val isSelected = mechanism.id == selectedId

@@ -14,7 +14,7 @@ data class Clausula(val titulo: String, val texto: String)
 data class TerminosCondiciones(
     val clausulas: List<Clausula> = porDefecto(),
     val vigenciaDias: Int = 3,
-    val adelantoPct: Int = 60,
+    val adelantoPct: Int = 50,
     val fechaActualizacion: Long = 0L,
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
@@ -30,35 +30,27 @@ data class TerminosCondiciones(
         fun fromJson(o: JSONObject) = TerminosCondiciones(
             clausulas = o.optJSONArray("clausulas")?.let { ClausulasJson.fromJson(it) }?.takeIf { it.isNotEmpty() } ?: porDefecto(),
             vigenciaDias = o.optInt("vigencia_dias", 3),
-            adelantoPct = o.optInt("adelanto_pct", 60).coerceIn(0, 100),
+            adelantoPct = o.optInt("adelanto_pct", 50).coerceIn(0, 100),
             fechaActualizacion = o.optLong("fecha_actualizacion", 0L),
         )
 
-        /** Cláusulas iniciales, tomadas de las condiciones generales que usa VINEURO PVC. */
+        /**
+         * Cláusulas iniciales. Las 7 primeras son el "ANEXO A" que el cliente usaba en su software anterior
+         * (garantía, material, modalidades de pago, entrega, precios y métodos de pago); luego siguen las
+         * condiciones de VINEURO que no contradicen ese anexo.
+         */
         fun porDefecto(): List<Clausula> = listOf(
-            Clausula("PRECIOS", "Precios expresados en {moneda}."),
-            Clausula(
-                "PAGOS",
-                "CONTADO: El {adelanto}% del precio de venta ({monto_adelanto}), importe que es pagado al contratar.\n" +
-                    "El {saldo}% del precio de venta ({monto_saldo}) será pagado a la culminación de la instalación del producto.\n" +
-                    "Se puede pagar en Soles al tipo de cambio bancario del día.",
-            ),
-            Clausula("TIEMPO", "De fabricación: 22 días hábiles. De instalación: 3 días."),
-            Clausula("LUGAR", "El lugar de transporte y entrega es dentro de Trujillo Metropolitano."),
+            Clausula("GARANTÍA", "Su compra está protegida por una garantía de 10 años por los perfiles de PVC y 1 año por los accesorios."),
+            Clausula("MATERIAL", "Perfil de PVC de procedencia turca, marca ASAS-VERATEC. (TURQUÍA)"),
+            Clausula("PAGO LIMA", "Modalidad de pago: Lima Metropolitana 50% de adelanto y 50% día de la instalación."),
+            Clausula("PAGO PROVINCIAS", "Modalidad de pago provincias (50% adelanto, 40% antes de viajar para instalación y 10% finalizando)."),
+            Clausula("ENTREGA", "La entrega de su pedido se hará 10-15 días hábiles a partir de la visita de remetrado. En caso de provincias se coordina."),
+            Clausula("PRECIOS", "Los precios son en {moneda}. Incluye IGV."),
+            Clausula("MÉTODOS DE PAGO", "Efectivo, transferencia, depósito y tarjeta de crédito (cobro extra del 5%)."),
             Clausula("INICIO", "A partir de la firma del contrato, efectuado el adelanto y realizado el remetrado."),
-            Clausula(
-                "GARANTÍA",
-                "Del servicio: 1 año.\nDel producto PVC: 10 años por Fábrica Principal (Turquía).\n" +
-                    "La garantía no aplica por mala manipulación y errores de uso.",
-            ),
             Clausula("RENDIMIENTO ACÚSTICO", "70% en apertura corredera, 80% en osciloparalela."),
             Clausula("VIDRIO", "Laminado 8 mm acústico."),
             Clausula("HERRAJES", "Herrajes y accesorios de alta gama y calidad europea, manija ROTO FRANK (Alemania)."),
-            Clausula(
-                "PERFIL",
-                "Fabricados con perfiles de PVC de primera calidad superior TURQUÍA.\n" +
-                    "Vida útil del perfil de PVC + de 50 años.\nMarca WINHOUSE - VERATEC (Turquía).",
-            ),
             Clausula(
                 "NO INCLUYE",
                 "El desmontaje de las ventanas existentes de fierro, madera antigua o aluminio (en caso exista).\n" +
@@ -68,11 +60,6 @@ data class TerminosCondiciones(
                 "COLOR",
                 "El color del perfil de PVC es {color}.\n" +
                     "Otros colores: Negro, Roble dorado, Silver y Antracita + el 20% aprox. con respecto al blanco.",
-            ),
-            Clausula(
-                "MEDIOS DE PAGO",
-                "Se aceptan pagos en efectivo, depósito, transferencia o con tarjetas.\n" +
-                    "Con tarjetas de crédito, con recargo de 6% sobre el monto.",
             ),
             Clausula(
                 "ADICIONALES",
@@ -118,7 +105,7 @@ data class CotizacionPedido(
             numero = o.optString("numero"),
             tipoCambio = o.optDouble("tipo_cambio", 0.0),
             fechaTipoCambio = o.optString("fecha_tipo_cambio"),
-            adelantoPct = o.optInt("adelanto_pct", 60).coerceIn(0, 100),
+            adelantoPct = o.optInt("adelanto_pct", 50).coerceIn(0, 100),
             vigenciaDias = o.optInt("vigencia_dias", 3),
             clausulas = o.optJSONArray("clausulas")?.let { ClausulasJson.fromJson(it) } ?: emptyList(),
             fechaActualizacion = o.optLong("fecha_actualizacion", 0L),

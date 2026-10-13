@@ -18,6 +18,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        com.example.vineuro_pvc.data.Ajustes.aplicarTema(this)
+        com.example.vineuro_pvc.data.Unidades.cargar(this)
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
@@ -34,6 +36,9 @@ class MainActivity : AppCompatActivity() {
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.nav_host_fragment_content_main) as NavHostFragment
         val navController = navHostFragment.navController
+
+        // Carga los colores de perfil de Precios para dibujar las ventanas en su color
+        com.example.vineuro_pvc.data.PreciosRepository(this).obtener()
 
         appBarConfiguration = AppBarConfiguration(navController.graph)
         setupActionBarWithNavController(navController, appBarConfiguration)

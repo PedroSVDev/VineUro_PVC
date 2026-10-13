@@ -85,10 +85,9 @@ class PdfPreviewFragment : Fragment() {
         var totalArea = 0.0
         var totalCount = 0
         for (item in items) {
-            val hM = item.altoTotalMm / 1000.0
-            val wM = item.anchoTotalMm / 1000.0
-            totalArea += (hM * wM)
-            totalCount += item.paneCols.size.coerceAtLeast(1)
+            val cant = item.opciones.cantidad.coerceAtLeast(1)
+            totalArea += (item.altoTotalMm / 1000.0) * (item.anchoTotalMm / 1000.0) * cant
+            totalCount += cant
         }
 
         val datos = datosDocumento()
@@ -105,6 +104,7 @@ class PdfPreviewFragment : Fragment() {
             totalOrderCount = totalCount,
             totalOrderAreaM2 = totalArea,
             requisitos = datos.requisitos,
+            conDetalles = OrderItemHolder.conDetalles,
         )
 
         binding.tvPageIndicator.text = "Página ${currentPageIndex + 1} de $totalPages"
@@ -121,10 +121,9 @@ class PdfPreviewFragment : Fragment() {
             var totalArea = 0.0
             var totalCount = 0
             for (item in items) {
-                val hM = item.altoTotalMm / 1000.0
-                val wM = item.anchoTotalMm / 1000.0
-                totalArea += (hM * wM)
-                totalCount += item.paneCols.size.coerceAtLeast(1)
+                val cant = item.opciones.cantidad.coerceAtLeast(1)
+                totalArea += (item.altoTotalMm / 1000.0) * (item.anchoTotalMm / 1000.0) * cant
+                totalCount += cant
             }
 
             val pdfDocument = PdfDocument()
@@ -164,6 +163,7 @@ class PdfPreviewFragment : Fragment() {
                     totalOrderCount = totalCount,
                     totalOrderAreaM2 = totalArea,
                     requisitos = datos.requisitos,
+                    conDetalles = OrderItemHolder.conDetalles,
                 )
                 canvas.save()
                 canvas.scale(escala, escala)
@@ -174,7 +174,7 @@ class PdfPreviewFragment : Fragment() {
             }
 
             val docsDir = requireContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
-            val pdfFile = File(docsDir, "Oferta_Proyectos_${System.currentTimeMillis()}.pdf")
+            val pdfFile = File(docsDir, "${if (OrderItemHolder.conDetalles) "Proyectos_Detalles" else "Proyectos"}_${System.currentTimeMillis()}.pdf")
 
             FileOutputStream(pdfFile).use { out ->
                 pdfDocument.writeTo(out)
@@ -183,19 +183,8 @@ class PdfPreviewFragment : Fragment() {
 
             Toast.makeText(requireContext(), "PDF guardado exitosamente: ${pdfFile.name}", Toast.LENGTH_LONG).show()
 
-            // Abrir o Compartir el PDF
-            val uri: Uri = FileProvider.getUriForFile(
-                requireContext(),
-                "${requireContext().packageName}.fileprovider",
-                pdfFile
-            )
-
-            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                type = "application/pdf"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            startActivity(Intent.createChooser(shareIntent, "Compartir PDF de Oferta"))
+            // Enviar o abrir el PDF (diálogo como el de la original)
+            com.example.vineuro_pvc.views.PdfAcciones.mostrarDialogo(requireContext(), pdfFile, "PDF de Oferta")
 
         } catch (e: Exception) {
             e.printStackTrace()
@@ -221,10 +210,10 @@ class PdfPreviewFragment : Fragment() {
         return DatosDocumento(
             requisitos = RequisitosRepository(ctx).obtener(),
             clienteNombre = cliente?.nombreCompleto ?: OrderItemHolder.clientName.ifBlank { "......" },
-            clienteDireccion = v(cliente?.direccion),
+            clienteDireccion = v(OrderItemHolder.direccionPedido.ifBlank { cliente?.direccion }),
             clienteTelefono = v(cliente?.telefono),
             clienteCorreo = v(cliente?.email),
-            codigo = OrderItemHolder.codigoPedido,
+            codigo = OrderItemHolder.idOfertaPedido.ifBlank { OrderItemHolder.codigoPedido },
         )
     }
 

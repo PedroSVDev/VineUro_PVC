@@ -65,6 +65,19 @@
         tools:text="Aleksander White : S1" />
 
     <CheckBox
+        android:id="@+id/cb_shadows"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:layout_marginEnd="4dp"
+        android:checked="true"
+        android:text="shadows"
+        android:textColor="#333333"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toStartOf="@id/cb_param_comprobar"
+        app:layout_constraintTop_toBottomOf="@id/tv_header_cliente_nombre" />
+
+    <CheckBox
         android:id="@+id/cb_param_comprobar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -185,6 +198,9 @@
             android:scrollbars="horizontal">
 
             <TableLayout
+                android:id="@+id/table_matriz"
+                android:clickable="true"
+                android:focusable="true"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="#E5E5E5"

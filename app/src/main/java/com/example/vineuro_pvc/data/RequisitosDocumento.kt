@@ -27,9 +27,9 @@ data class RequisitosDocumento(
     val firmaCargo: String = "Titular · Gerente",
     // Condiciones de la oferta
     val validezDias: String = "15",
-    val plazoEntrega: String = "15 días hábiles desde la confirmación del pedido",
-    val formaPago: String = "50% de adelanto y 50% contra entrega",
-    val garantia: String = "1 año en perfiles y accesorios",
+    val plazoEntrega: String = "10-15 días hábiles a partir de la visita de remetrado (en provincias se coordina)",
+    val formaPago: String = "Lima Metropolitana: 50% de adelanto y 50% el día de la instalación. Provincias: 50% de adelanto, 40% antes de viajar para la instalación y 10% al finalizar",
+    val garantia: String = "10 años en los perfiles de PVC y 1 año en los accesorios",
     val notas: String = "",
     val fechaActualizacion: Long = 0L,
 ) {

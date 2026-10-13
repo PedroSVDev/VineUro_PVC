@@ -77,7 +77,7 @@ class DialogTerminos(private val fragment: Fragment) {
             val datos = TerminosCondiciones(
                 clausulas = clausulas,
                 vigenciaDias = b.etVigenciaDias.text.toString().toIntOrNull()?.coerceAtLeast(1) ?: 3,
-                adelantoPct = b.etAdelantoPct.text.toString().toIntOrNull()?.coerceIn(0, 100) ?: 60,
+                adelantoPct = b.etAdelantoPct.text.toString().toIntOrNull()?.coerceIn(0, 100) ?: 50,
             )
             val appContext = context.applicationContext
             fragment.lifecycleScope.launch {

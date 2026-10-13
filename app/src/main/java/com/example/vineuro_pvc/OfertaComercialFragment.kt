@@ -23,6 +23,7 @@ import androidx.navigation.fragment.findNavController
 import com.example.vineuro_pvc.data.CalculadoraPrecios
 import com.example.vineuro_pvc.data.ClientRepository
 import com.example.vineuro_pvc.data.CotizacionPedido
+import com.example.vineuro_pvc.data.OfertaCongelada
 import com.example.vineuro_pvc.data.Pedido
 import com.example.vineuro_pvc.data.PedidoRepository
 import com.example.vineuro_pvc.data.Precios
@@ -71,6 +72,10 @@ class OfertaComercialFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         val ctx = requireContext()
         terminosRepo = TerminosRepository(ctx)
+        ctx.getSharedPreferences("pref_ui", android.content.Context.MODE_PRIVATE).let {
+            binding.cbPortadaOferta.isChecked = it.getBoolean("pdf_portada", false)
+            binding.cbContratoOferta.isChecked = it.getBoolean("pdf_contrato", false)
+        }
 
         val p = arguments?.getString("pedido_id")?.let { PedidoRepository(ctx).obtenerPedido(it) }
         if (p == null || p.items.isEmpty()) {
@@ -105,7 +110,7 @@ class OfertaComercialFragment : Fragment() {
                 ),
             )
             viewLifecycleOwner.lifecycleScope.launch {
-                val numero = terminosRepo.siguienteNumero()
+                val numero = pedido.idOferta.ifBlank { terminosRepo.siguienteNumero() }
                 if (_binding != null && binding.etNumeroCotizacion.text.isNullOrBlank()) binding.etNumeroCotizacion.setText(numero)
                 if (tcCache == null) actualizarTipoCambio(forzar = false)
             }
@@ -135,8 +140,40 @@ class OfertaComercialFragment : Fragment() {
                 Toast.makeText(ctx, if (error == null) "Cotización guardada ✅" else "Guardada en el teléfono. La nube respondió: $error", Toast.LENGTH_LONG).show()
             }
         }
-        binding.btnGenerarPdfOferta.setOnClickListener { generarPdf() }
+        binding.btnGenerarPdfOferta.setOnClickListener { confirmarYGenerarPdf() }
         actualizarTotales()
+        revisarPreciosCongelados()
+    }
+
+    /**
+     * Si esta oferta ya se emitió y los precios cambiaron desde entonces, pregunta con cuáles calcular:
+     * los de la oferta emitida (el monto que el cliente ya recibió) o los actuales.
+     */
+    private fun revisarPreciosCongelados() {
+        val ctx = requireContext()
+        val foto = OfertaCongelada.leer(ctx, pedido.id) ?: return
+        val conFoto = pedido.items.map { CalculadoraPrecios.calcular(it, foto.precios) }
+        val totalFoto = conFoto.sumOf { it.totalVenta }
+        val totalActual = resultados.sumOf { it.totalVenta }
+        if (kotlin.math.abs(totalFoto - totalActual) < 0.005) return
+        val fecha = SimpleDateFormat("dd/MM/yyyy", Locale.US).format(Date(foto.fecha))
+        val s = foto.simbolo.ifBlank { simbolo() }
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle("Los precios cambiaron")
+            .setMessage(
+                "La oferta N° ${foto.numero} se emitió el $fecha por ${VariablesOferta.dinero(s, totalFoto)}.\n" +
+                    "Con los precios de hoy el total sería ${VariablesOferta.dinero(simbolo(), totalActual)}.\n\n" +
+                    "¿Con cuáles precios quieres generar el documento?",
+            )
+            .setCancelable(false)
+            .setPositiveButton("LOS DE LA OFERTA EMITIDA") { _, _ ->
+                precios = foto.precios
+                resultados = conFoto
+                actualizarTotales()
+                Toast.makeText(ctx, "Usando los precios del $fecha", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("LOS DE HOY", null)
+            .show()
     }
 
     // ===================== DATOS EN PANTALLA =====================
@@ -257,6 +294,19 @@ class OfertaComercialFragment : Fragment() {
         )
     }
 
+    /** Antes de emitir la oferta al cliente, avisa si hay precios sin cargar (el total saldría subestimado). */
+    private fun confirmarYGenerarPdf() {
+        val avisos = pedido.items.flatMap { it -> CalculadoraPrecios.advertencias(it, precios).map { m -> "Ventana ${it.index}: $m" } }
+        if (avisos.isEmpty()) { generarPdf(); return }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Precios incompletos (${avisos.size})")
+            .setMessage("El total podría estar por debajo del real:\n\n" + avisos.take(12).joinToString("\n") { "• $it" } +
+                if (avisos.size > 12) "\n… y ${avisos.size - 12} más" else "")
+            .setPositiveButton("GENERAR DE TODOS MODOS") { _, _ -> generarPdf() }
+            .setNegativeButton("CANCELAR", null)
+            .show()
+    }
+
     private fun generarPdf() {
         val ctx = requireContext()
         val c = leerCotizacion()
@@ -265,6 +315,8 @@ class OfertaComercialFragment : Fragment() {
         if (c.clausulas.isEmpty()) { Toast.makeText(ctx, "Agrega al menos una condición", Toast.LENGTH_SHORT).show(); return }
 
         binding.btnGenerarPdfOferta.isEnabled = false
+        ctx.getSharedPreferences("pref_ui", android.content.Context.MODE_PRIVATE).edit()
+            .putBoolean("pdf_portada", binding.cbPortadaOferta.isChecked).putBoolean("pdf_contrato", binding.cbContratoOferta.isChecked).apply()
         viewLifecycleOwner.lifecycleScope.launch {
             guardar()
             val valores = valoresVariables(c)
@@ -273,7 +325,7 @@ class OfertaComercialFragment : Fragment() {
             val datos = OfertaComercialPdf.Datos(
                 requisitos = RequisitosRepository(ctx).obtener(),
                 clienteNombre = cliente?.nombreCompleto ?: pedido.clienteNombre,
-                clienteDireccion = cliente?.direccion ?: "",
+                clienteDireccion = pedido.direccion.ifBlank { cliente?.direccion ?: "" },
                 clienteTelefono = cliente?.telefono ?: "",
                 clienteCorreo = cliente?.email ?: "",
                 numero = c.numero,
@@ -285,11 +337,19 @@ class OfertaComercialFragment : Fragment() {
                 items = pedido.items,
                 resultados = resultados,
                 simbolo = simbolo(),
+                variante = if (arguments?.getInt("variante", 1) == 2) 2 else 1,
+                notaPedido = pedido.nota,
+                portada = binding.cbPortadaOferta.isChecked,
+                contrato = binding.cbContratoOferta.isChecked,
             )
             val archivo = runCatching { OfertaComercialPdf.crear(ctx, datos) }
             if (_binding == null) return@launch
             binding.btnGenerarPdfOferta.isEnabled = true
-            archivo.onSuccess { mostrarVistaPrevia(it) }
+            archivo.onSuccess {
+                // Se congelan los precios de esta emisión para poder reproducir el monto ofrecido
+                OfertaCongelada.guardar(ctx, pedido.id, c.numero, resultados.sumOf { r -> r.totalVenta }, simbolo(), precios)
+                mostrarVistaPrevia(it)
+            }
                 .onFailure { Toast.makeText(ctx, "Error al generar el PDF: ${it.message}", Toast.LENGTH_LONG).show() }
         }
     }
@@ -353,6 +413,7 @@ class OfertaComercialFragment : Fragment() {
                 layoutParams = LinearLayout.LayoutParams(0, (52 * dp).toInt(), 1f).apply { marginStart = (4 * dp).toInt(); marginEnd = (4 * dp).toInt() }
             }
             botones.addView(boton("Cerrar", "#6B7280") { dialog.dismiss() })
+            botones.addView(boton("Abrir PDF", "#2F86C9") { com.example.vineuro_pvc.views.PdfAcciones.abrir(ctx, archivo) })
             botones.addView(boton("Compartir PDF", "#E56372") { compartir(archivo) })
             dialog.setContentView(raiz)
             dialog.show()

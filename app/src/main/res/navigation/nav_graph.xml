@@ -29,6 +29,12 @@
     </fragment>
 
     <fragment
+        android:id="@+id/GuiaCorteFragment"
+        android:name="com.example.vineuro_pvc.GuiaCorteFragment"
+        android:label="Guía de corte y materiales"
+        tools:layout="@layout/fragment_guia_corte" />
+
+    <fragment
         android:id="@+id/PedidosFragment"
         android:name="com.example.vineuro_pvc.PedidosFragment"
         android:label="@string/title_pedidos"

@@ -12,6 +12,10 @@
     <color name="menu_comments">#E08472</color>
     <color name="menu_compartir">#1BBBB3</color>
     <color name="menu_app_patron">#61B813</color>
+    <color name="menu_penultimo_pedido">#5C6BC0</color>
+    <color name="menu_tile_bg">#FFFFFFFF</color>
+    <color name="menu_tile_stroke">#FFE5E7EB</color>
+    <color name="menu_tile_text">#FF1F2937</color>
 
     <!-- Precios Screen Table Header Colors -->
     <color name="header_moneda">#90EE90</color>

@@ -55,6 +55,15 @@ class DialogRequisitos(private val fragment: Fragment) {
             b.etPaginaWeb, b.etFacebook, b.etLema1, b.etLema2, b.etFirmaNombre, b.etFirmaCargo,
         ).forEach { it.doAfterTextChanged { actualizarVistaPrevia() } }
 
+        // Logo propio (como "sp_logo_path" del original)
+        mostrarLogo()
+        b.btnElegirLogo.setOnClickListener { selectorLogo.launch("image/*") }
+        b.btnQuitarLogo.setOnClickListener {
+            com.example.vineuro_pvc.data.LogoEmpresa.quitar(context)
+            mostrarLogo()
+        }
+
+        dialog.setOnDismissListener { runCatching { selectorLogo.unregister() } }
         b.btnCerrarRequisitos.setOnClickListener { dialog.dismiss() }
         b.btnCancelarRequisitos.setOnClickListener { dialog.dismiss() }
         b.btnGuardarRequisitos.setOnClickListener {
@@ -84,6 +93,24 @@ class DialogRequisitos(private val fragment: Fragment) {
         }
 
         dialog.show()
+    }
+
+    // Se registra sin LifecycleOwner porque este diálogo se crea con el fragmento ya en pantalla
+    private val selectorLogo by lazy {
+        fragment.requireActivity().activityResultRegistry.register(
+            "logo_empresa_${System.nanoTime()}",
+            androidx.activity.result.contract.ActivityResultContracts.GetContent(),
+        ) { uri ->
+            if (uri == null) return@register
+            if (com.example.vineuro_pvc.data.LogoEmpresa.guardar(context, uri)) mostrarLogo()
+            else Toast.makeText(context, "No se pudo leer la imagen", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun mostrarLogo() {
+        if (!::b.isInitialized) return
+        b.imgLogoEmpresa.setImageBitmap(com.example.vineuro_pvc.data.LogoEmpresa.cargar(context))
+        b.btnQuitarLogo.isEnabled = com.example.vineuro_pvc.data.LogoEmpresa.personalizado(context)
     }
 
     private fun cargar(r: RequisitosDocumento) {

@@ -8,4 +8,9 @@ object OrderItemHolder {
     var clienteId: String = ""
     /** Código del pedido (PED-...), se imprime como "ID de oferta". */
     var codigoPedido: String = ""
+    /** Dirección de la obra y ID de oferta del pedido (si están cargados; si no, se usan los del cliente / el código). */
+    var direccionPedido: String = ""
+    var idOfertaPedido: String = ""
+    /** true = "PDF con los detalles" (dibujo + lista de propiedades); false = "solo proyectos". */
+    var conDetalles: Boolean = false
 }

@@ -10,6 +10,7 @@
     <string name="menu_nuevo_orden">NUEVO ORDEN</string>
     <string name="menu_ultimo_pedido">ÚLTIMO PEDIDO</string>
     <string name="menu_pedidos">PEDIDOS</string>
+    <string name="menu_penultimo_pedido">PENÚLTIMO PEDIDO</string>
     <string name="menu_precios">PRECIOS</string>
     <string name="menu_comments">COMMENTS</string>
     <string name="menu_compartir_datos">COMPARTIR DATOS</string>
@@ -52,7 +53,7 @@
 
     <!-- Cálculo Pedido / Matriz -->
     <string name="title_calculo_pedido">Diseño y Cálculo de Ventanas</string>
-    <string name="header_parte">parte</string>
+    <string name="header_parte">parte ▸ detalle</string>
     <string name="header_zona">zona</string>
     <string name="header_marcos">marcos</string>
     <string name="header_impostas">impostas</string>
@@ -68,7 +69,7 @@
 
     <!-- Pedidos -->
     <string name="title_pedidos">Pedidos Guardados</string>
-    <string name="hint_buscar_pedido">Buscar por código o cliente</string>
+    <string name="hint_buscar_pedido">Buscar por cliente, dirección, ID de oferta o código</string>
     <string name="empty_pedidos_title">No hay pedidos guardados</string>
     <string name="empty_pedidos_desc">Los pedidos se guardan al salir de la pantalla de diseño o con \'Guardar Cambios en la Nube\'.</string>
     <string name="pedidos_sincronizando">Sincronizando con la nube…</string>

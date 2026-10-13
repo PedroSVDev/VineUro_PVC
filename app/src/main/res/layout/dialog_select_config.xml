@@ -76,14 +76,68 @@
                                 android:src="@drawable/ic_sandwich_panel"
                                 app:tint="#444444" />
 
-                            <CheckBox
-                                android:id="@+id/cb_sandwich_panels"
+                            <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="sandwich panels"
                                 android:textColor="#222222"
                                 android:textSize="13sp"
                                 android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <!-- Un sándwich por vidrio (1, 2 o 3 según la imposta interior), como la original -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <CheckBox android:textColor="#212121"
+                                android:id="@+id/cb_sandwich_panels"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" />
+
+                            <CheckBox android:textColor="#212121"
+                                android:id="@+id/cb_sandwich2"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:visibility="gone" />
+
+                            <CheckBox android:textColor="#212121"
+                                android:id="@+id/cb_sandwich3"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:visibility="gone" />
+
+                            <CheckBox android:textColor="#212121"
+                                android:id="@+id/cb_sandwich4"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:visibility="gone" />
+
+                            <CheckBox android:textColor="#212121"
+                                android:id="@+id/cb_sandwich5"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:visibility="gone" />
+
+                            <CheckBox android:textColor="#212121"
+                                android:id="@+id/cb_sandwich6"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:visibility="gone" />
+
+                            <CheckBox android:textColor="#212121"
+                                android:id="@+id/cb_sandwich7"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:visibility="gone" />
+
+                            <CheckBox android:textColor="#212121"
+                                android:id="@+id/cb_sandwich8"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:visibility="gone" />
                         </LinearLayout>
 
                         <!-- Option 2: Puerta -->
@@ -138,7 +192,64 @@
                                 android:textSize="13sp" />
                         </LinearLayout>
 
-                    </LinearLayout>
+                        <!-- Posición de las impostas interiores (mm; vacío = reparto igual) -->
+                        <LinearLayout
+                            android:id="@+id/ll_imp_offsets"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:orientation="vertical"
+                            android:visibility="gone">
+
+                            <TextView
+                                android:id="@+id/tv_imp_offsets"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="posición de la imposta (mm)"
+                                android:textColor="#222222"
+                                android:textSize="13sp" />
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal">
+
+                                <EditText android:textColor="#212121" android:textColorHint="#757575"
+                                    android:id="@+id/et_imp_off1"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:hint="1ª (mm)"
+                                    android:importantForAutofill="no"
+                                    android:inputType="number"
+                                    android:textSize="14sp" />
+
+                                <EditText android:textColor="#212121" android:textColorHint="#757575"
+                                    android:id="@+id/et_imp_off2"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:layout_weight="1"
+                                    android:hint="2ª (mm)"
+                                    android:importantForAutofill="no"
+                                    android:inputType="number"
+                                    android:textSize="14sp" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <!-- Option 4: Glazing bars (barras de vidrio) -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_glazing_bars"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:backgroundTint="#42A5F5"
+                            android:text="glazing bars"
+                            android:textColor="@color/white"
+                            android:textSize="13sp"
+                            app:cornerRadius="0dp" />
+
+                                        </LinearLayout>
 
                 </LinearLayout>
 

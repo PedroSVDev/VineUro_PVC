@@ -19,20 +19,33 @@
 
         <FrameLayout
             android:id="@+id/badge_container"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="@drawable/ic_launcher_background"
-            android:backgroundTint="@color/menu_pedidos"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="#F3F4F6"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
+
+            <!-- Icono de la primera ventana del pedido (como el explorador de pedidos del original) -->
+            <ImageView
+                android:id="@+id/img_miniatura"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="Vista previa de la primera ventana"
+                android:padding="3dp"
+                android:scaleType="fitCenter" />
 
             <TextView
                 android:id="@+id/tv_badge_ventanas"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
+                android:layout_gravity="bottom|end"
+                android:background="@color/menu_pedidos"
+                android:minWidth="18dp"
+                android:gravity="center"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
                 android:textColor="@color/white"
-                android:textSize="18sp"
+                android:textSize="12sp"
                 android:textStyle="bold"
                 tools:text="3" />
         </FrameLayout>

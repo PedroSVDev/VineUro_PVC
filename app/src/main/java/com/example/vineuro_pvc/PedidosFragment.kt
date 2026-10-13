@@ -25,6 +25,12 @@ class PedidosFragment : Fragment() {
 
     private lateinit var repo: PedidoRepository
     private lateinit var adapter: PedidosAdapter
+    private var orden = Orden.RECIENTES
+
+    /** Los cuatro órdenes del original: más antiguos, más recientes, por nombre y por cantidad de ventanas. */
+    private enum class Orden(val texto: String) {
+        RECIENTES("más recientes"), ANTIGUOS("más antiguos"), NOMBRE("nombre A-Z"), NOMBRE_DESC("nombre Z-A"), VENTANAS("más ventanas"), VENTANAS_ASC("menos ventanas")
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentPedidosBinding.inflate(inflater, container, false)
@@ -44,6 +50,18 @@ class PedidosFragment : Fragment() {
 
         binding.etSearchPedido.doOnTextChanged { text, _, _, _ -> mostrar(repo.buscarPedidos(text?.toString() ?: "")) }
 
+        binding.tvOrdenar.setOnClickListener {
+            val popup = androidx.appcompat.widget.PopupMenu(requireContext(), it)
+            Orden.values().forEachIndexed { i, o -> popup.menu.add(0, i, i, o.texto) }
+            popup.setOnMenuItemClickListener { m ->
+                orden = Orden.values()[m.itemId]
+                binding.tvOrdenar.text = "Ordenar: ${orden.texto} ▾"
+                mostrar(repo.buscarPedidos(binding.etSearchPedido.text?.toString() ?: ""))
+                true
+            }
+            popup.show()
+        }
+
         mostrar(repo.obtenerPedidos())
         sincronizar()
     }
@@ -62,7 +80,16 @@ class PedidosFragment : Fragment() {
         val vacio = lista.isEmpty()
         binding.rvPedidos.visibility = if (vacio) View.GONE else View.VISIBLE
         binding.layoutEmptyState.visibility = if (vacio) View.VISIBLE else View.GONE
-        adapter.submitList(lista)
+        adapter.submitList(ordenar(lista))
+    }
+
+    private fun ordenar(l: List<Pedido>): List<Pedido> = when (orden) {
+        Orden.RECIENTES -> l.sortedByDescending { it.fechaActualizacion }
+        Orden.ANTIGUOS -> l.sortedBy { it.fechaActualizacion }
+        Orden.NOMBRE -> l.sortedBy { it.clienteNombre.lowercase() }
+        Orden.NOMBRE_DESC -> l.sortedByDescending { it.clienteNombre.lowercase() }
+        Orden.VENTANAS -> l.sortedByDescending { it.totalVentanas }
+        Orden.VENTANAS_ASC -> l.sortedBy { it.totalVentanas }
     }
 
     private fun abrirPedido(p: Pedido) {

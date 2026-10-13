@@ -309,6 +309,19 @@
                 android:layout_height="wrap_content"
                 android:text="Volver a copiar desde la plantilla"
                 android:textColor="#9CA3AF" />
+
+            <CheckBox android:textColor="#212121"
+                android:id="@+id/cbPortadaOferta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Incluir página de portada (cover page)" />
+
+            <CheckBox android:textColor="#212121"
+                android:id="@+id/cbContratoOferta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Incluir página de contrato al final" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 

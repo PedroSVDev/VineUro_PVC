@@ -71,12 +71,13 @@ class PdfPageSheetView @JvmOverloads constructor(
     private var totalOrderCount: Int = 0
     private var totalOrderAreaM2: Double = 0.0
     private var requisitos: com.example.vineuro_pvc.data.RequisitosDocumento = com.example.vineuro_pvc.data.RequisitosDocumento()
+    private var conDetalles: Boolean = false
 
     private val windowPreviewHelper = WindowPreviewView(context)
 
     /** Logo de la empresa (se carga una sola vez). */
     private val logoBitmap: android.graphics.Bitmap by lazy {
-        android.graphics.BitmapFactory.decodeResource(context.resources, com.example.vineuro_pvc.R.drawable.logo_vineuro)
+        com.example.vineuro_pvc.data.LogoEmpresa.cargar(context)
     }
     private val logoPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
@@ -92,7 +93,9 @@ class PdfPageSheetView @JvmOverloads constructor(
         totalOrderCount: Int = 0,
         totalOrderAreaM2: Double = 0.0,
         requisitos: com.example.vineuro_pvc.data.RequisitosDocumento = com.example.vineuro_pvc.data.RequisitosDocumento(),
+        conDetalles: Boolean = false,
     ) {
+        this.conDetalles = conDetalles
         this.requisitos = requisitos
         this.pageIndex = pageIndex
         this.totalPages = totalPages
@@ -124,6 +127,32 @@ class PdfPageSheetView @JvmOverloads constructor(
             }
             canvas.drawText("$sub...", x, y, paint)
         }
+    }
+
+    /** Lista de propiedades de la ventana (categoría sombreada + valores), recortada a su recuadro. */
+    private fun dibujarPropiedades(canvas: Canvas, item: OrderItem, caja: RectF) {
+        val cats = com.example.vineuro_pvc.data.TextoPropiedades.categorias(item)
+        if (cats.isEmpty()) return
+        val tam = dpToPx(5.6f)
+        val pCat = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.BLACK; textSize = tam; isFakeBoldText = true }
+        val pTxt = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.BLACK; textSize = tam }
+        val fondo = Paint().apply { color = Color.parseColor("#DCDCDD"); style = Paint.Style.FILL }
+        val alto = tam * 1.25f
+        canvas.save()
+        canvas.clipRect(caja)
+        var y = caja.top
+        for (c in cats) {
+            if (y + alto > caja.bottom) break
+            canvas.drawRect(caja.left, y, caja.right, y + alto, fondo)
+            drawTruncatedText(canvas, c.titulo, caja.left + dpToPx(2f), y + tam, pCat, caja.width() - dpToPx(4f))
+            y += alto
+            for (l in c.lineas) {
+                if (y + alto > caja.bottom) break
+                drawTruncatedText(canvas, "$l", caja.left + dpToPx(4f), y + tam, pTxt, caja.width() - dpToPx(6f))
+                y += alto
+            }
+        }
+        canvas.restore()
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -241,11 +270,13 @@ class PdfPageSheetView @JvmOverloads constructor(
                     textBoldPaint.textSize = dpToPx(11f)
                     canvas.drawText("${item.index}", numX, numY, textBoldPaint)
 
-                    // Cantidad de piezas (si es > 1 p. ej. cantidad 4pc)
-                    val countText = "cantidad ${item.paneCols.size.coerceAtLeast(1)}pc"
-                    val countX = cellRight - dpToPx(8f) - textSecondaryPaint.measureText(countText)
+                    // Cantidad de piezas del pedido (solo si es 2 o más, como en el original)
                     textSecondaryPaint.textSize = dpToPx(8f)
-                    canvas.drawText(countText, countX, numY, textSecondaryPaint)
+                    if (item.opciones.cantidad >= 2) {
+                        val countText = "cantidad ${item.opciones.cantidad}pc"
+                        val countX = cellRight - dpToPx(8f) - textSecondaryPaint.measureText(countText)
+                        canvas.drawText(countText, countX, numY, textSecondaryPaint)
+                    }
 
                     // Dibujo técnico de la ventana
                     val drawMarginH = dpToPx(3f)
@@ -256,8 +287,20 @@ class PdfPageSheetView @JvmOverloads constructor(
                         cellRight - drawMarginH,
                         cellBottom - dpToPx(2f)
                     )
+                    // Con detalles: el dibujo ocupa la parte alta y debajo va la lista de propiedades
+                    if (conDetalles) drawBounds.bottom = cellTop + (cellBottom - cellTop) * 0.52f
 
                     windowPreviewHelper.drawItem(canvas, drawBounds, item, showTechnicalDetails = true, isCompactMode = true)
+
+                    if (conDetalles) {
+                        val top = drawBounds.bottom + dpToPx(2f)
+                        dibujarPropiedades(canvas, item, RectF(cellLeft + dpToPx(3f), top, cellRight - dpToPx(3f), cellBottom - dpToPx(2f)))
+                    }
+                    // Nota de la ventana (el original la muestra si no está vacía)
+                    if (item.opciones.nota.isNotBlank()) {
+                        textSecondaryPaint.textSize = dpToPx(6.5f)
+                        drawTruncatedText(canvas, item.opciones.nota, cellLeft + dpToPx(22f), numY, textSecondaryPaint, cellW - dpToPx(90f))
+                    }
                 }
             }
         }
