@@ -88,7 +88,7 @@ class FirstFragment : Fragment() {
             val precios = com.example.vineuro_pvc.data.PreciosRepository(ctx).obtener()
             val simbolo = precios.moneda.firstOrNull()?.getOrNull(2)?.takeIf { it.isNotBlank() } ?: "S/"
             val total = com.example.vineuro_pvc.data.CalculadoraPrecios.totalPedido(ultimo.items, precios)
-            String.format(java.util.Locale.US, "%s · %s · %s %.2f", ultimo.codigo, ultimo.clienteNombre, simbolo, total)
+            String.format(java.util.Locale.US, "%s · %s · %s %.2f", ultimo.codigoVisible, ultimo.clienteNombre, simbolo, total)
         } else {
             "Aún no hay pedidos guardados"
         }

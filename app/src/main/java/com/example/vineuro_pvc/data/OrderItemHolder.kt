@@ -8,4 +8,8 @@ object OrderItemHolder {
     var clienteId: String = ""
     /** Código del pedido (PED-...), se imprime como "ID de oferta". */
     var codigoPedido: String = ""
+    /** true = "PDF con detalles" (2 por hoja, a color); false = "PDF solo proyectos" (6 por hoja). */
+    var conDetalles: Boolean = false
+    /** true = vista previa de la "Guía de corte". */
+    var guiaCorte: Boolean = false
 }

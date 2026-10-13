@@ -9,8 +9,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.TextView
+import android.widget.LinearLayout
+import android.widget.CheckBox
+import android.view.Gravity
 import android.widget.Toast
-import androidx.appcompat.widget.PopupMenu
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -67,7 +70,23 @@ class CalculoPedidoFragment : Fragment() {
         AperturaMechanism("6", "Practicable Der.", R.drawable.ic_apertura_right_turn),
         AperturaMechanism("7", "Oscilobat. Izq.", R.drawable.ic_apertura_tilt_turn_left),
         AperturaMechanism("8", "Oscilobat. Der.", R.drawable.ic_apertura_tilt_turn_right),
+        AperturaMechanism("9", "Proyectante", 0),
+        AperturaMechanism("10", "Guillotina Sub.", 0),
+        AperturaMechanism("11", "Guillotina Baj.", 0),
     )
+
+    /** Aperturas combinadas (una por parte) según la división [filas]x[columnas] del paño. */
+    private fun combosApertura(filas: Int, columnas: Int): List<AperturaMechanism> {
+        val partes = when ("${filas}x$columnas") {
+            "1x2" -> listOf("1,3", "1,5", "5,3", "4,6", "7,6", "4,8", "7,5", "5,8", "4,5", "5,6", "2,2", "7,8")
+            "1x3" -> listOf("5,3,3", "1,1,5", "5,3,5", "5,1,5", "1,3,3", "1,1,3", "1,5,3", "4,5,6", "7,5,8", "5,7,5", "5,8,5", "2,5,2")
+            "1x4" -> listOf("1,1,3,3", "5,1,3,5", "1,3,1,3", "4,6,4,6", "5,4,6,5", "1,5,5,3", "7,6,7,6", "7,5,5,8")
+            "2x1" -> listOf("5,10", "11,10", "11,5", "2,5", "5,2", "9,5", "2,8", "2,7", "2,4", "2,6")
+            "3x1" -> listOf("2,5,5", "5,5,2", "2,5,2", "5,10,5", "2,7,5", "2,8,5", "2,4,5", "2,6,5")
+            else -> emptyList()
+        }
+        return partes.map { AperturaMechanism("c:$it", "Combinada", 0, partes = it) }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -122,17 +141,29 @@ class CalculoPedidoFragment : Fragment() {
         binding.wpvMainCanvas.onPaneClickListener = { paneIndex, _, _ ->
             mostrarDialogoSeleccionConfigParaPano(paneIndex)
         }
+        // Toque sobre una sola parte de una apertura combinada: se cambia solo esa parte
+        binding.wpvMainCanvas.onPaneParteClickListener = { paneIndex, parte ->
+            mostrarDialogoParteDePano(paneIndex, parte)
+        }
 
         // 3. Botón azul inferior (+): Abre el CATÁLOGO GENERAL
         binding.btnAddItem.setOnClickListener {
             mostrarDialogoSeleccionCatalogGeneral()
         }
 
-        // "param. comprobar": muestra sobre el dibujo las opciones elegidas en el compás
-        val prefsUi = requireContext().getSharedPreferences("pref_ui", android.content.Context.MODE_PRIVATE)
-        binding.cbParamComprobar.isChecked = prefsUi.getBoolean("param_comprobar", true)
-        binding.cbParamComprobar.setOnCheckedChangeListener { _, marcado ->
-            prefsUi.edit().putBoolean("param_comprobar", marcado).apply()
+        // "Sombras" y "Parámetros": siempre desactivados en un diseño nuevo.
+        // Si se abre un pedido guardado, se recupera lo que tenía ese pedido.
+        val idGuardado = pedidoActual?.id
+        binding.cbParamComprobar.isChecked = idGuardado != null && prefsUi().getBoolean("param_$idGuardado", false)
+        binding.cbShadows.isChecked = idGuardado != null && prefsUi().getBoolean("sombras_$idGuardado", false)
+        binding.wpvMainCanvas.showShadows = binding.cbShadows.isChecked
+        binding.cbShadows.setOnCheckedChangeListener { _, marcado ->
+            binding.wpvMainCanvas.showShadows = marcado
+            guardarPreferenciasVista()
+            renderizarPestanasInferiores()
+        }
+        binding.cbParamComprobar.setOnCheckedChangeListener { _, _ ->
+            guardarPreferenciasVista()
             actualizarPanelParametros()
         }
 
@@ -166,11 +197,15 @@ class CalculoPedidoFragment : Fragment() {
         }
 
         // 6. Botón de menú superior derecho con opciones
-        binding.btnHeaderMenu.setOnClickListener { viewAnchor ->
-            mostrarMenuOpcionesSuperiores(viewAnchor)
-        }
 
         val pedidoCargado = pedidoActual
+        if (pedidoCargado == null) {
+            // Pedido nuevo: se trae el último N° de la nube para no repetir números entre teléfonos
+            val appCtx = requireContext().applicationContext
+            viewLifecycleOwner.lifecycleScope.launch {
+                runCatching { com.example.vineuro_pvc.data.Correlativos(appCtx).sincronizar(com.example.vineuro_pvc.data.Correlativos.COTIZACION) }
+            }
+        }
         if (pedidoCargado != null) {
             cargarPedidoGuardado(pedidoCargado)
         } else if (usarSugerenciaIa) {
@@ -211,7 +246,7 @@ class CalculoPedidoFragment : Fragment() {
             binding.wpvMainCanvas.resetCanvas()
             limpiarTablaMatriz()
         }
-        Toast.makeText(requireContext(), "Pedido ${pedido.codigo} cargado (${pedido.totalVentanas} ventanas)", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), "Pedido ${pedido.codigoVisible} cargado (${pedido.totalVentanas} ventanas)", Toast.LENGTH_SHORT).show()
     }
 
     /** Construye el Pedido con el estado actual de la pantalla (mantiene id y código si ya existía). */
@@ -221,6 +256,8 @@ class CalculoPedidoFragment : Fragment() {
         val base = pedidoActual
         return if (base == null) {
             Pedido(
+                // N° correlativo (0405, 0406…): el mismo que la cotización de la oferta comercial
+                codigo = com.example.vineuro_pvc.data.TerminosRepository(requireContext()).siguienteNumeroLocal(requireContext()),
                 clienteId = clienteIdActual,
                 clienteNombre = nombreClienteActual,
                 items = itemsOrden.toList(),
@@ -241,6 +278,19 @@ class CalculoPedidoFragment : Fragment() {
      * Guarda el pedido en el teléfono y en Supabase.
      * @param mostrarResultado true cuando lo pide el usuario desde el menú (muestra Toast con el resultado real).
      */
+    private fun prefsUi() =
+        requireContext().getSharedPreferences("pref_ui", android.content.Context.MODE_PRIVATE)
+
+    /** Recuerda "Sombras" y "Parámetros" para este pedido (solo si ya tiene id). */
+    private fun guardarPreferenciasVista() {
+        val b = _binding ?: return
+        val id = pedidoActual?.id ?: return
+        prefsUi().edit()
+            .putBoolean("sombras_$id", b.cbShadows.isChecked)
+            .putBoolean("param_$id", b.cbParamComprobar.isChecked)
+            .apply()
+    }
+
     private fun guardarPedido(mostrarResultado: Boolean) {
         if (itemsOrden.isEmpty()) {
             if (mostrarResultado) {
@@ -250,12 +300,13 @@ class CalculoPedidoFragment : Fragment() {
         }
         val pedido = construirPedido()
         pedidoActual = pedido
+        guardarPreferenciasVista()
         val appContext = requireContext().applicationContext
         lifecycleScope.launch {
             val error = pedidoRepository.guardarPedido(pedido)
             if (!mostrarResultado) return@launch
             val msg = if (error == null) {
-                "Pedido ${pedido.codigo} guardado en la nube ✅"
+                "Pedido ${pedido.codigoVisible} guardado en la nube ✅"
             } else {
                 "Guardado en el teléfono. La nube respondió: $error"
             }
@@ -277,8 +328,14 @@ class CalculoPedidoFragment : Fragment() {
 
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
-        // 1. CREAR PDF SÓLO PROYECTOS
+        // 1. CREAR PDF SÓLO PROYECTOS (hasta 6 diseños por hoja)
         dialogBinding.btnPdfSoloProyectos.setOnClickListener {
+            if (itemsOrden.isEmpty()) {
+                Toast.makeText(requireContext(), "Agrega al menos una ventana al pedido", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            OrderItemHolder.conDetalles = false
+            OrderItemHolder.guiaCorte = false
             guardarEstadoItemActivo()
             OrderItemHolder.items = itemsOrden.toList()
             OrderItemHolder.clientName = nombreClienteActual
@@ -290,10 +347,34 @@ class CalculoPedidoFragment : Fragment() {
             findNavController().navigate(R.id.action_CalculoPedidoFragment_to_PdfPreviewFragment)
         }
 
-        // 2. CREAR PDF CON LOS DETALLES
+        // 2. CREAR PDF CON LOS DETALLES (2 por hoja, dibujo a color, tabla completa de precios)
         dialogBinding.btnPdfConDetalles.setOnClickListener {
-            Toast.makeText(requireContext(), "Generador de PDF con Detalles en desarrollo", Toast.LENGTH_SHORT).show()
+            if (itemsOrden.isEmpty()) {
+                Toast.makeText(requireContext(), "Agrega al menos una ventana al pedido", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            OrderItemHolder.conDetalles = true
+            OrderItemHolder.guiaCorte = false
+            guardarEstadoItemActivo()
+            OrderItemHolder.items = itemsOrden.toList()
+            OrderItemHolder.clientName = nombreClienteActual
+            OrderItemHolder.clienteId = clienteIdActual
+            guardarPedido(mostrarResultado = false)
+            OrderItemHolder.codigoPedido = pedidoActual?.codigo ?: ""
             dialog.dismiss()
+            findNavController().navigate(R.id.action_CalculoPedidoFragment_to_PdfPreviewFragment)
+        }
+
+        // 2b. GUÍA DE CORTE (para el vendedor / taller): piezas, barras y vidrios
+        dialogBinding.btnPdfGuiaCorte.setOnClickListener {
+            dialog.dismiss()
+            if (itemsOrden.isEmpty()) {
+                Toast.makeText(requireContext(), "Agrega al menos una ventana al pedido", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            guardarEstadoItemActivo()
+            guardarPedido(mostrarResultado = false)
+            generarGuiaCorte()
         }
 
         // 3. PDF OFERTA COMERCIAL
@@ -335,53 +416,6 @@ class CalculoPedidoFragment : Fragment() {
         }
 
         dialog.show()
-    }
-
-    private fun mostrarMenuOpcionesSuperiores(anchorView: View) {
-        val popup = PopupMenu(requireContext(), anchorView)
-        popup.menu.apply {
-            add(0, 1, 0, "📄 Ver Detalles del Cliente / Pedido")
-            add(0, 2, 1, "💾 Guardar Cambios en la Nube")
-            add(0, 3, 2, "📐 Exportar / Compartir Cotización")
-            add(0, 4, 3, "🔄 Reiniciar Orden Completa")
-            add(0, 5, 4, "⚙️ Configuración de Parámetros")
-        }
-
-        popup.setOnMenuItemClickListener { menuItem ->
-            when (menuItem.itemId) {
-                1 -> {
-                    Toast.makeText(requireContext(), "Detalles del cliente: ${binding.tvHeaderClienteNombre.text}", Toast.LENGTH_SHORT).show()
-                    true
-                }
-                2 -> {
-                    guardarPedido(mostrarResultado = true)
-                    true
-                }
-                3 -> {
-                    Toast.makeText(requireContext(), "Generando cotización técnica...", Toast.LENGTH_SHORT).show()
-                    true
-                }
-                4 -> {
-                    MaterialAlertDialogBuilder(requireContext())
-                        .setTitle("¿Reiniciar Orden?")
-                        .setMessage("¿Desea eliminar todas las ventanas y vaciar este pedido?")
-                        .setIcon(android.R.drawable.ic_menu_delete)
-                        .setPositiveButton("VACIAR ORDEN") { dialog, _ ->
-                            inicializarOrdenVacia()
-                            dialog.dismiss()
-                        }
-                        .setNegativeButton("CANCELAR") { dialog, _ -> dialog.dismiss() }
-                        .show()
-                    true
-                }
-                5 -> {
-                    Toast.makeText(requireContext(), "Ajuste de parámetros comprobados activo", Toast.LENGTH_SHORT).show()
-                    true
-                }
-                else -> false
-            }
-        }
-        popup.show()
     }
 
     private fun inicializarConfiguraciones() {
@@ -452,8 +486,17 @@ class CalculoPedidoFragment : Fragment() {
 
             tabBinding.wpvTabThumb.paneCols.clear()
             tabBinding.wpvTabThumb.paneCols.putAll(item.paneCols)
+            tabBinding.wpvTabThumb.paneRows.clear()
+            tabBinding.wpvTabThumb.paneRows.putAll(item.paneRows)
+            tabBinding.wpvTabThumb.paneSandwichMask.clear()
+            tabBinding.wpvTabThumb.paneSandwichMask.putAll(item.paneSandwichMask)
+            tabBinding.wpvTabThumb.paneBarras.clear()
+            tabBinding.wpvTabThumb.paneBarras.putAll(item.paneBarras)
+            tabBinding.wpvTabThumb.panePartMechanisms.clear()
+            tabBinding.wpvTabThumb.panePartMechanisms.putAll(item.panePartMechanisms)
 
-            tabBinding.wpvTabThumb.setConfig(item.config, isTechnicalMode = false)
+            tabBinding.wpvTabThumb.setConfig(item.config, isTechnicalMode = false, resetMechanisms = false)
+            tabBinding.wpvTabThumb.showShadows = binding.cbShadows.isChecked
 
             val isActive = (i == activeItemIndex)
             if (isActive) {
@@ -498,6 +541,14 @@ class CalculoPedidoFragment : Fragment() {
 
             item.paneCols.clear()
             item.paneCols.putAll(binding.wpvMainCanvas.paneCols)
+            item.paneRows.clear()
+            item.paneRows.putAll(binding.wpvMainCanvas.paneRows)
+            item.paneSandwichMask.clear()
+            item.paneSandwichMask.putAll(binding.wpvMainCanvas.paneSandwichMask)
+            item.paneBarras.clear()
+            item.paneBarras.putAll(binding.wpvMainCanvas.paneBarras)
+            item.panePartMechanisms.clear()
+            item.panePartMechanisms.putAll(binding.wpvMainCanvas.panePartMechanisms)
         }
     }
 
@@ -523,6 +574,14 @@ class CalculoPedidoFragment : Fragment() {
 
         binding.wpvMainCanvas.paneCols.clear()
         binding.wpvMainCanvas.paneCols.putAll(item.paneCols)
+        binding.wpvMainCanvas.paneRows.clear()
+        binding.wpvMainCanvas.paneRows.putAll(item.paneRows)
+        binding.wpvMainCanvas.paneSandwichMask.clear()
+        binding.wpvMainCanvas.paneSandwichMask.putAll(item.paneSandwichMask)
+        binding.wpvMainCanvas.paneBarras.clear()
+        binding.wpvMainCanvas.paneBarras.putAll(item.paneBarras)
+        binding.wpvMainCanvas.panePartMechanisms.clear()
+        binding.wpvMainCanvas.panePartMechanisms.putAll(item.panePartMechanisms)
 
         binding.wpvMainCanvas.updateDimensions(item.altoTotalMm, item.anchoTotalMm)
 
@@ -585,70 +644,365 @@ class CalculoPedidoFragment : Fragment() {
         val dialog = BottomSheetDialog(requireContext())
         val dialogBinding = DialogSelectConfigBinding.inflate(layoutInflater)
         dialog.setContentView(dialogBinding.root)
+        val lienzo = binding.wpvMainCanvas
+        val ctx = requireContext()
+        val dp = resources.displayMetrics.density
 
-        var tempSubCols = binding.wpvMainCanvas.paneCols[targetPaneIndex] ?: 1
-        var tempMecanismoSeleccionado: AperturaMechanism = listaMecanismosApertura.find { it.id == "5" } ?: listaMecanismosApertura.first()
+        // ---- Estado actual del paño ----
+        var filas = lienzo.paneRows[targetPaneIndex] ?: 1
+        var columnas = lienzo.paneCols[targetPaneIndex] ?: 1
+        val barrasGuardadas = lienzo.paneBarras[targetPaneIndex] ?: 0
+        var usarBarras = barrasGuardadas > 0
+        var barrasFilas = if (barrasGuardadas > 0) barrasGuardadas / 100 else 3
+        var barrasColumnas = if (barrasGuardadas > 0) barrasGuardadas % 100 else 3
+        var mascara = lienzo.paneSandwichMask[targetPaneIndex]
+            ?: if (lienzo.paneSandwich[targetPaneIndex] == true) (1 shl (filas * columnas)) - 1 else 0
+        fun opcionesApertura(): List<AperturaMechanism> =
+            combosApertura(filas, columnas) + listaMecanismosApertura
+        val partesGuardadas = lienzo.panePartMechanisms[targetPaneIndex]
+        var tempMecanismoSeleccionado: AperturaMechanism =
+            opcionesApertura().find { it.partes != null && it.partes == partesGuardadas }
+                ?: listaMecanismosApertura.find { it.id == (lienzo.paneMechanisms[targetPaneIndex] ?: "5") }
+                ?: listaMecanismosApertura.first()
+        var aperturaAdapter: AperturaAdapter? = null
+        var impostasAdapter: WindowConfigAdapter? = null
+        var vistaBarras: com.example.vineuro_pvc.views.WindowPreviewView? = null
 
-        dialogBinding.cbMosqNet.isChecked = binding.wpvMainCanvas.paneMosqNet[targetPaneIndex] == true
-        dialogBinding.cbPuerta.isChecked = binding.wpvMainCanvas.panePuerta[targetPaneIndex] == true
-        dialogBinding.cbSandwichPanels.isChecked = binding.wpvMainCanvas.paneSandwich[targetPaneIndex] == true
-
-        val impostaConfigs = listOf(
-            WindowConfig("imp_1", "1 Paño Fijo", "Estándar", WindowConfig.LayoutType.GRID, cols = 1, rows = 1),
-            WindowConfig("imp_2", "2 Paneles V.", "Estándar", WindowConfig.LayoutType.GRID, cols = 2, rows = 1),
-            WindowConfig("imp_3", "3 Paneles V.", "Estándar", WindowConfig.LayoutType.GRID, cols = 3, rows = 1),
-            WindowConfig("imp_4", "4 Paneles V.", "Estándar", WindowConfig.LayoutType.GRID, cols = 4, rows = 1),
-        )
-
-        val layoutAdapter = WindowConfigAdapter(
-            impostaConfigs,
-            selectedId = "imp_$tempSubCols",
-        ) { config ->
-            tempSubCols = when (config.id) {
-                "imp_2" -> 2
-                "imp_3" -> 3
-                "imp_4" -> 4
-                else -> 1
+        /** Vuelve a dibujar las vistas previas con las partes sándwich (blanco) y los barrotillos actuales. */
+        fun refrescarPreviews() {
+            vistaBarras?.let {
+                it.paneBarras[0] = barrasFilas * 100 + barrasColumnas
+                it.invalidate()
+            }
+            impostasAdapter?.refrescar()
+            aperturaAdapter?.let {
+                it.mascaraSandwich = mascara
+                it.barras = if (usarBarras) barrasFilas * 100 + barrasColumnas else 0
+                it.refrescar()
             }
         }
-        dialogBinding.rvImpostasLayouts.adapter = layoutAdapter
 
-        val aperturaAdapter = AperturaAdapter(
-            listaMecanismosApertura,
-            selectedId = binding.wpvMainCanvas.paneMechanisms[targetPaneIndex] ?: "5",
+        dialogBinding.cbMosqNet.isChecked = lienzo.paneMosqNet[targetPaneIndex] == true
+        dialogBinding.cbPuerta.isChecked = lienzo.panePuerta[targetPaneIndex] == true
+
+        // ---- Casillas de panel sándwich: una por cada parte del paño ----
+        // La casilla original queda como título "sandwich panels"
+        dialogBinding.cbSandwichPanels.buttonDrawable = null
+        dialogBinding.cbSandwichPanels.isClickable = false
+        val contenedorSandwich = dialogBinding.contenedorPartesSandwich
+
+        fun refrescarSandwich() {
+            contenedorSandwich.removeAllViews()
+            val partes = filas * columnas
+            mascara = mascara and ((1 shl partes) - 1)
+            for (p in 0 until partes) {
+                contenedorSandwich.addView(CheckBox(ctx).apply {
+                    isChecked = ((mascara shr p) and 1) == 1
+                    text = nombreParte(p, filas, columnas)
+                    textSize = 11f
+                    buttonTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#1E3A5F"))
+                    contentDescription = "Parte ${p + 1}"
+                    setOnCheckedChangeListener { _, marcado ->
+                        mascara = if (marcado) mascara or (1 shl p) else mascara and (1 shl p).inv()
+                        refrescarPreviews()
+                    }
+                })
+            }
+        }
+
+        // ---- Barrotillos: arriba en la columna "apertura", antes de los diseños.
+        //      Con + / − se arma la cuadrícula propia y las vistas previas cambian al instante.
+        val panelBarras = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.parseColor("#E6E6E6"))
+            setPadding((10 * dp).toInt(), (4 * dp).toInt(), (10 * dp).toInt(), (4 * dp).toInt())
+        }
+        fun stepper(etiqueta: String, valor: () -> Int, cambiar: (Int) -> Unit): LinearLayout {
+            val tv = TextView(ctx).apply { textSize = 15f; setTypeface(typeface, android.graphics.Typeface.BOLD); setPadding((10 * dp).toInt(), 0, (10 * dp).toInt(), 0) }
+            fun pintar() { tv.text = valor().toString() }
+            fun boton(t: String, delta: Int) = TextView(ctx).apply {
+                text = t; textSize = 18f; gravity = Gravity.CENTER
+                setTextColor(Color.WHITE)
+                background = android.graphics.drawable.GradientDrawable().apply { shape = android.graphics.drawable.GradientDrawable.OVAL; setColor(Color.parseColor("#4A90E2")) }
+                layoutParams = LinearLayout.LayoutParams((30 * dp).toInt(), (30 * dp).toInt())
+                setOnClickListener { cambiar((valor() + delta).coerceIn(1, 8)); pintar() }
+            }
+            pintar()
+            return LinearLayout(ctx).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                setPadding(0, (2 * dp).toInt(), 0, (2 * dp).toInt())
+                addView(TextView(ctx).apply { text = etiqueta; textSize = 13f; layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) })
+                addView(boton("−", -1)); addView(tv); addView(boton("+", +1))
+            }
+        }
+        panelBarras.addView(TextView(ctx).apply { text = "Barrotillos · arma tu diseño"; textSize = 13f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(Color.parseColor("#1E3A5F")) })
+        // Dibujo en blanco: muestra la cuadrícula que se va armando con + / −
+        vistaBarras = com.example.vineuro_pvc.views.WindowPreviewView(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams((84 * dp).toInt(), (84 * dp).toInt()).apply { marginEnd = (8 * dp).toInt() }
+            mostrarSimboloApertura = false
+            setConfig(WindowConfig("prev_barras", "", "Estándar", WindowConfig.LayoutType.GRID, cols = 1, rows = 1), isTechnicalMode = false)
+        }
+        panelBarras.addView(LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(vistaBarras)
+            addView(LinearLayout(ctx).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                addView(stepper("Filas", { barrasFilas }) { barrasFilas = it; refrescarPreviews() })
+                addView(stepper("Columnas", { barrasColumnas }) { barrasColumnas = it; refrescarPreviews() })
+            })
+        })
+        val columnaApertura = dialogBinding.rvAperturaMechanisms.parent as ViewGroup
+        columnaApertura.addView(panelBarras, columnaApertura.indexOfChild(dialogBinding.rvAperturaMechanisms))
+
+        fun refrescarPaneles() {
+            panelBarras.visibility = if (usarBarras) View.VISIBLE else View.GONE
+            refrescarSandwich()
+            refrescarPreviews()
+        }
+
+        // ---- Opciones de impostas (id: imp_[filas]x[columnas]) ----
+        val opcionesImpostas = listOf(
+            WindowConfig("imp_g", "Barrotillos", "Estándar", WindowConfig.LayoutType.GRID, cols = 3, rows = 3),
+            WindowConfig("imp_1x1", "1 paño", "Estándar", WindowConfig.LayoutType.GRID, cols = 1, rows = 1),
+            WindowConfig("imp_1x2", "2 vertical", "Estándar", WindowConfig.LayoutType.GRID, cols = 2, rows = 1),
+            WindowConfig("imp_2x1", "2 horizontal", "Estándar", WindowConfig.LayoutType.GRID, cols = 1, rows = 2),
+            WindowConfig("imp_1x3", "3 vertical", "Estándar", WindowConfig.LayoutType.GRID, cols = 3, rows = 1),
+            WindowConfig("imp_3x1", "3 horizontal", "Estándar", WindowConfig.LayoutType.GRID, cols = 1, rows = 3),
+            WindowConfig("imp_1x4", "4 vertical", "Estándar", WindowConfig.LayoutType.GRID, cols = 4, rows = 1),
+        )
+        val idInicial = if (usarBarras) "imp_g" else "imp_${filas}x$columnas"
+        impostasAdapter = WindowConfigAdapter(opcionesImpostas, selectedId = idInicial, tamPreviewDp = 50) { config ->
+            if (config.id == "imp_g") {
+                usarBarras = true; filas = 1; columnas = 1
+            } else {
+                usarBarras = false; filas = config.rows; columnas = config.cols
+            }
+            refrescarPaneles()
+            // Las aperturas combinadas dependen de la división elegida
+            if (tempMecanismoSeleccionado.partes != null) {
+                tempMecanismoSeleccionado = listaMecanismosApertura.first { it.id == "5" }
+            }
+            aperturaAdapter?.actualizar(opcionesApertura(), filas, columnas, tempMecanismoSeleccionado.id)
+            dialogBinding.rvAperturaMechanisms.scrollToPosition(0)
+        }
+        // En la imposta elegida, cada parte marcada como sándwich se pinta en blanco (las demás quedan celestes)
+        impostasAdapter?.personalizarPreview = { config, vista, seleccionada ->
+            if (seleccionada && config.id != "imp_g") {
+                for (i in 0 until config.rows * config.cols) {
+                    vista.paneSandwichMask[i] = (mascara shr i) and 1
+                }
+            }
+        }
+        dialogBinding.rvImpostasLayouts.adapter = impostasAdapter
+
+        aperturaAdapter = AperturaAdapter(
+            opcionesApertura(),
+            selectedId = tempMecanismoSeleccionado.id,
+            filas = filas,
+            columnas = columnas,
         ) { mecanismo ->
             tempMecanismoSeleccionado = mecanismo
         }
         dialogBinding.rvAperturaMechanisms.adapter = aperturaAdapter
+        refrescarPaneles()
+
+        ajustarDialogoPano(dialogBinding, dialog)
 
         dialogBinding.btnDialogNo.setOnClickListener { dialog.dismiss() }
 
         dialogBinding.btnDialogSi.setOnClickListener {
-            val isSandwich = dialogBinding.cbSandwichPanels.isChecked
             val isPuerta = dialogBinding.cbPuerta.isChecked
             val isMosqNet = dialogBinding.cbMosqNet.isChecked
 
-            binding.wpvMainCanvas.setPaneMechanism(targetPaneIndex, tempMecanismoSeleccionado.id)
-            binding.wpvMainCanvas.setPaneOptions(targetPaneIndex, isSandwich, isPuerta, isMosqNet, tempSubCols)
+            val partesElegidas = tempMecanismoSeleccionado.partes
+            if (partesElegidas != null) {
+                lienzo.setPanePartMechanisms(targetPaneIndex, partesElegidas)
+            } else {
+                lienzo.setPaneMechanism(targetPaneIndex, tempMecanismoSeleccionado.id)
+            }
+            lienzo.setPaneDivision(
+                targetPaneIndex, filas, columnas, mascara,
+                if (usarBarras) barrasFilas else 0, if (usarBarras) barrasColumnas else 0,
+                isPuerta, isMosqNet,
+            )
 
             guardarEstadoItemActivo()
             renderizarPestanasInferiores()
             refrescarTablaMatriz()
-
             dialog.dismiss()
 
             val msg = buildString {
                 append("Paño ${targetPaneIndex + 1}: ")
                 append(tempMecanismoSeleccionado.nombre)
-                if (tempSubCols > 1) append(" | $tempSubCols Paneles")
-                if (isPuerta) append(" | Modo Puerta")
-                if (isMosqNet) append(" | Mosq.Net")
-                if (isSandwich) append(" | Panel Sándwich")
+                tempMecanismoSeleccionado.partes?.let { append(" ($it)") }
+                if (filas * columnas > 1) append(" | ${filas}x$columnas partes")
+                if (usarBarras) append(" | Barrotillos ${barrasFilas}x$barrasColumnas")
+                if (mascara != 0) append(" | Sándwich: ${Integer.bitCount(mascara)}")
+                if (isPuerta) append(" | Puerta")
+                if (isMosqNet) append(" | Mosquitero")
             }
-            Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+            Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show()
         }
 
         dialog.show()
+    }
+
+    /**
+     * Ajuste a la pantalla (teléfono / tablet), manteniendo las dos columnas:
+     * izquierda (45%) impostas, derecha (55%) apertura. Las columnas de cada cuadrícula
+     * dependen del ancho, y el alto usa buena parte de la pantalla para no tener que bajar.
+     */
+    private fun ajustarDialogoPano(db: DialogSelectConfigBinding, dialog: BottomSheetDialog) {
+        val ctx = requireContext()
+        val metricas = resources.displayMetrics
+        val dp = metricas.density
+        val anchoDp = metricas.widthPixels / dp
+        val altoPx = metricas.heightPixels
+        db.rvImpostasLayouts.layoutManager =
+            androidx.recyclerview.widget.GridLayoutManager(ctx, (anchoDp * 0.45f / 78f).toInt().coerceIn(2, 5))
+        db.rvAperturaMechanisms.layoutManager =
+            androidx.recyclerview.widget.GridLayoutManager(ctx, (anchoDp * 0.55f / 96f).toInt().coerceIn(3, 8))
+        db.cuerpoDosColumnas.layoutParams = db.cuerpoDosColumnas.layoutParams.apply {
+            height = (altoPx * 0.62f).toInt().coerceIn((340 * dp).toInt(), (640 * dp).toInt())
+        }
+        dialog.behavior.skipCollapsed = true
+        dialog.behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
+    }
+
+    /** Nombre de una parte según la división: Izquierda / Centro / Derecha, Arriba / Abajo, etc. */
+    private fun nombreParte(parte: Int, filas: Int, columnas: Int): String {
+        fun nombre(i: Int, n: Int, primero: String, ultimo: String) = when {
+            i == 0 -> primero
+            i == n - 1 -> ultimo
+            n == 3 -> "Centro"
+            else -> "Centro ${i}"
+        }
+        return when {
+            filas * columnas <= 1 -> "Paño"
+            filas == 1 -> nombre(parte, columnas, "Izq.", "Der.")
+            columnas == 1 -> nombre(parte, filas, "Arriba", "Abajo")
+            else -> "${parte + 1}"
+        }
+    }
+
+    /**
+     * Diálogo para UNA parte de un paño con apertura combinada (p. ej. el fijo "+" del medio
+     * en "3 vertical"). Solo cambia la apertura y el panel sándwich de esa parte;
+     * las otras partes se quedan como están.
+     */
+    private fun mostrarDialogoParteDePano(paneIndex: Int, parte: Int) {
+        val lienzo = binding.wpvMainCanvas
+        val partes = lienzo.panePartMechanisms[paneIndex]?.split(",")?.map { it.trim() }
+        if (partes == null || parte !in partes.indices) {
+            mostrarDialogoSeleccionConfigParaPano(paneIndex)
+            return
+        }
+        val ctx = requireContext()
+        val dp = resources.displayMetrics.density
+        val filas = lienzo.paneRows[paneIndex] ?: 1
+        val columnas = lienzo.paneCols[paneIndex] ?: 1
+        val mascaraPano = lienzo.paneSandwichMask[paneIndex] ?: 0
+        var sandwichParte = ((mascaraPano shr parte) and 1) == 1
+        var elegido = listaMecanismosApertura.find { it.id == partes[parte] }
+            ?: listaMecanismosApertura.first { it.id == "5" }
+
+        val dialog = BottomSheetDialog(ctx)
+        val db = DialogSelectConfigBinding.inflate(layoutInflater)
+        dialog.setContentView(db.root)
+
+        // ---- Columna izquierda: qué parte se edita + dibujo del paño completo ----
+        db.rvImpostasLayouts.visibility = View.GONE
+        val columnaIzq = db.rvImpostasLayouts.parent as ViewGroup
+        val vistaPano = com.example.vineuro_pvc.views.WindowPreviewView(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (140 * dp).toInt())
+            setConfig(WindowConfig("prev_parte", "", "Estándar", WindowConfig.LayoutType.GRID, cols = 1, rows = 1), isTechnicalMode = false)
+            paneRows[0] = filas
+            paneCols[0] = columnas
+        }
+        fun refrescarVistaPano() {
+            val nuevas = partes.toMutableList().also { it[parte] = elegido.id }
+            vistaPano.setPanePartMechanisms(0, nuevas.joinToString(","))
+            val bit = 1 shl parte
+            vistaPano.paneSandwichMask[0] = if (sandwichParte) mascaraPano or bit else mascaraPano and bit.inv()
+            vistaPano.invalidate()
+        }
+        columnaIzq.addView(TextView(ctx).apply {
+            text = "Parte ${parte + 1} de ${partes.size} · ${nombreParte(parte, filas, columnas)}"
+            textSize = 14f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(Color.parseColor("#1E3A5F"))
+            setPadding((4 * dp).toInt(), (4 * dp).toInt(), 0, (4 * dp).toInt())
+        }, 0)
+        columnaIzq.addView(vistaPano, 1)
+        columnaIzq.addView(com.google.android.material.button.MaterialButton(ctx).apply {
+            text = "Cambiar todo el paño"
+            textSize = 12f
+            isAllCaps = false
+            setOnClickListener {
+                dialog.dismiss()
+                mostrarDialogoSeleccionConfigParaPano(paneIndex)
+            }
+        }, 2)
+
+        // Puerta y mosquitero son del paño completo: aquí solo se muestra el sándwich de esta parte
+        (db.cbPuerta.parent.parent.parent as? View)?.visibility = View.GONE
+        (db.cbMosqNet.parent.parent.parent as? View)?.visibility = View.GONE
+        db.contenedorPartesSandwich.visibility = View.GONE
+        db.cbSandwichPanels.text = "panel sándwich en esta parte"
+        db.cbSandwichPanels.isChecked = sandwichParte
+
+        // ---- Columna derecha: aperturas simples para esta parte ----
+        val adapter = AperturaAdapter(listaMecanismosApertura, selectedId = elegido.id) { mec ->
+            elegido = mec
+            refrescarVistaPano()
+        }
+        adapter.mascaraSandwich = if (sandwichParte) 1 else 0
+        db.rvAperturaMechanisms.adapter = adapter
+        db.cbSandwichPanels.setOnCheckedChangeListener { _, marcado ->
+            sandwichParte = marcado
+            adapter.mascaraSandwich = if (marcado) 1 else 0
+            adapter.refrescar()
+            refrescarVistaPano()
+        }
+        refrescarVistaPano()
+        ajustarDialogoPano(db, dialog)
+
+        db.btnDialogNo.setOnClickListener { dialog.dismiss() }
+        db.btnDialogSi.setOnClickListener {
+            lienzo.setParteMechanism(paneIndex, parte, elegido.id)
+            val bit = 1 shl parte
+            val nuevaMascara = if (sandwichParte) mascaraPano or bit else mascaraPano and bit.inv()
+            lienzo.paneSandwichMask[paneIndex] = nuevaMascara
+            lienzo.paneSandwich[paneIndex] = nuevaMascara != 0
+            lienzo.invalidate()
+
+            guardarEstadoItemActivo()
+            renderizarPestanasInferiores()
+            refrescarTablaMatriz()
+            dialog.dismiss()
+            Toast.makeText(
+                ctx,
+                "Paño ${paneIndex + 1}, ${nombreParte(parte, filas, columnas)}: ${elegido.nombre}" +
+                    if (sandwichParte) " | Sándwich" else "",
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+        dialog.show()
+    }
+
+    /** Abre la vista previa de la "Guía de corte" (desde ahí se guarda y comparte). */
+    private fun generarGuiaCorte() {
+        OrderItemHolder.items = itemsOrden.toList()
+        OrderItemHolder.clientName = nombreClienteActual
+        OrderItemHolder.clienteId = clienteIdActual
+        OrderItemHolder.codigoPedido = pedidoActual?.codigo ?: ""
+        OrderItemHolder.conDetalles = false
+        OrderItemHolder.guiaCorte = true
+        findNavController().navigate(R.id.action_CalculoPedidoFragment_to_PdfPreviewFragment)
     }
 
     private fun eliminarElementoActivo() {

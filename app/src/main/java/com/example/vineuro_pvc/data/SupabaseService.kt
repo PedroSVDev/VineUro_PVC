@@ -16,7 +16,12 @@ class SupabaseService {
     // Se identifican por "id" (clave primaria). Ya no se usa DNI.
 
     suspend fun upsertCliente(cliente: Cliente): Boolean = withContext(Dispatchers.IO) {
-        try {
+        // Primero con el código corto; si la columna "codigo" aún no existe en Supabase, se envía sin ella
+        enviarCliente(cliente, conCodigo = true) || enviarCliente(cliente, conCodigo = false)
+    }
+
+    private fun enviarCliente(cliente: Cliente, conCodigo: Boolean): Boolean {
+        return try {
             val connection = abrirConexion("clientes?on_conflict=id", "POST").apply {
                 setRequestProperty("Content-Type", "application/json")
                 setRequestProperty("Prefer", "resolution=merge-duplicates,return=minimal")
@@ -31,6 +36,7 @@ class SupabaseService {
                 put("direccion", cliente.direccion)
                 put("nota", cliente.nota)
                 put("fecha_registro", cliente.fechaRegistro)
+                if (conCodigo) put("codigo", cliente.codigo)
             }
             connection.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
             val ok = connection.responseCode in 200..299
@@ -64,6 +70,7 @@ class SupabaseService {
                     direccion = textoONada(obj, "direccion"),
                     nota = textoONada(obj, "nota"),
                     fechaRegistro = obj.optLong("fecha_registro", System.currentTimeMillis()),
+                    codigo = textoONada(obj, "codigo"),
                 )
             }
         } catch (e: Exception) {

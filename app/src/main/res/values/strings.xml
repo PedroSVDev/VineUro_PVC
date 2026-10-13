@@ -68,7 +68,7 @@
 
     <!-- Pedidos -->
     <string name="title_pedidos">Pedidos Guardados</string>
-    <string name="hint_buscar_pedido">Buscar por código o cliente</string>
+    <string name="hint_buscar_pedido">Buscar por cliente, N° de pedido o código CLI</string>
     <string name="empty_pedidos_title">No hay pedidos guardados</string>
     <string name="empty_pedidos_desc">Los pedidos se guardan al salir de la pantalla de diseño o con \'Guardar Cambios en la Nube\'.</string>
     <string name="pedidos_sincronizando">Sincronizando con la nube…</string>

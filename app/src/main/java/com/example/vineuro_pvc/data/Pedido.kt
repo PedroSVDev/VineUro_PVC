@@ -23,6 +23,10 @@ data class Pedido(
 ) {
     val totalVentanas: Int get() = items.size
 
+    /** Cómo se muestra el número: "N° 0405" (o el código antiguo PED-… tal cual). */
+    val codigoVisible: String
+        get() = if (codigo.isNotEmpty() && codigo.all { it.isDigit() }) "N° $codigo" else codigo
+
     val areaTotalM2: Double
         get() = items.sumOf { (it.altoTotalMm / 1000.0) * (it.anchoTotalMm / 1000.0) }
 
@@ -108,6 +112,10 @@ object PedidoJson {
         put("pane_puerta", mapToJson(item.panePuerta))
         put("pane_sandwich", mapToJson(item.paneSandwich))
         put("pane_cols", mapToJson(item.paneCols))
+        put("pane_rows", mapToJson(item.paneRows))
+        put("pane_sandwich_mask", mapToJson(item.paneSandwichMask))
+        put("pane_barras", mapToJson(item.paneBarras))
+        put("pane_part_mechanisms", mapToJson(item.panePartMechanisms))
         put("color_bg_hex", item.colorBgHex)
         put("opciones", item.opciones.toJson())
     }
@@ -131,6 +139,10 @@ object PedidoJson {
         o.optJSONObject("pane_puerta")?.let { m -> m.keys().forEach { k -> item.panePuerta[k.toInt()] = m.getBoolean(k) } }
         o.optJSONObject("pane_sandwich")?.let { m -> m.keys().forEach { k -> item.paneSandwich[k.toInt()] = m.getBoolean(k) } }
         o.optJSONObject("pane_cols")?.let { m -> m.keys().forEach { k -> item.paneCols[k.toInt()] = m.getInt(k) } }
+        o.optJSONObject("pane_rows")?.let { m -> m.keys().forEach { k -> item.paneRows[k.toInt()] = m.getInt(k) } }
+        o.optJSONObject("pane_sandwich_mask")?.let { m -> m.keys().forEach { k -> item.paneSandwichMask[k.toInt()] = m.getInt(k) } }
+        o.optJSONObject("pane_barras")?.let { m -> m.keys().forEach { k -> item.paneBarras[k.toInt()] = m.getInt(k) } }
+        o.optJSONObject("pane_part_mechanisms")?.let { m -> m.keys().forEach { k -> item.panePartMechanisms[k.toInt()] = m.getString(k) } }
         return item
     }
 

@@ -21,6 +21,7 @@ class ClientRepository(context: Context) {
     private val db = VineuroDatabase.get(context)
     private val supabaseService = SupabaseService()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val correlativos = Correlativos(context)
 
     // ---------- Local (SQLite) ----------
 
@@ -32,8 +33,8 @@ class ClientRepository(context: Context) {
         if (query.isBlank()) return obtenerClientes()
         val q = "%${query.trim()}%"
         return consultar(
-            "(nombres || ' ' || apellidos) LIKE ? OR telefono LIKE ? OR email LIKE ? OR direccion LIKE ?",
-            arrayOf(q, q, q, q),
+            "(nombres || ' ' || apellidos) LIKE ? OR telefono LIKE ? OR email LIKE ? OR direccion LIKE ? OR codigo LIKE ?",
+            arrayOf(q, q, q, q, q),
         )
     }
 
@@ -54,6 +55,7 @@ class ClientRepository(context: Context) {
         direccion = c.getString(c.getColumnIndexOrThrow("direccion")),
         nota = c.getString(c.getColumnIndexOrThrow("nota")),
         fechaRegistro = c.getLong(c.getColumnIndexOrThrow("fecha_registro")),
+        codigo = c.getColumnIndex("codigo").takeIf { it >= 0 }?.let { c.getString(it) } ?: "",
     )
 
     private fun valores(cliente: Cliente) = ContentValues().apply {
@@ -65,6 +67,7 @@ class ClientRepository(context: Context) {
         put("direccion", cliente.direccion)
         put("nota", cliente.nota)
         put("fecha_registro", cliente.fechaRegistro)
+        put("codigo", cliente.codigo)
     }
 
     private fun guardarLocal(cliente: Cliente): Boolean =
@@ -74,8 +77,12 @@ class ClientRepository(context: Context) {
 
     // ---------- Local + Nube ----------
 
-    /** Guarda (o actualiza) en SQLite y lo sube a Supabase en segundo plano. */
-    fun guardarCliente(cliente: Cliente): Boolean {
+    /**
+     * Guarda (o actualiza) en SQLite y lo sube a Supabase en segundo plano.
+     * Si el cliente aún no tiene código corto, conserva el que ya tenía o recibe el siguiente (CLI-0001…).
+     */
+    fun guardarCliente(clienteEntrada: Cliente): Boolean {
+        val cliente = conCodigo(clienteEntrada)
         val localOk = guardarLocal(cliente)
         db.marcarPendiente(VineuroDatabase.PEND_CLIENTE_SUBIR, cliente.id, true)
         scope.launch {
@@ -84,6 +91,28 @@ class ClientRepository(context: Context) {
             }
         }
         return localOk
+    }
+
+    // ---------- Código corto (CLI-0001…) ----------
+
+    private fun numeroDeCodigo(codigo: String): Int = codigo.substringAfter("CLI-", "").toIntOrNull() ?: 0
+
+    private fun conCodigo(cliente: Cliente): Cliente {
+        if (cliente.codigo.isNotBlank()) return cliente
+        obtenerClientePorId(cliente.id)?.codigo?.takeIf { it.isNotBlank() }?.let { return cliente.copy(codigo = it) }
+        return cliente.copy(codigo = siguienteCodigo())
+    }
+
+    private fun siguienteCodigo(): String {
+        // El contador nunca queda por debajo del mayor código que ya existe
+        val mayor = obtenerClientes().maxOfOrNull { numeroDeCodigo(it.codigo) } ?: 0
+        correlativos.registrar(Correlativos.CLIENTES, mayor)
+        return Correlativos.codigoCliente(correlativos.siguiente(Correlativos.CLIENTES))
+    }
+
+    /** Da código a los clientes que todavía no tienen (los más antiguos reciben los números más bajos). */
+    private fun asignarCodigosFaltantes() {
+        obtenerClientes().filter { it.codigo.isBlank() }.sortedBy { it.fechaRegistro }.forEach { guardarCliente(it) }
     }
 
     /** Elimina de SQLite al instante y de Supabase (si no hay Internet, se reintenta al sincronizar). */
@@ -114,6 +143,9 @@ class ClientRepository(context: Context) {
         val eliminados = db.pendientes(VineuroDatabase.PEND_CLIENTE_ELIMINAR)
         val pendientes = db.pendientes(VineuroDatabase.PEND_CLIENTE_SUBIR)
 
+        // Códigos cortos ya asignados en el teléfono (por si la nube aún no tiene la columna "codigo")
+        val codigosLocales = obtenerClientes().associate { it.id to it.codigo }
+
         val w = db.writableDatabase
         w.beginTransaction()
         try {
@@ -125,12 +157,15 @@ class ClientRepository(context: Context) {
                 w.delete(VineuroDatabase.T_CLIENTES, "id NOT IN ($marcas)", pendientes.toTypedArray())
             }
             nube.filter { it.id !in eliminados && it.id !in pendientes }.forEach {
-                w.insertWithOnConflict(VineuroDatabase.T_CLIENTES, null, valores(it), SQLiteDatabase.CONFLICT_REPLACE)
+                val conCodigo = if (it.codigo.isBlank()) it.copy(codigo = codigosLocales[it.id].orEmpty()) else it
+                w.insertWithOnConflict(VineuroDatabase.T_CLIENTES, null, valores(conCodigo), SQLiteDatabase.CONFLICT_REPLACE)
             }
             w.setTransactionSuccessful()
         } finally {
             w.endTransaction()
         }
+        runCatching { correlativos.sincronizar(Correlativos.CLIENTES) }
+        asignarCodigosFaltantes()
         return obtenerClientes()
     }
 }

@@ -7,7 +7,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
-import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import android.os.Environment
 import android.text.Layout
@@ -61,6 +60,7 @@ object OfertaComercialPdf {
     private val GRIS_TEXTO = Color.parseColor("#4B5563")
 
     fun crear(context: Context, d: Datos): File {
+        PdfFuentes.cargar(context)
         val pdf = PdfDocument()
         var numPagina = 0
 
@@ -76,53 +76,37 @@ object OfertaComercialPdf {
 
         // ===================== 1) PROYECTOS: cliente + dibujos (misma hoja que "PDF solo proyectos") =====================
         run {
-            val porHoja = 6
-            val hojas = ((d.items.size + porHoja - 1) / porHoja).coerceAtLeast(1)
-            // La hoja dibuja en dp: se dibuja a ~400 dp de ancho y se reduce a la hoja A4
-            val anchoV = (400f * context.resources.displayMetrics.density).toInt()
-            val altoV = (anchoV * H / W).toInt()
-            val esc = W / anchoV
-            val area = d.items.sumOf { (it.altoTotalMm / 1000.0) * (it.anchoTotalMm / 1000.0) }
-            val cantidad = d.items.sumOf { it.paneCols.size.coerceAtLeast(1) }
-            fun v(t: String) = t.ifBlank { "......" }
-            for (h in 0 until hojas) {
+            val dp = ProyectosPdf.Datos(
+                requisitos = d.requisitos,
+                clienteNombre = d.clienteNombre,
+                clienteDireccion = d.clienteDireccion,
+                clienteTelefono = d.clienteTelefono,
+                clienteCorreo = d.clienteCorreo,
+                codigo = d.numero,
+                items = d.items,
+                resultados = d.resultados,
+            )
+            val modo = ProyectosPdf.Modo.SOLO_PROYECTOS
+            val hojas = ProyectosPdf.paginar(dp, modo)
+            hojas.indices.forEach { n ->
                 val pg = nuevaPagina()
-                val desde = h * porHoja
-                val sub = if (desde < d.items.size) d.items.subList(desde, minOf(desde + porHoja, d.items.size)) else emptyList()
-                val hoja = PdfPageSheetView(context)
-                hoja.layout(0, 0, anchoV, altoV)
-                hoja.bindData(
-                    pageIndex = h,
-                    totalPages = hojas,
-                    pageItems = sub,
-                    clientName = d.clienteNombre,
-                    clientAddress = v(d.clienteDireccion),
-                    clientPhone = v(d.clienteTelefono),
-                    clientEmail = v(d.clienteCorreo),
-                    offerId = d.numero,
-                    totalOrderCount = cantidad,
-                    totalOrderAreaM2 = area,
-                    requisitos = d.requisitos,
-                )
-                pg.canvas.save()
-                pg.canvas.scale(esc, esc)
-                hoja.draw(pg.canvas)
-                pg.canvas.restore()
+                ProyectosPdf.dibujarPagina(context, pg.canvas, dp, modo, hojas, n)
                 pdf.finishPage(pg)
             }
         }
 
         // ===================== 2) ANEXO A: DETALLE DE VENTANAS =====================
+        // Cada ventana en una tarjeta grande: dibujo con cotas, medidas, paños, materiales y precio.
         if (d.items.isNotEmpty()) {
-            val dibujante = WindowPreviewView(context)
-            // px virtuales por punto: el dibujo usa medidas en dp; se dibuja más grande y se reduce para que las cotas no tapen la ventana
-            val k = context.resources.displayMetrics.density * 400f / W * 1.8f
+            val dibujante = WindowPreviewView(context).apply { modoImpresion = true }
+            // el dibujo trabaja en dp: se dibuja más grande y se reduce para que las cotas se lean bien
+            val k = context.resources.displayMetrics.density * 1.6f
             val anchoTabla = W - 2 * M
-            // columnas: N°, diseño, descripción, cant., p. unit, subtotal
-            val cols = floatArrayOf(22f, 118f, 0f, 34f, 70f, 76f)
-            cols[2] = anchoTabla - cols.sum()
-            val xs = FloatArray(cols.size + 1).also { a -> a[0] = M; for (i in cols.indices) a[i + 1] = a[i] + cols[i] }
-            val altoFila = 104f
+            val anchoDibujo = 220f
+            val xTexto = M + anchoDibujo + 12f
+            val anchoTexto = W - M - xTexto - 8f
+            val xs = floatArrayOf(M, M, M, M, W - M - 230f, W - M - 120f, W - M)
+            val GRIS_CLARO = Color.parseColor("#F3F4F6")
 
             fun inicioAnexo(): Float {
                 page = nuevaPagina(); c = page.canvas
@@ -131,49 +115,54 @@ object OfertaComercialPdf {
                 texto(c, "ANEXO A  —  DETALLE DE LAS VENTANAS", M + 8f, yy + 15f, 11f, Color.WHITE, negrita = true)
                 yy += 30f
                 texto(c, "Cotización N° ${d.numero}   ·   Cliente: ${d.clienteNombre}   ·   ${d.fecha}", M, yy + 8f, 8.5f, GRIS_TEXTO, maxAncho = anchoTabla)
-                yy += 16f
-                // encabezado de la tabla
-                rect(c, M, yy, W - M, yy + 18f, CELESTE)
-                val titulos = listOf("N°", "Diseño", "Descripción", "Cant.", "P. unit. (${d.simbolo})", "Subtotal (${d.simbolo})")
-                titulos.forEachIndexed { i, t -> texto(c, t, xs[i] + 4f, yy + 12.5f, 7.6f, AZUL, negrita = true, maxAncho = cols[i] - 6f) }
-                borde(c, M, yy, W - M, yy + 18f)
                 return yy + 18f
             }
 
             y = inicioAnexo()
             d.items.forEachIndexed { idx, item ->
-                if (y + altoFila > H - 70f) {
+                val r = d.resultados[idx]
+                val lay = parrafo(detalleAnexo(item, r), anchoTexto, 7.8f, Color.BLACK)
+                val altoCuerpo = maxOf(210f, lay.height + 14f)
+                val altoTarjeta = 22f + altoCuerpo + 22f
+                if (y + altoTarjeta > H - 50f) {
                     pie(c, numPagina); pdf.finishPage(page)
                     y = inicioAnexo()
                 }
-                val r = d.resultados[idx]
-                // bordes de la fila
-                for (i in 0..cols.size) c.drawLine(xs[i], y, xs[i], y + altoFila, lineaPaint)
-                c.drawLine(M, y + altoFila, W - M, y + altoFila, lineaPaint)
 
-                texto(c, "${item.index}", xs[0] + 6f, y + 14f, 10f, Color.BLACK, negrita = true)
+                // Barra de título
+                rect(c, M, y, W - M, y + 22f, CELESTE)
+                borde(c, M, y, W - M, y + 22f)
+                texto(c, "VENTANA ${item.index}", M + 8f, y + 15f, 10f, AZUL, negrita = true)
+                val nombre = item.opciones.nota.ifBlank { item.config.nombre }
+                texto(c, nombre, M + 84f, y + 15f, 9f, Color.BLACK, maxAncho = W - 2 * M - 210f)
+                textoDerecha(c, "${item.anchoTotalMm} × ${item.altoTotalMm} mm", W - M - 8f, y + 15f, 9f, negrita = true)
 
-                // dibujo de la ventana (se dibuja en "px virtuales" y se reduce a puntos)
-                val caja = RectF(xs[1] + 4f, y + 4f, xs[2] - 4f, y + altoFila - 4f)
+                // Cuerpo: dibujo (izquierda) + detalle (derecha)
+                val top = y + 22f
+                borde(c, M, top, W - M, top + altoCuerpo)
+                c.drawLine(xTexto - 6f, top, xTexto - 6f, top + altoCuerpo, lineaPaint)
+                val altoDibujo = minOf(altoCuerpo, 240f) - 8f
                 c.save()
                 c.scale(1f / k, 1f / k)
                 runCatching {
-                    dibujante.drawItem(c, RectF(caja.left * k, caja.top * k, caja.right * k, caja.bottom * k), item, true, true)
+                    dibujante.drawItem(
+                        c,
+                        RectF((M + 4f) * k, (top + 4f) * k, (M + anchoDibujo) * k, (top + 4f + altoDibujo) * k),
+                        item, true, false,
+                    )
                 }
                 c.restore()
+                c.save(); c.translate(xTexto, top + 7f); lay.draw(c); c.restore()
 
-                // descripción
-                val desc = descripcion(item)
-                val lay = parrafo(desc, cols[2] - 8f, 7.6f, Color.BLACK)
-                c.save(); c.translate(xs[2] + 4f, y + 5f)
-                c.clipRect(0f, 0f, cols[2] - 8f, altoFila - 8f)
-                lay.draw(c); c.restore()
-
+                // Franja de precio
+                val ps = top + altoCuerpo
+                rect(c, M, ps, W - M, ps + 22f, GRIS_CLARO)
+                borde(c, M, ps, W - M, ps + 22f)
                 val unit = if (r.cantidad > 0) r.totalVenta / r.cantidad else r.totalVenta
-                textoDerecha(c, "${r.cantidad}", xs[4] - 6f, y + 14f, 9f)
-                textoDerecha(c, num(unit), xs[5] - 6f, y + 14f, 9f)
-                textoDerecha(c, num(r.totalVenta), xs[6] - 6f, y + 14f, 9f, negrita = true)
-                y += altoFila
+                texto(c, "Cantidad:  ${r.cantidad}", M + 8f, ps + 14.5f, 9f, Color.BLACK, negrita = true)
+                texto(c, "Precio unitario:  ${d.simbolo} ${num(unit)}", xs[4], ps + 14.5f, 9f, Color.BLACK)
+                textoDerecha(c, "Subtotal:  ${d.simbolo} ${num(r.totalVenta)}", W - M - 8f, ps + 14.5f, 9.5f, negrita = true)
+                y = ps + 22f + 10f
             }
 
             // Totales del anexo
@@ -317,19 +306,64 @@ object OfertaComercialPdf {
         return y + 32f
     }
 
-    private fun descripcion(item: OrderItem): String {
+    /** Texto completo del Anexo A para una ventana (títulos en negrita). */
+    private fun detalleAnexo(item: OrderItem, r: CalculadoraPrecios.Resultado): CharSequence {
+        val sb = android.text.SpannableStringBuilder()
+        fun titulo(t: String) {
+            if (sb.isNotEmpty()) sb.append("\n")
+            val ini = sb.length
+            sb.append(t).append("\n")
+            sb.setSpan(PdfFuentes.NegritaSpan(), ini, sb.length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.setSpan(android.text.style.ForegroundColorSpan(AZUL), ini, sb.length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        fun linea(etq: String, v: String?) {
+            if (v.isNullOrBlank()) return
+            val ini = sb.length
+            sb.append(etq).append(": ")
+            sb.setSpan(PdfFuentes.NegritaSpan(), ini, sb.length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.append(v).append("\n")
+        }
         val op = item.opciones
-        return buildString {
-            append(item.config.nombre).append("\n")
-            append("Ancho x Alto: ${item.anchoTotalMm} x ${item.altoTotalMm} mm\n")
-            op.sistemaVentana?.let { append("Sistema: $it\n") }
-            op.tipoCristal?.let { append("Cristal: $it\n") }
-            op.color?.let { append("Color: $it\n") }
-            op.mosquitero?.let { append("Mosquitero: $it\n") }
-            if (op.extras.isNotEmpty()) append("Extras: ${op.extras.sorted().joinToString(", ")}\n")
-            if (op.trabajos.isNotEmpty()) append("Trabajos: ${op.trabajos.sorted().joinToString(", ")}\n")
-            if (op.nota.isNotBlank()) append("Nota: ${op.nota}")
-        }.trimEnd()
+        val q = r.cantidades
+
+        titulo("MEDIDAS Y DISEÑO")
+        linea("Ancho × alto", "${item.anchoTotalMm} × ${item.altoTotalMm} mm   ·   Área: ${String.format(Locale.US, "%.2f", q.areaM2)} m²")
+        linea("Diseño", item.config.nombre)
+        com.example.vineuro_pvc.data.GeometriaVentana.calcular(item).celdas.forEach { celda ->
+            val anchoP = (celda.x1 - celda.x0).toInt()
+            val altoP = (celda.y1 - celda.y0).toInt()
+            linea("Paño ${celda.indice + 1} (${anchoP} × ${altoP})", com.example.vineuro_pvc.data.TextosVentana.pano(item, celda.indice))
+        }
+        val hojasTotal = q.hojas + q.hojasPuerta
+        val textoHojas = when {
+            hojasTotal == 0 -> "ninguna (todo fijo)"
+            q.hojasPuerta > 0 -> "$hojasTotal (${q.hojasPuerta} de puerta)"
+            else -> "$hojasTotal"
+        }
+        linea("Hojas que abren", textoHojas)
+
+        titulo("MATERIALES Y OPCIONES")
+        linea("Sistema de ventanas", op.sistemaVentana)
+        linea("Tipo de cristal", op.tipoCristal)
+        linea("Color", op.color)
+        linea("Laminación interna", op.laminacionInterna)
+        linea("Laminación externa", op.laminacionExterna)
+        linea("Umbral externo", op.umbralesExternos.sorted().joinToString(", "))
+        linea("Umbral interno", op.umbralesInternos.sorted().joinToString(", "))
+        linea("Mueble (manijas / herrajes)", op.mueble)
+        linea("Mosquitero", op.mosquitero)
+        linea("Extras", op.extras.sorted().joinToString(", "))
+        linea("Trabajos", op.trabajos.sorted().joinToString(", "))
+        linea("Adicionales", op.adicionales.sorted().joinToString(", "))
+        if (listOf(op.sistemaVentana, op.tipoCristal, op.color, op.mueble).all { it.isNullOrBlank() }) {
+            sb.append("(Sin opciones elegidas en el compás)\n")
+        }
+        if (op.nota.isNotBlank()) {
+            titulo("NOTA")
+            sb.append(op.nota).append("\n")
+        }
+        while (sb.isNotEmpty() && sb[sb.length - 1] == '\n') sb.delete(sb.length - 1, sb.length)
+        return sb
     }
 
     // ===================== AYUDANTES DE DIBUJO =====================
@@ -347,15 +381,7 @@ object OfertaComercialPdf {
     private fun paint(size: Float, color: Int, negrita: Boolean, cursiva: Boolean) = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         textSize = size
         this.color = color
-        typeface = Typeface.create(
-            Typeface.SANS_SERIF,
-            when {
-                negrita && cursiva -> Typeface.BOLD_ITALIC
-                negrita -> Typeface.BOLD
-                cursiva -> Typeface.ITALIC
-                else -> Typeface.NORMAL
-            },
-        )
+        typeface = PdfFuentes.tipo(negrita, cursiva)
     }
 
     private fun texto(
@@ -376,7 +402,7 @@ object OfertaComercialPdf {
         c.drawText(t, xDerecha - p.measureText(t), y, p)
     }
 
-    private fun parrafo(t: String, ancho: Float, size: Float, color: Int): StaticLayout =
+    private fun parrafo(t: CharSequence, ancho: Float, size: Float, color: Int): StaticLayout =
         StaticLayout.Builder.obtain(t, 0, t.length, paint(size, color, false, false), ancho.toInt().coerceAtLeast(10))
             .setAlignment(Layout.Alignment.ALIGN_NORMAL)
             .setLineSpacing(1.2f, 1f)

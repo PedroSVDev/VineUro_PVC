@@ -248,10 +248,10 @@ class PanelConfigVentana(
 
     /** Adicionales: ícono con su casilla dentro + nombre (como en el ejemplo). */
     private fun seccionAdicionales() {
-        encabezado("aditionals por tamaño", COLOR_AZUL_CLARO)
+        encabezado("adicionales por tamaño", COLOR_AZUL_CLARO)
         listOf(
             "perfil del asiento" to R.drawable.ic_perfil_lado_inf,
-            "dorsill" to R.drawable.ic_perfil_lado_inf,
+            "alféizar" to R.drawable.ic_perfil_lado_inf,
             "jamba de la esquina" to R.drawable.ic_perfil_lado_izq,
         ).forEach { (nombre, icono) ->
             val fila = LinearLayout(context).apply {

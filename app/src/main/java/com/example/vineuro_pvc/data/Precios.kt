@@ -38,76 +38,76 @@ data class Precios(
             moneda = listOf(listOf("S/", "1.00", "S/")),
             impuesto = listOf(listOf("IGV", "18.00")),
             planes = listOf(
-                listOf("discount 1%", "1.00", "0.00", "0.00"),
-                listOf("discount 3%", "3.00", "0.00", "0.00"),
-                listOf("discount 5%", "5.00", "0.00", "0.00"),
+                listOf("descuento 1%", "1.00", "0.00", "0.00"),
+                listOf("descuento 3%", "3.00", "0.00", "0.00"),
+                listOf("descuento 5%", "5.00", "0.00", "0.00"),
             ),
             ventanas = listOf(
-                fila("Custom PVC system 1", 9),
-                fila("Custom PVC system 2", 9),
-                fila("Custom PVC system 3", 9),
-                listOf("PVC system A", "5.67", "5.58", "4.81", "0.00", "0.00", "1.67", "0.28", "0.00", "0.00"),
-                fila("PVC system B", 9),
-                fila("PVC system C", 9),
+                fila("Sistema PVC personalizado 1", 9),
+                fila("Sistema PVC personalizado 2", 9),
+                fila("Sistema PVC personalizado 3", 9),
+                listOf("Sistema PVC A", "5.67", "5.58", "4.81", "0.00", "0.00", "1.67", "0.28", "0.00", "0.00"),
+                fila("Sistema PVC B", 9),
+                fila("Sistema PVC C", 9),
             ),
             cristal = listOf(
-                fila("common glass 4-6-4", 9),
-                fila("common glass 4-6-4-6-4", 9),
+                fila("vidrio común 4-6-4", 9),
+                fila("vidrio común 4-6-4-6-4", 9),
             ),
             umbralExt = listOf(
-                fila("outer sill white 200", 2),
-                fila("outer sill white 300", 2),
+                fila("alféizar exterior blanco 200", 2),
+                fila("alféizar exterior blanco 300", 2),
             ),
             umbralInt = listOf(
-                fila("inner sill white 300", 2),
-                fila("inner sill white 400", 2),
-                fila("marble imitation 300", 2),
-                fila("marble imitation 400", 2),
+                fila("alféizar interior blanco 300", 2),
+                fila("alféizar interior blanco 400", 2),
+                fila("imitación mármol 300", 2),
+                fila("imitación mármol 400", 2),
             ),
             muebles = listOf(
-                fila("white type 1", 3),
-                fila("white type 2", 3),
+                fila("blanco tipo 1", 3),
+                fila("blanco tipo 2", 3),
             ),
             extras = listOf(
-                FilaSeleccion("mounting foam", "12.30", 0),
-                FilaSeleccion("new_extra_material", "0.00", 0),
-                FilaSeleccion("set of screws", "0.00", 0),
+                FilaSeleccion("espuma de montaje", "12.30", 0),
+                FilaSeleccion("nuevo material extra", "0.00", 0),
+                FilaSeleccion("juego de tornillos", "0.00", 0),
             ),
             empleos = listOf(
-                FilaSeleccion("delivery", "6.00", 0),
-                FilaSeleccion("dismantling", "0.00", 0),
-                FilaSeleccion("finishing slopes", "0.00", 2),
-                FilaSeleccion("inner sill install", "0.00", 2),
-                FilaSeleccion("instal to concrete", "0.00", 0),
-                FilaSeleccion("instalation", "0.00", 1),
-                FilaSeleccion("outer sill install", "0.00", 2),
+                FilaSeleccion("transporte", "6.00", 0),
+                FilaSeleccion("desmontaje", "0.00", 0),
+                FilaSeleccion("acabado de derrames", "0.00", 2),
+                FilaSeleccion("instalación de alféizar interior", "0.00", 2),
+                FilaSeleccion("instalación en concreto", "0.00", 0),
+                FilaSeleccion("instalación", "0.00", 1),
+                FilaSeleccion("instalación de alféizar exterior", "0.00", 2),
             ),
             mosquitera = listOf(
-                fila("mosq. net brown", 6),
-                fila("mosq. net gray", 6),
-                fila("mosq. net white", 6),
+                fila("mosquitero marrón", 6),
+                fila("mosquitero gris", 6),
+                fila("mosquitero blanco", 6),
             ),
             laminacion = listOf(
-                fila("color bordo", 1),
-                fila("color gray", 1),
-                fila("new_lamination", 1),
-                fila("oak dark", 1),
-                fila("oak light", 1),
+                fila("color burdeos", 1),
+                fila("color gris", 1),
+                fila("nueva laminación", 1),
+                fila("roble oscuro", 1),
+                fila("roble claro", 1),
             ),
             colores = listOf(
-                FilaColor("alder", "#C49B7A"),
-                FilaColor("ash", "#B8957A"),
+                FilaColor("aliso", "#C49B7A"),
+                FilaColor("fresno", "#B8957A"),
                 FilaColor("azul oscuro", "#2F4F86"),
-                FilaColor("beech", "#B08B80"),
-                FilaColor("birch", "#C9AD8F"),
-                FilaColor("black", "#2B2B2B"),
+                FilaColor("haya", "#B08B80"),
+                FilaColor("abedul", "#C9AD8F"),
+                FilaColor("negro", "#2B2B2B"),
                 FilaColor("celeste", "#2F86C9"),
-                FilaColor("cherry", "#A5583A"),
-                FilaColor("ebony", "#5A3A3E"),
-                FilaColor("green", "#7FA06A"),
-                FilaColor("hickory", "#8F6E55"),
-                FilaColor("mahogany", "#8A4B22"),
-                FilaColor("walnut", "#8B5E4A"),
+                FilaColor("cerezo", "#A5583A"),
+                FilaColor("ébano", "#5A3A3E"),
+                FilaColor("verde", "#7FA06A"),
+                FilaColor("nogal americano", "#8F6E55"),
+                FilaColor("caoba", "#8A4B22"),
+                FilaColor("nogal", "#8B5E4A"),
             ),
         )
     }
@@ -156,7 +156,7 @@ object PreciosJson {
             laminacion = tabla(o, "laminacion") ?: def.laminacion,
             colores = o.optJSONArray("colores")?.let { arr ->
                 (0 until arr.length()).mapNotNull { i ->
-                    arr.optJSONObject(i)?.let { FilaColor(it.optString("nombre"), it.optString("color", "#FFFFFF")) }
+                    arr.optJSONObject(i)?.let { FilaColor(NombresEs.es(it.optString("nombre")), it.optString("color", "#FFFFFF")) }
                 }
             } ?: def.colores,
             fechaActualizacion = o.optLong("fecha_actualizacion", 0L),
@@ -170,7 +170,7 @@ object PreciosJson {
     private fun tabla(o: JSONObject, key: String): List<List<String>>? {
         val arr = o.optJSONArray(key) ?: return null
         return (0 until arr.length()).mapNotNull { i ->
-            arr.optJSONArray(i)?.let { f -> (0 until f.length()).map { f.optString(it) } }
+            arr.optJSONArray(i)?.let { f -> (0 until f.length()).map { c -> if (c == 0) NombresEs.es(f.optString(c)) else f.optString(c) } }
         }
     }
 
@@ -181,7 +181,7 @@ object PreciosJson {
     private fun seleccion(o: JSONObject, key: String): List<FilaSeleccion>? {
         val arr = o.optJSONArray(key) ?: return null
         return (0 until arr.length()).mapNotNull { i ->
-            arr.optJSONObject(i)?.let { FilaSeleccion(it.optString("nombre"), it.optString("precio", "0.00"), it.optInt("unidad", 0)) }
+            arr.optJSONObject(i)?.let { FilaSeleccion(NombresEs.es(it.optString("nombre")), it.optString("precio", "0.00"), it.optInt("unidad", 0)) }
         }
     }
 }

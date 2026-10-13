@@ -15,6 +15,8 @@ data class Cliente(
     val direccion: String = "",
     val nota: String = "",
     val fechaRegistro: Long = System.currentTimeMillis(),
+    /** Código corto visible (CLI-0001…). Se asigna solo al guardar; el [id] largo sigue siendo la clave interna. */
+    val codigo: String = "",
 ) {
     val nombreCompleto: String
         get() = "$nombres $apellidos".trim()

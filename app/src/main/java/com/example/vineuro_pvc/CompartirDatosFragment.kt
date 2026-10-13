@@ -30,15 +30,15 @@ class CompartirDatosFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.btnObtenerArchivos.setOnClickListener {
-            Toast.makeText(requireContext(), "Obtener archivos vía Bluetooth en desarrollo", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Recibir datos por Bluetooth: próximamente", Toast.LENGTH_SHORT).show()
         }
 
         binding.btnEnviarPrecios.setOnClickListener {
-            Toast.makeText(requireContext(), "Enviar precios vía Bluetooth en desarrollo", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Enviar precios por Bluetooth: próximamente", Toast.LENGTH_SHORT).show()
         }
 
         binding.btnEnviarPedidos.setOnClickListener {
-            Toast.makeText(requireContext(), "Enviar pedidos vía Bluetooth en desarrollo", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Enviar pedidos por Bluetooth: próximamente", Toast.LENGTH_SHORT).show()
         }
 
         binding.btnVolver.setOnClickListener {

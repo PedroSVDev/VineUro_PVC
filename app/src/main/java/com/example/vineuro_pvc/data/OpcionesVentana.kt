@@ -24,7 +24,7 @@ data class OpcionesVentana(
     var laminacionInterna: String? = null,
     var laminacionExterna: String? = null,
     var color: String? = null,
-    /** "perfil del asiento", "dorsill", "jamba de la esquina" */
+    /** "perfil del asiento", "alféizar", "jamba de la esquina" */
     val adicionales: MutableSet<String> = mutableSetOf(),
     /** Claves tipo "juntas:0", "juntas90:2", "huecos:3", "extensor:40:1" (lado 0=izq,1=sup,2=inf,3=der). */
     val perfiles: MutableSet<String> = mutableSetOf(),
@@ -55,10 +55,10 @@ data class OpcionesVentana(
     companion object {
         fun fromJson(o: JSONObject?): OpcionesVentana {
             if (o == null) return OpcionesVentana()
-            fun str(k: String): String? = if (o.isNull(k)) null else o.optString(k).ifBlank { null }
+            fun str(k: String): String? = if (o.isNull(k)) null else o.optString(k).ifBlank { null }?.let { NombresEs.es(it) }
             fun set(k: String): MutableSet<String> {
                 val arr = o.optJSONArray(k) ?: return mutableSetOf()
-                return (0 until arr.length()).map { arr.optString(it) }.filter { it.isNotBlank() }.toMutableSet()
+                return (0 until arr.length()).map { NombresEs.es(arr.optString(it)) }.filter { it.isNotBlank() }.toMutableSet()
             }
             return OpcionesVentana(
                 cantidad = o.optInt("cantidad", 1).coerceAtLeast(1),

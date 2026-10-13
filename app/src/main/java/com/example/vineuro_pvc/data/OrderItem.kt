@@ -15,6 +15,13 @@ data class OrderItem(
     val panePuerta: MutableMap<Int, Boolean> = mutableMapOf(),
     val paneSandwich: MutableMap<Int, Boolean> = mutableMapOf(),
     val paneCols: MutableMap<Int, Int> = mutableMapOf(),
+    /** Divisiones horizontales dentro de cada paño (impostas). */
+    val paneRows: MutableMap<Int, Int> = mutableMapOf(),
+    /** Partes de cada paño que son panel sándwich (máscara de bits). */
+    val paneSandwichMask: MutableMap<Int, Int> = mutableMapOf(),
+    /** Barrotillos de cada paño: filas * 100 + columnas (0 = sin barrotillos). */
+    val paneBarras: MutableMap<Int, Int> = mutableMapOf(),
+    val panePartMechanisms: MutableMap<Int, String> = mutableMapOf(),
     var colorBgHex: String = "#42A5F5",
     /** Opciones elegidas en el menú lateral "configuración de la ventana". */
     var opciones: OpcionesVentana = OpcionesVentana(),

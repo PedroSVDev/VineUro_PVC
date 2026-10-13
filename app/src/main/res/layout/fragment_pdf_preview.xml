@@ -6,37 +6,6 @@
     android:layout_height="match_parent"
     android:background="#A0A0A0">
 
-    <!-- Top Banner with Pink LOGO Card -->
-    <FrameLayout
-        android:id="@+id/top_banner"
-        android:layout_width="0dp"
-        android:layout_height="48dp"
-        android:background="#A0A0A0"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="120dp"
-            android:layout_height="36dp"
-            android:layout_gravity="end|center_vertical"
-            android:layout_marginEnd="12dp"
-            app:cardBackgroundColor="#F06292"
-            app:cardCornerRadius="0dp"
-            app:cardElevation="4dp"
-            app:strokeWidth="0dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="LOGO"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-        </com.google.android.material.card.MaterialCardView>
-    </FrameLayout>
-
     <!-- Center Container for A4 Paper Preview Sheet -->
     <ScrollView
         android:id="@+id/scroll_pdf_container"
@@ -46,7 +15,7 @@
         app:layout_constraintBottom_toTopOf="@id/bottom_pdf_bar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/top_banner">
+        app:layout_constraintTop_toTopOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -63,6 +32,18 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:elevation="8dp" />
+
+            <!-- Vista previa de la guía de corte: páginas del PDF ya generado -->
+            <ImageView
+                android:id="@+id/iv_pagina_pdf"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:adjustViewBounds="true"
+                android:background="#FFFFFF"
+                android:contentDescription="Página del PDF"
+                android:elevation="8dp"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
 
             <!-- Page Indicator Text -->
             <TextView
@@ -81,15 +62,15 @@
     <!-- Left Page Navigation Arrow Button -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/btn_prev_page"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_marginStart="8dp"
         android:clickable="true"
         android:focusable="true"
         android:foreground="?attr/selectableItemBackground"
         android:visibility="gone"
-        app:cardBackgroundColor="#1976D2"
-        app:cardCornerRadius="20dp"
+        app:cardBackgroundColor="#CC1E3A5F"
+        app:cardCornerRadius="24dp"
         app:cardElevation="8dp"
         app:strokeWidth="0dp"
         app:layout_constraintBottom_toBottomOf="@id/scroll_pdf_container"
@@ -98,26 +79,26 @@
         tools:visibility="visible">
 
         <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:layout_gravity="center"
             android:contentDescription="Página anterior"
-            android:src="@drawable/ic_apertura_arrow_left"
+            android:src="@drawable/ic_flecha_pagina_anterior"
             app:tint="@color/white" />
     </com.google.android.material.card.MaterialCardView>
 
     <!-- Right Page Navigation Arrow Button -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/btn_next_page"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_marginEnd="8dp"
         android:clickable="true"
         android:focusable="true"
         android:foreground="?attr/selectableItemBackground"
         android:visibility="gone"
-        app:cardBackgroundColor="#1976D2"
-        app:cardCornerRadius="20dp"
+        app:cardBackgroundColor="#CC1E3A5F"
+        app:cardCornerRadius="24dp"
         app:cardElevation="8dp"
         app:strokeWidth="0dp"
         app:layout_constraintBottom_toBottomOf="@id/scroll_pdf_container"
@@ -126,15 +107,15 @@
         tools:visibility="visible">
 
         <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:layout_gravity="center"
             android:contentDescription="Página siguiente"
-            android:src="@drawable/ic_apertura_arrow_right"
+            android:src="@drawable/ic_flecha_pagina_siguiente"
             app:tint="@color/white" />
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Bottom Action Bar (CERCA & GUARDAR PDF) -->
+    <!-- Barra inferior: GUARDAR PDF -->
     <LinearLayout
         android:id="@+id/bottom_pdf_bar"
         android:layout_width="0dp"
@@ -143,19 +124,6 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_cerca"
-            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:backgroundTint="#1976D2"
-            android:text="CERCA"
-            android:textColor="#FFFFFF"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            app:cornerRadius="0dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_guardar_pdf"

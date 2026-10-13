@@ -36,8 +36,19 @@ class ClientesAdapter(
             val context = binding.root.context
             binding.tvNombreCliente.text = cliente.nombreCompleto
 
+            // Debajo del nombre: código corto del cliente (en azul) y teléfono
+            val linea = android.text.SpannableStringBuilder()
+            if (cliente.codigo.isNotBlank()) {
+                linea.append(cliente.codigo)
+                linea.setSpan(android.text.style.ForegroundColorSpan(android.graphics.Color.parseColor("#2E75B6")), 0, linea.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                linea.setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), 0, linea.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
             if (cliente.telefono.isNotEmpty()) {
-                binding.tvTelefonoCliente.text = context.getString(R.string.label_tel_format, cliente.telefono)
+                if (linea.isNotEmpty()) linea.append("  ·  ")
+                linea.append(context.getString(R.string.label_tel_format, cliente.telefono))
+            }
+            if (linea.isNotEmpty()) {
+                binding.tvTelefonoCliente.text = linea
                 binding.tvTelefonoCliente.visibility = View.VISIBLE
             } else {
                 binding.tvTelefonoCliente.visibility = View.GONE

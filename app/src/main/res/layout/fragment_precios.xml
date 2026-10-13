@@ -147,7 +147,7 @@
                             <TextView android:padding="8dp" android:text="impuesto perfil S/ por m" android:gravity="center" android:textStyle="bold" />
                             <TextView android:padding="8dp" android:text="hoja perfil S/ por m" android:gravity="center" android:textStyle="bold" />
                             <TextView android:padding="8dp" android:text="hoja dor perfil S/ por m" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="emparedado panel S/ por m2" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:padding="8dp" android:text="panel sándwich S/ por m2" android:gravity="center" android:textStyle="bold" />
                             <TextView android:padding="8dp" android:text="glazing beads S/ por m" android:gravity="center" android:textStyle="bold" />
                             <TextView android:padding="8dp" android:text="caucho sellador S/ por m" android:gravity="center" android:textStyle="bold" />
                             <TextView android:padding="8dp" android:text="glazing bars S/ por m" android:gravity="center" android:textStyle="bold" />
@@ -298,7 +298,7 @@
             <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
                 <TableLayout android:id="@+id/tableMosquitera" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@color/white" android:stretchColumns="*">
                     <TableRow android:background="#F0F0F0">
-                        <TextView android:padding="8dp" android:text="sistema de mosq.net" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:padding="8dp" android:text="sistema de mosquitero" android:gravity="center" android:textStyle="bold" />
                         <TextView android:padding="8dp" android:text="red S/ por m2" android:gravity="center" android:textStyle="bold" />
                         <TextView android:padding="8dp" android:text="perfil del marco S/ por m" android:gravity="center" android:textStyle="bold" />
                         <TextView android:padding="8dp" android:text="sellador de goma S/ por m" android:gravity="center" android:textStyle="bold" />
@@ -338,7 +338,7 @@
             <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
                 <TableLayout android:id="@+id/tableColors" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@color/white" android:stretchColumns="*">
                     <TableRow android:background="#F0F0F0">
-                        <TextView android:padding="8dp" android:text="color name" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:padding="8dp" android:text="nombre del color" android:gravity="center" android:textStyle="bold" />
                         <TextView android:padding="8dp" android:text="color" android:gravity="center" android:textStyle="bold" />
                         <TextView android:padding="8dp" android:text="" />
                     </TableRow>

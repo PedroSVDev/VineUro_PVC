@@ -39,7 +39,8 @@ class VineuroDatabase private constructor(private val appContext: Context) :
                 email          TEXT NOT NULL DEFAULT '',
                 direccion      TEXT NOT NULL DEFAULT '',
                 nota           TEXT NOT NULL DEFAULT '',
-                fecha_registro INTEGER NOT NULL
+                fecha_registro INTEGER NOT NULL,
+                codigo         TEXT NOT NULL DEFAULT ''
             )
             """.trimIndent(),
         )
@@ -87,6 +88,10 @@ class VineuroDatabase private constructor(private val appContext: Context) :
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         // Versión 2: tabla "configuracion" (requisitos del documento, etc.)
         if (oldVersion < 2) crearTablaConfiguracion(db)
+        // Versión 3: código corto del cliente (CLI-0001…)
+        if (oldVersion < 3) {
+            runCatching { db.execSQL("ALTER TABLE $T_CLIENTES ADD COLUMN codigo TEXT NOT NULL DEFAULT ''") }
+        }
     }
 
     private fun crearTablaConfiguracion(db: SQLiteDatabase) {
@@ -208,7 +213,7 @@ class VineuroDatabase private constructor(private val appContext: Context) :
 
     companion object {
         private const val DB_NOMBRE = "vineuro.db"
-        private const val DB_VERSION = 2
+        private const val DB_VERSION = 3
 
         const val T_CLIENTES = "clientes"
         const val T_PEDIDOS = "pedidos"

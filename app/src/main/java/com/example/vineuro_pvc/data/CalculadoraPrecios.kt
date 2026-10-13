@@ -44,6 +44,8 @@ object CalculadoraPrecios {
         val panosMosquitero: Int,
         val areaPanoM2: Double,
         val perimetroPanoM: Double,
+        val barrotillosM: Double = 0.0,
+        val conectoresBarras: Int = 0,
     )
 
     /** Costos (sin margen) por concepto, en la moneda base de la lista de precios. */
@@ -107,7 +109,8 @@ object CalculadoraPrecios {
         val imposta = q.impostaM * num(sistema, 2)
         val hoja = q.hojaM * num(sistema, 3)
         val hojaPuerta = q.hojaPuertaM * num(sistema, 4)
-        val glazing = q.glazingM * num(sistema, 6)
+        val glazing = q.glazingM * num(sistema, 6) +
+            q.barrotillosM * num(sistema, 8) + q.conectoresBarras * num(sistema, 9) // barrotillos y sus conectores
         val caucho = q.cauchoM * num(sistema, 7)
 
         // ---- Zona: vidrio (por m2 y por perímetro) + panel sándwich + laminación ----
@@ -195,7 +198,11 @@ object CalculadoraPrecios {
 
         // Paños: los del catálogo + subdivisiones hechas con "impostas" dentro de un paño
         val panosBase = max(1, max(item.config.hojasCount, filas * cols))
-        val subdivisionesExtra = item.paneCols.values.sumOf { max(0, it - 1) }
+        // Impostas internas de cada paño: (columnas - 1) verticales y (filas - 1) horizontales
+        val indices = (item.paneCols.keys + item.paneRows.keys).toSet()
+        val impostasV = indices.sumOf { max(0, (item.paneCols[it] ?: 1) - 1) }
+        val impostasH = indices.sumOf { max(0, (item.paneRows[it] ?: 1) - 1) }
+        val subdivisionesExtra = indices.sumOf { (item.paneCols[it] ?: 1) * (item.paneRows[it] ?: 1) - 1 }
         val totalPanos = panosBase + subdivisionesExtra
 
         val panoW = anchoM / cols
@@ -205,14 +212,43 @@ object CalculadoraPrecios {
 
         val area = altoM * anchoM
         val marco = 2 * (altoM + anchoM)
-        val imposta = (cols - 1) * altoM + (filas - 1) * anchoM + subdivisionesExtra * panoH
+        val imposta = (cols - 1) * altoM + (filas - 1) * anchoM + impostasV * panoH + impostasH * panoW
 
         val panosPuerta = item.panePuerta.count { it.value }
-        val panosQueAbren = item.paneMechanisms.count { (idx, mec) -> mec != MECANISMO_FIJO && item.panePuerta[idx] != true }
-        val panosSandwich = item.paneSandwich.count { it.value }
+        // Hojas: un paño con apertura combinada ("1,3") lleva una hoja por cada parte que abre
+        var panosQueAbren = 0
+        var hojaM = 0.0
+        val indicesHoja = item.paneMechanisms.keys + item.panePartMechanisms.keys
+        indicesHoja.forEach { idx ->
+            if (item.panePuerta[idx] == true) return@forEach
+            val f = item.paneRows[idx] ?: 1
+            val c = item.paneCols[idx] ?: 1
+            val partes = item.panePartMechanisms[idx]?.split(",")?.takeIf { it.size == f * c && it.size > 1 }
+            if (partes != null) {
+                val abren = partes.count { it.trim() != MECANISMO_FIJO }
+                panosQueAbren += abren
+                hojaM += abren * 2 * (panoW / c + panoH / f)
+            } else if ((item.paneMechanisms[idx] ?: MECANISMO_FIJO) != MECANISMO_FIJO) {
+                panosQueAbren += 1
+                hojaM += perimPano
+            }
+        }
+        // Partes en panel sándwich (máscara por parte; compatibilidad con el sí/no anterior)
+        val panosSandwich = item.paneSandwich.keys.union(item.paneSandwichMask.keys).sumOf { idx ->
+            item.paneSandwichMask[idx]?.let { Integer.bitCount(it) }
+                ?: if (item.paneSandwich[idx] == true) (item.paneCols[idx] ?: 1) * (item.paneRows[idx] ?: 1) else 0
+        }
+        // Barrotillos: metros de barra y conectores (cruces) en los paños que los tienen
+        var barrasM = 0.0
+        var conectores = 0
+        item.paneBarras.values.filter { it > 0 }.forEach { cod ->
+            val bf = cod / 100; val bc = cod % 100
+            barrasM += (bc - 1) * panoH + (bf - 1) * panoW
+            conectores += (bf - 1) * (bc - 1)
+        }
 
         val glazing = totalPanos * perimPano
-        val hoja = panosQueAbren * perimPano
+        val hoja = hojaM
         val hojaPuerta = panosPuerta * perimPano
         val sandwich = (panosSandwich * areaPano).coerceAtMost(area)
 
@@ -229,6 +265,8 @@ object CalculadoraPrecios {
             hojas = panosQueAbren,
             hojasPuerta = panosPuerta,
             panosMosquitero = item.paneMosqNet.count { it.value },
+            barrotillosM = barrasM,
+            conectoresBarras = conectores,
             areaPanoM2 = areaPano,
             perimetroPanoM = perimPano,
         )

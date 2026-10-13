@@ -47,6 +47,7 @@
         android:focusable="true"
         android:padding="6dp"
         android:src="@drawable/ic_more_vert"
+        android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:tint="#333333" />
@@ -64,6 +65,18 @@
         app:layout_constraintTop_toTopOf="parent"
         tools:text="Aleksander White : S1" />
 
+    <!-- "shadows": sombras y relieve en el dibujo -->
+    <CheckBox
+        android:id="@+id/cb_shadows"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="6dp"
+        android:text="sombras"
+        android:textColor="#333333"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toStartOf="@id/cb_param_comprobar"
+        app:layout_constraintTop_toTopOf="@id/cb_param_comprobar" />
+
     <CheckBox
         android:id="@+id/cb_param_comprobar"
         android:layout_width="wrap_content"
@@ -71,7 +84,7 @@
         android:layout_marginTop="2dp"
         android:layout_marginEnd="4dp"
         android:checked="true"
-        android:text="param. comprobar"
+        android:text="parámetros"
         android:textColor="#333333"
         android:textSize="13sp"
         app:layout_constraintEnd_toStartOf="@id/btn_header_menu"

@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Diálogo del paño en DOS COLUMNAS:
+     izquierda = impostas (cuadrícula compacta) + paneles sándwich / puerta / mosquitero
+     derecha   = apertura.
+     El alto y el número de columnas se ajustan en código según la pantalla (teléfono o tablet). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -7,29 +11,27 @@
     android:background="#CCCCCC"
     android:orientation="vertical">
 
-    <!-- Top Two Column Body -->
     <LinearLayout
+        android:id="@+id/cuerpo_dos_columnas"
         android:layout_width="match_parent"
         android:layout_height="440dp"
         android:orientation="horizontal">
 
-        <!-- LEFT PANEL: impostas -->
+        <!-- COLUMNA IZQUIERDA: impostas -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="0.45"
-            android:background="#CCCCCC"
             android:orientation="vertical">
 
-            <!-- Header: impostas -->
             <TextView
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="32dp"
                 android:background="#42A5F5"
                 android:gravity="center"
                 android:text="impostas"
                 android:textColor="@color/white"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:textStyle="bold" />
 
             <ScrollView
@@ -41,151 +43,233 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="8dp">
+                    android:padding="4dp">
 
-                    <!-- Layout Grid Selection (2 Columns) -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_impostas_layouts"
                         android:layout_width="match_parent"
-                        android:layout_height="220dp"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"
                         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-                        app:spanCount="2"
+                        app:spanCount="3"
                         tools:listitem="@layout/item_window_config" />
 
-                    <!-- Toggle Options with Icons -->
-                    <LinearLayout
+                    <!-- Opciones del paño: tarjetas blancas con ícono de color -->
+                    <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:orientation="vertical">
+                        android:layout_marginTop="6dp"
+                        android:paddingStart="4dp"
+                        android:text="OPCIONES DEL PAÑO"
+                        android:textColor="#1E3A5F"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
 
-                        <!-- Option 1: Sandwich Panels -->
-                        <LinearLayout
+                    <LinearLayout
+                        android:id="@+id/contenedor_opciones_pano"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingBottom="6dp">
+
+                        <com.google.android.material.card.MaterialCardView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal"
-                            android:paddingTop="2dp"
-                            android:paddingBottom="2dp">
+                            android:layout_marginTop="4dp"
+                            app:cardBackgroundColor="#FFFFFF"
+                            app:cardCornerRadius="8dp"
+                            app:cardElevation="1dp"
+                            app:strokeColor="#B0BEC5"
+                            app:strokeWidth="1dp">
 
-                            <ImageView
-                                android:layout_width="22dp"
-                                android:layout_height="22dp"
-                                android:layout_marginEnd="6dp"
-                                android:contentDescription="sandwich panels"
-                                android:src="@drawable/ic_sandwich_panel"
-                                app:tint="#444444" />
-
-                            <CheckBox
-                                android:id="@+id/cb_sandwich_panels"
-                                android:layout_width="wrap_content"
+                            <LinearLayout
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="sandwich panels"
-                                android:textColor="#222222"
-                                android:textSize="13sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
+                                android:orientation="vertical"
+                                android:paddingStart="8dp"
+                                android:paddingEnd="8dp">
 
-                        <!-- Option 2: Puerta -->
-                        <LinearLayout
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal">
+
+                                    <ImageView
+                                        android:layout_width="30dp"
+                                        android:layout_height="30dp"
+                                        android:background="@drawable/bg_icono_opcion"
+                                        android:backgroundTint="#8D6E63"
+                                        android:contentDescription="paneles sándwich"
+                                        android:padding="5dp"
+                                        android:src="@drawable/ic_sandwich_panel"
+                                        app:tint="#FFFFFF" />
+
+                                    <CheckBox
+                                        android:id="@+id/cb_sandwich_panels"
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="6dp"
+                                        android:layout_weight="1"
+                                        android:buttonTint="@color/brand_dark"
+                                        android:minHeight="40dp"
+                                        android:text="paneles sándwich"
+                                        android:textColor="#1E3A5F"
+                                        android:textSize="14sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+
+                                <!-- Una casilla por cada parte de la imposta (la llena el código) -->
+                                <LinearLayout
+                                    android:id="@+id/contenedor_partes_sandwich"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal"
+                                    android:paddingStart="34dp"
+                                    android:paddingBottom="4dp" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.card.MaterialCardView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal"
-                            android:paddingTop="2dp"
-                            android:paddingBottom="2dp">
+                            android:layout_marginTop="4dp"
+                            app:cardBackgroundColor="#FFFFFF"
+                            app:cardCornerRadius="8dp"
+                            app:cardElevation="1dp"
+                            app:strokeColor="#B0BEC5"
+                            app:strokeWidth="1dp">
 
-                            <ImageView
-                                android:layout_width="22dp"
-                                android:layout_height="22dp"
-                                android:layout_marginEnd="6dp"
-                                android:contentDescription="puerta"
-                                android:src="@drawable/ic_door"
-                                app:tint="#444444" />
-
-                            <CheckBox
-                                android:id="@+id/cb_puerta"
-                                android:layout_width="wrap_content"
+                            <LinearLayout
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="puerta"
-                                android:textColor="#222222"
-                                android:textSize="13sp" />
-                        </LinearLayout>
+                                android:orientation="vertical"
+                                android:paddingStart="8dp"
+                                android:paddingEnd="8dp">
 
-                        <!-- Option 3: Mosq.Net -->
-                        <LinearLayout
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal">
+
+                                    <ImageView
+                                        android:layout_width="30dp"
+                                        android:layout_height="30dp"
+                                        android:background="@drawable/bg_icono_opcion"
+                                        android:backgroundTint="#5C6BC0"
+                                        android:contentDescription="puerta"
+                                        android:padding="5dp"
+                                        android:src="@drawable/ic_door"
+                                        app:tint="#FFFFFF" />
+
+                                    <CheckBox
+                                        android:id="@+id/cb_puerta"
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="6dp"
+                                        android:layout_weight="1"
+                                        android:buttonTint="@color/brand_dark"
+                                        android:minHeight="40dp"
+                                        android:text="puerta"
+                                        android:textColor="#1E3A5F"
+                                        android:textSize="14sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.card.MaterialCardView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal"
-                            android:paddingTop="2dp"
-                            android:paddingBottom="2dp">
+                            android:layout_marginTop="4dp"
+                            app:cardBackgroundColor="#FFFFFF"
+                            app:cardCornerRadius="8dp"
+                            app:cardElevation="1dp"
+                            app:strokeColor="#B0BEC5"
+                            app:strokeWidth="1dp">
 
-                            <ImageView
-                                android:layout_width="22dp"
-                                android:layout_height="22dp"
-                                android:layout_marginEnd="6dp"
-                                android:contentDescription="mosq.net"
-                                android:src="@drawable/ic_mosquito_net"
-                                app:tint="#444444" />
-
-                            <CheckBox
-                                android:id="@+id/cb_mosq_net"
-                                android:layout_width="wrap_content"
+                            <LinearLayout
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="mosq.net"
-                                android:textColor="#222222"
-                                android:textSize="13sp" />
-                        </LinearLayout>
+                                android:orientation="vertical"
+                                android:paddingStart="8dp"
+                                android:paddingEnd="8dp">
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal">
+
+                                    <ImageView
+                                        android:layout_width="30dp"
+                                        android:layout_height="30dp"
+                                        android:background="@drawable/bg_icono_opcion"
+                                        android:backgroundTint="#26A69A"
+                                        android:contentDescription="mosquitero"
+                                        android:padding="5dp"
+                                        android:src="@drawable/ic_mosquito_net"
+                                        app:tint="#FFFFFF" />
+
+                                    <CheckBox
+                                        android:id="@+id/cb_mosq_net"
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="6dp"
+                                        android:layout_weight="1"
+                                        android:buttonTint="@color/brand_dark"
+                                        android:minHeight="40dp"
+                                        android:text="mosquitero"
+                                        android:textColor="#1E3A5F"
+                                        android:textSize="14sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
 
                     </LinearLayout>
-
                 </LinearLayout>
-
             </ScrollView>
-
         </LinearLayout>
 
-        <!-- Divider Line -->
+        <!-- Separador -->
         <View
             android:layout_width="2dp"
             android:layout_height="match_parent"
             android:background="#999999" />
 
-        <!-- RIGHT PANEL: apertura -->
+        <!-- COLUMNA DERECHA: apertura -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="0.55"
-            android:background="#CCCCCC"
             android:orientation="vertical">
 
-            <!-- Header: apertura -->
             <TextView
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="32dp"
                 android:background="#42A5F5"
                 android:gravity="center"
                 android:text="apertura"
                 android:textColor="@color/white"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:textStyle="bold" />
 
-            <!-- Apertura Grid (3 Columns) -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rv_apertura_mechanisms"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:padding="8dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:padding="4dp"
                 app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
                 app:spanCount="3"
                 tools:listitem="@layout/item_window_config" />
-
         </LinearLayout>
-
     </LinearLayout>
 
-    <!-- Bottom Buttons Bar: NO (Blue) / SÍ (Green) -->
+    <!-- Botones: NO (azul) / SÍ (verde) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
@@ -214,7 +298,6 @@
             android:textSize="18sp"
             android:textStyle="bold"
             app:cornerRadius="0dp" />
-
     </LinearLayout>
 
 </LinearLayout>

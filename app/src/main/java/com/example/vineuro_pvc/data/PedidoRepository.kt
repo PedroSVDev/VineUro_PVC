@@ -25,7 +25,11 @@ class PedidoRepository(context: Context) {
     fun buscarPedidos(query: String): List<Pedido> {
         if (query.isBlank()) return obtenerPedidos()
         val q = "%${query.trim()}%"
-        return consultar("codigo LIKE ? OR cliente_nombre LIKE ?", arrayOf(q, q))
+        // Por N° de pedido, nombre del cliente o código corto del cliente (CLI-0001)
+        return consultar(
+            "codigo LIKE ? OR cliente_nombre LIKE ? OR cliente_id IN (SELECT id FROM ${VineuroDatabase.T_CLIENTES} WHERE codigo LIKE ?)",
+            arrayOf(q, q, q),
+        )
     }
 
     private fun consultar(where: String?, args: Array<String>?, limite: String? = null): List<Pedido> {

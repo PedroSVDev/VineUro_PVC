@@ -104,9 +104,15 @@ class OfertaComercialFragment : Fragment() {
                     clausulas = plantilla.clausulas,
                 ),
             )
+            // El N° de cotización es el mismo N° del pedido (0405…). Los pedidos antiguos
+            // (código "PED-fecha") reciben el siguiente número del correlativo.
+            val numeroPedido = pedido.codigo.trim().takeIf { it.isNotEmpty() && it.all { ch -> ch.isDigit() } }
+            if (numeroPedido != null) binding.etNumeroCotizacion.setText(numeroPedido)
             viewLifecycleOwner.lifecycleScope.launch {
-                val numero = terminosRepo.siguienteNumero()
-                if (_binding != null && binding.etNumeroCotizacion.text.isNullOrBlank()) binding.etNumeroCotizacion.setText(numero)
+                if (numeroPedido == null) {
+                    val numero = terminosRepo.siguienteNumero()
+                    if (_binding != null && binding.etNumeroCotizacion.text.isNullOrBlank()) binding.etNumeroCotizacion.setText(numero)
+                }
                 if (tcCache == null) actualizarTipoCambio(forzar = false)
             }
         }
@@ -227,6 +233,11 @@ class OfertaComercialFragment : Fragment() {
     private suspend fun guardar(): String? {
         val c = leerCotizacion()
         terminosRepo.registrarNumeroManual(c.numero)
+        // Pedido y cotización llevan el mismo número: si cambia aquí, se actualiza el pedido
+        if (c.numero.isNotBlank() && c.numero != pedido.codigo) {
+            pedido = pedido.copy(codigo = c.numero, fechaActualizacion = System.currentTimeMillis())
+            runCatching { PedidoRepository(requireContext()).guardarPedido(pedido) }
+        }
         return terminosRepo.guardarCotizacion(c)
     }
 

@@ -55,6 +55,13 @@ class TerminosRepository(context: Context) {
         return siguiente.toString().padStart(4, '0')
     }
 
+    /**
+     * N° para un pedido NUEVO (sin esperar a Internet). Es el mismo número que luego sale como
+     * "COTIZACIÓN N°" en la oferta comercial y como "ID de oferta" en los PDF.
+     */
+    fun siguienteNumeroLocal(context: Context): String =
+        Correlativos.formato(Correlativos(context).siguiente(CLAVE_CORRELATIVO))
+
     /** Si el titular escribe un número a mano (p. ej. para continuar desde 0404), el contador sigue desde ahí. */
     suspend fun registrarNumeroManual(numero: String) {
         val n = numero.trim().toIntOrNull() ?: return
