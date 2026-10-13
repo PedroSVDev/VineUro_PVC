@@ -49,7 +49,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Configurar requisitos"
+                    android:text="Datos de la empresa"
                     android:textColor="#FFFFFF"
                     android:textSize="18sp"
                     android:textStyle="bold" />
@@ -58,7 +58,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:alpha="0.85"
-                    android:text="Estos datos aparecen en el PDF de la oferta"
+                    android:text="Aparecen en el encabezado de los PDF"
                     android:textColor="#FFFFFF"
                     android:textSize="12sp" />
             </LinearLayout>
@@ -322,7 +322,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:id="@+id/tilTelefono"
-                android:hint="Teléfono"
+                android:hint="Celular"
                 app:counterEnabled="true"
                 app:counterMaxLength="9"
                 app:boxCornerRadiusBottomEnd="12dp"
@@ -338,6 +338,28 @@
                     android:layout_height="wrap_content"
                     android:digits="0123456789"
                     android:maxLength="9"
+                    android:inputType="phone"
+                    android:textSize="15sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:hint="Teléfono fijo"
+                app:boxCornerRadiusBottomEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusTopStart="12dp"
+                app:startIconDrawable="@android:drawable/ic_menu_call"
+                app:startIconTint="#4A90E2"
+                app:helperText="Ej.: 044-713940">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etTelefonoFijo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
                     android:inputType="phone"
                     android:textSize="15sp" />
             </com.google.android.material.textfield.TextInputLayout>
@@ -384,12 +406,13 @@
                     android:textSize="15sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="22dp"
                 android:letterSpacing="0.08"
-                android:text="CONDICIONES DE LA OFERTA"
+                android:text="LEMAS DEL ENCABEZADO"
                 android:textColor="#4A90E2"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -398,7 +421,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="Se imprimen en las condiciones generales"
+                android:text="Las dos líneas debajo del logo en la oferta"
                 android:textColor="#9CA3AF"
                 android:textSize="12sp" />
 
@@ -407,20 +430,20 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
-                android:hint="Validez de la oferta"
+                android:hint="Facebook"
                 app:boxCornerRadiusBottomEnd="12dp"
                 app:boxCornerRadiusBottomStart="12dp"
                 app:boxCornerRadiusTopEnd="12dp"
                 app:boxCornerRadiusTopStart="12dp"
-                app:startIconDrawable="@android:drawable/ic_menu_recent_history"
+                app:startIconDrawable="@android:drawable/ic_menu_share"
                 app:startIconTint="#4A90E2"
-                app:suffixText="días">
+                app:helperText="Nombre de la página, sin el enlace">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etValidez"
+                    android:id="@+id/etFacebook"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="number"
+                    android:inputType="text"
                     android:textSize="15sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -429,19 +452,19 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
-                android:hint="Plazo de entrega"
+                android:hint="Lema principal"
                 app:boxCornerRadiusBottomEnd="12dp"
                 app:boxCornerRadiusBottomStart="12dp"
                 app:boxCornerRadiusTopEnd="12dp"
                 app:boxCornerRadiusTopStart="12dp"
-                app:startIconDrawable="@android:drawable/ic_menu_today"
+                app:startIconDrawable="@android:drawable/ic_menu_info_details"
                 app:startIconTint="#4A90E2">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etPlazoEntrega"
+                    android:id="@+id/etLema1"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textCapSentences|textMultiLine"
+                    android:inputType="textCapCharacters|textMultiLine"
                     android:textSize="15sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -450,19 +473,58 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
-                android:hint="Forma de pago"
+                android:hint="Lema secundario"
                 app:boxCornerRadiusBottomEnd="12dp"
                 app:boxCornerRadiusBottomStart="12dp"
                 app:boxCornerRadiusTopEnd="12dp"
                 app:boxCornerRadiusTopStart="12dp"
-                app:startIconDrawable="@android:drawable/ic_menu_sort_by_size"
+                app:startIconDrawable="@android:drawable/ic_menu_info_details"
                 app:startIconTint="#4A90E2">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etFormaPago"
+                    android:id="@+id/etLema2"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textCapSentences|textMultiLine"
+                    android:inputType="textCapCharacters|textMultiLine"
+                    android:textSize="15sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:letterSpacing="0.08"
+                android:text="FIRMA"
+                android:textColor="#4A90E2"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Nombre y cargo al pie de la oferta"
+                android:textColor="#9CA3AF"
+                android:textSize="12sp" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:hint="Nombre de quien firma"
+                app:boxCornerRadiusBottomEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusTopStart="12dp"
+                app:startIconDrawable="@android:drawable/ic_menu_myplaces"
+                app:startIconTint="#4A90E2">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etFirmaNombre"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPersonName|textCapWords"
                     android:textSize="15sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -471,45 +533,21 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
-                android:hint="Garantía"
+                android:hint="Cargo"
                 app:boxCornerRadiusBottomEnd="12dp"
                 app:boxCornerRadiusBottomStart="12dp"
                 app:boxCornerRadiusTopEnd="12dp"
                 app:boxCornerRadiusTopStart="12dp"
-                app:startIconDrawable="@android:drawable/ic_lock_lock"
+                app:startIconDrawable="@android:drawable/ic_menu_info_details"
                 app:startIconTint="#4A90E2">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etGarantia"
+                    android:id="@+id/etFirmaCargo"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textCapSentences|textMultiLine"
+                    android:inputType="textCapWords"
                     android:textSize="15sp" />
             </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:hint="Notas adicionales (opcional)"
-                app:boxCornerRadiusBottomEnd="12dp"
-                app:boxCornerRadiusBottomStart="12dp"
-                app:boxCornerRadiusTopEnd="12dp"
-                app:boxCornerRadiusTopStart="12dp"
-                app:startIconDrawable="@android:drawable/ic_menu_edit"
-                app:startIconTint="#4A90E2">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etNotas"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textCapSentences|textMultiLine"
-                    android:textSize="15sp"
-                    android:minLines="3"
-                    android:gravity="top" />
-            </com.google.android.material.textfield.TextInputLayout>
-
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
 

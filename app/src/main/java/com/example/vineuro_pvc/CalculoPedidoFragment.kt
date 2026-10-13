@@ -298,8 +298,15 @@ class CalculoPedidoFragment : Fragment() {
 
         // 3. PDF OFERTA COMERCIAL
         dialogBinding.btnPdfOfertaComercial1.setOnClickListener {
-            Toast.makeText(requireContext(), "Generador de Oferta Comercial en desarrollo", Toast.LENGTH_SHORT).show()
             dialog.dismiss()
+            if (itemsOrden.isEmpty()) {
+                Toast.makeText(requireContext(), "Agrega al menos una ventana al pedido", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            // Guardar primero para que la oferta lea el pedido actualizado
+            guardarPedido(mostrarResultado = false)
+            val id = pedidoActual?.id ?: return@setOnClickListener
+            findNavController().navigate(R.id.OfertaComercialFragment, Bundle().apply { putString("pedido_id", id) })
         }
 
         // 4. PDF OFERTA COMERCIAL 2 (Desbloqueado)
@@ -309,6 +316,11 @@ class CalculoPedidoFragment : Fragment() {
         }
 
         // 5. CONFIGURAR REQUISITOS
+        dialogBinding.btnTerminosCondiciones.setOnClickListener {
+            dialog.dismiss()
+            DialogTerminos(this).mostrar()
+        }
+
         dialogBinding.btnConfigurarRequisitos.setOnClickListener {
             dialog.dismiss()
             DialogRequisitos(this).mostrar()

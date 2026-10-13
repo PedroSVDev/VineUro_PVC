@@ -17,7 +17,7 @@ import com.example.vineuro_pvc.databinding.DialogConfigurarRequisitosBinding
 import kotlinx.coroutines.launch
 
 /**
- * Ventana "Configurar requisitos": datos de la empresa y condiciones que se imprimen en el PDF.
+ * Ventana "Datos de la empresa": encabezado, contacto, lemas y firma que se imprimen en los PDF.
  * Muestra una vista previa en vivo del encabezado del PDF.
  */
 class DialogRequisitos(private val fragment: Fragment) {
@@ -51,8 +51,8 @@ class DialogRequisitos(private val fragment: Fragment) {
 
         // Vista previa en vivo
         listOf(
-            b.etCabecera, b.etEjecutante, b.etRuc, b.etDireccion, b.etTelefono, b.etCorreo,
-            b.etPaginaWeb, b.etValidez, b.etPlazoEntrega, b.etFormaPago, b.etGarantia, b.etNotas,
+            b.etCabecera, b.etEjecutante, b.etRuc, b.etDireccion, b.etTelefono, b.etTelefonoFijo, b.etCorreo,
+            b.etPaginaWeb, b.etFacebook, b.etLema1, b.etLema2, b.etFirmaNombre, b.etFirmaCargo,
         ).forEach { it.doAfterTextChanged { actualizarVistaPrevia() } }
 
         b.btnCerrarRequisitos.setOnClickListener { dialog.dismiss() }
@@ -77,7 +77,7 @@ class DialogRequisitos(private val fragment: Fragment) {
             b.btnGuardarRequisitos.isEnabled = false
             fragment.lifecycleScope.launch {
                 val error = repo.guardar(datos)
-                val msg = if (error == null) "Requisitos guardados ✅" else "Guardado en el teléfono. La nube respondió: $error"
+                val msg = if (error == null) "Datos de la empresa guardados ✅" else "Guardado en el teléfono. La nube respondió: $error"
                 Toast.makeText(appContext, msg, if (error == null) Toast.LENGTH_SHORT else Toast.LENGTH_LONG).show()
             }
             dialog.dismiss()
@@ -87,6 +87,7 @@ class DialogRequisitos(private val fragment: Fragment) {
     }
 
     private fun cargar(r: RequisitosDocumento) {
+        base = r
         b.etCabecera.setText(r.cabecera)
         b.etEjecutante.setText(r.ejecutante)
         b.etRuc.setText(r.ruc)
@@ -94,17 +95,21 @@ class DialogRequisitos(private val fragment: Fragment) {
         b.etTelefono.setText(r.telefono)
         b.etCorreo.setText(r.correo)
         b.etPaginaWeb.setText(r.paginaWeb)
-        b.etValidez.setText(r.validezDias)
-        b.etPlazoEntrega.setText(r.plazoEntrega)
-        b.etFormaPago.setText(r.formaPago)
-        b.etGarantia.setText(r.garantia)
-        b.etNotas.setText(r.notas)
+        b.etTelefonoFijo.setText(r.telefonoFijo)
+        b.etFacebook.setText(r.facebook)
+        b.etLema1.setText(r.lema1)
+        b.etLema2.setText(r.lema2)
+        b.etFirmaNombre.setText(r.firmaNombre)
+        b.etFirmaCargo.setText(r.firmaCargo)
         actualizarVistaPrevia()
     }
 
     private fun texto(e: android.widget.EditText) = e.text?.toString()?.trim() ?: ""
 
-    private fun leer() = RequisitosDocumento(
+    /** Copia de lo guardado: conserva los campos que ya no se editan aquí (validez, etc.). */
+    private var base: RequisitosDocumento = RequisitosDocumento()
+
+    private fun leer() = base.copy(
         cabecera = texto(b.etCabecera),
         ejecutante = texto(b.etEjecutante),
         ruc = texto(b.etRuc),
@@ -112,11 +117,12 @@ class DialogRequisitos(private val fragment: Fragment) {
         telefono = texto(b.etTelefono),
         correo = texto(b.etCorreo),
         paginaWeb = texto(b.etPaginaWeb),
-        validezDias = texto(b.etValidez),
-        plazoEntrega = texto(b.etPlazoEntrega),
-        formaPago = texto(b.etFormaPago),
-        garantia = texto(b.etGarantia),
-        notas = texto(b.etNotas),
+        telefonoFijo = texto(b.etTelefonoFijo),
+        facebook = texto(b.etFacebook),
+        lema1 = texto(b.etLema1),
+        lema2 = texto(b.etLema2),
+        firmaNombre = texto(b.etFirmaNombre),
+        firmaCargo = texto(b.etFirmaCargo),
     )
 
     private fun actualizarVistaPrevia() {
@@ -127,17 +133,17 @@ class DialogRequisitos(private val fragment: Fragment) {
             r.direccion.takeIf { it.isNotBlank() },
         ).filterNotNull().joinToString(" · ").ifBlank { "RUC · Dirección" }
         b.tvPrevContacto.text = listOf(
-            r.telefono.takeIf { it.isNotBlank() }?.let { "Tel. $it" },
+            r.telefono.takeIf { it.isNotBlank() }?.let { "Cel. $it" },
+            r.telefonoFijo.takeIf { it.isNotBlank() }?.let { "TF. $it" },
             r.correo.takeIf { it.isNotBlank() },
             r.paginaWeb.takeIf { it.isNotBlank() },
-        ).filterNotNull().joinToString("  ·  ").ifBlank { "Teléfono · Correo · Página web" }
+            r.facebook.takeIf { it.isNotBlank() }?.let { "Facebook: $it" },
+        ).filterNotNull().joinToString("  ·  ").ifBlank { "Celular · Correo · Página web" }
         b.tvPrevCabecera.text = r.cabecera.ifBlank { "Oferta comercial" }
         b.tvPrevCondiciones.text = buildString {
-            if (r.validezDias.isNotBlank()) append("• Validez de la oferta: ${r.validezDias} días\n")
-            if (r.plazoEntrega.isNotBlank()) append("• Plazo de entrega: ${r.plazoEntrega}\n")
-            if (r.formaPago.isNotBlank()) append("• Forma de pago: ${r.formaPago}\n")
-            if (r.garantia.isNotBlank()) append("• Garantía: ${r.garantia}\n")
-            if (r.notas.isNotBlank()) append("• ${r.notas}")
+            if (r.lema1.isNotBlank()) append(r.lema1).append("\n")
+            if (r.lema2.isNotBlank()) append(r.lema2).append("\n")
+            if (r.firmaNombre.isNotBlank() || r.firmaCargo.isNotBlank()) append("\nFirma: ${r.firmaNombre} — ${r.firmaCargo}")
         }.trimEnd()
     }
 }

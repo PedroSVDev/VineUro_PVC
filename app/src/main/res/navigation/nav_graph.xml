@@ -99,6 +99,12 @@
     </fragment>
 
     <fragment
+        android:id="@+id/OfertaComercialFragment"
+        android:name="com.example.vineuro_pvc.OfertaComercialFragment"
+        android:label="Oferta comercial"
+        tools:layout="@layout/fragment_oferta_comercial" />
+
+    <fragment
         android:id="@+id/PdfPreviewFragment"
         android:name="com.example.vineuro_pvc.PdfPreviewFragment"
         android:label="Vista Previa de Oferta PDF"
