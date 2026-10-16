@@ -192,36 +192,22 @@ class WindowPreviewView @JvmOverloads constructor(
         this.config = windowConfig
         this.showTechnicalDetails = isTechnicalMode
 
-        val rows = when (windowConfig.layoutType) {
-            WindowConfig.LayoutType.TOP_TRANSOM,
-            WindowConfig.LayoutType.BOTTOM_TRANSOM,
-            WindowConfig.LayoutType.DOOR_L_LEFT,
-            WindowConfig.LayoutType.DOOR_L_RIGHT,
-            WindowConfig.LayoutType.DOOR_T_CENTER,
-            WindowConfig.LayoutType.DOOR_L_LEFT_TRANSOM,
-            WindowConfig.LayoutType.DOOR_L_RIGHT_TRANSOM,
-            WindowConfig.LayoutType.DOOR_T_CENTER_TRANSOM -> 2
-
-            WindowConfig.LayoutType.TOP_BOTTOM_TRANSOM -> 3
-
-            else -> maxOf(1, windowConfig.rows)
-        }
-
-        val cols = when (windowConfig.layoutType) {
-            WindowConfig.LayoutType.DOOR_T_CENTER,
-            WindowConfig.LayoutType.DOOR_T_CENTER_TRANSOM -> maxOf(3, windowConfig.cols)
-
-            WindowConfig.LayoutType.DOOR_L_LEFT,
-            WindowConfig.LayoutType.DOOR_L_RIGHT,
-            WindowConfig.LayoutType.DOOR_L_LEFT_TRANSOM,
-            WindowConfig.LayoutType.DOOR_L_RIGHT_TRANSOM -> maxOf(2, windowConfig.cols)
-
-            else -> maxOf(1, windowConfig.cols)
-        }
+        val rows = windowConfig.filasActivas()
+        val cols = windowConfig.colsActivas()
 
         val currentTotalH = if (sectionHeights.isNotEmpty()) sectionHeights.sum() else 1800f
         val currentTotalW = if (sectionWidths.isNotEmpty()) sectionWidths.sum() else 1500f
 
+        val modelo = windowConfig.modeloOriginal
+        if (modelo != null) {
+            // Modelos de la original: tamaño y secciones iniciales según su estructura
+            if (isNewConfig || sectionHeights.size != rows || sectionWidths.size != cols) {
+                val (aw, ah) = com.example.vineuro_pvc.data.ModelosOriginales.seccionesPorDefecto(
+                    modelo, if (isNewConfig) modelo.anchoMm.toFloat() else currentTotalW, if (isNewConfig) modelo.altoMm.toFloat() else currentTotalH,
+                )
+                sectionWidths = aw; sectionHeights = ah
+            }
+        } else {
         if (isNewConfig || sectionHeights.size != rows) {
             sectionHeights = if (rows == 2) {
                 floatArrayOf(600f, (currentTotalH - 600f).coerceAtLeast(50f))
@@ -234,6 +220,7 @@ class WindowPreviewView @JvmOverloads constructor(
         if (isNewConfig || sectionWidths.size != cols) {
             val defaultW = currentTotalW / cols
             sectionWidths = FloatArray(cols) { defaultW }
+        }
         }
 
         if (resetMechanisms) {
@@ -761,7 +748,44 @@ class WindowPreviewView @JvmOverloads constructor(
         pxPorMm = drawW / totalW
 
         drawWindowConfig(canvas, windowRect, cfg)
+        if (showDiagonals) drawDiagonales(canvas, windowRect, cfg)
         drawDimensionLines(canvas, windowRect, cfg)
+    }
+
+    /** Muestra las diagonales de cada marco con su medida (sirve para comprobar la escuadra al armar). */
+    var showDiagonals: Boolean = false
+        set(v) { field = v; invalidate() }
+
+    private val diagonalPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFFD32F2F.toInt(); style = Paint.Style.STROKE; strokeWidth = dpToPx(1.4f)
+        pathEffect = android.graphics.DashPathEffect(floatArrayOf(dpToPx(6f), dpToPx(4f)), 0f)
+    }
+    private val diagonalTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFFFFFFFF.toInt(); textSize = dpToPx(11f); textAlign = Paint.Align.CENTER; isFakeBoldText = true
+    }
+    private val diagonalFondoPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFD32F2F.toInt() }
+
+    private fun drawDiagonales(canvas: Canvas, rect: RectF, cfg: WindowConfig) {
+        // Un marco por base: en las ventanas L / T cada bloque tiene sus propias diagonales
+        val marcos = ArrayList<RectF>()
+        val mo = cfg.modeloOriginal
+        if (cfg.layoutType == WindowConfig.LayoutType.ARBOL && mo != null) {
+            val pl = com.example.vineuro_pvc.data.ModelosOriginales.plano(mo, anchoTotalMm.toDouble(), altoTotalMm.toDouble(), sectionWidths, sectionHeights)
+            val k = pxPorMm
+            pl.bases.forEach { marcos += RectF(rect.left + it.x0.toFloat() * k, rect.top + it.y0.toFloat() * k, rect.left + it.x1.toFloat() * k, rect.top + it.y1.toFloat() * k) }
+        }
+        if (marcos.isEmpty()) marcos += rect
+        val k = pxPorMm.coerceAtLeast(1e-6f)
+        for (m in marcos) {
+            canvas.drawLine(m.left, m.top, m.right, m.bottom, diagonalPaint)
+            canvas.drawLine(m.right, m.top, m.left, m.bottom, diagonalPaint)
+            val mm = Math.round(Math.hypot((m.width() / k).toDouble(), (m.height() / k).toDouble())).toInt()
+            val txt = Unidades.mostrar(mm)
+            val tw = diagonalTextPaint.measureText(txt)
+            val cx = m.centerX(); val cy = m.centerY()
+            canvas.drawRoundRect(cx - tw / 2 - dpToPx(4f), cy - dpToPx(9f), cx + tw / 2 + dpToPx(4f), cy + dpToPx(9f), dpToPx(4f), dpToPx(4f), diagonalFondoPaint)
+            canvas.drawText(txt, cx, cy + dpToPx(4f), diagonalTextPaint)
+        }
     }
 
     /** Píxeles por milímetro de la ventana dibujada (para dibujar las hojas de las aperturas múltiples a escala). */
@@ -769,7 +793,7 @@ class WindowPreviewView @JvmOverloads constructor(
 
     private fun drawWindowConfig(canvas: Canvas, rect: RectF, cfg: WindowConfig) {
         pxPorMm = rect.width() / anchoTotalMm.toFloat().coerceAtLeast(1f)
-        if (showShadows) {
+        if (showShadows && cfg.layoutType != WindowConfig.LayoutType.ARBOL) {
             canvas.drawRect(rect.left + dpToPx(2.5f), rect.top + dpToPx(2.5f), rect.right + dpToPx(2.5f), rect.bottom + dpToPx(2.5f), shadowPaint)
         }
         val frameThickness = if (showTechnicalDetails) dpToPx(7f) else dpToPx(3f)
@@ -786,6 +810,7 @@ class WindowPreviewView @JvmOverloads constructor(
             WindowConfig.LayoutType.DOOR_L_RIGHT_TRANSOM -> drawDoorL(canvas, rect, isLeftDoor = false, hasTransom = true, frameThickness)
             WindowConfig.LayoutType.DOOR_T_CENTER_TRANSOM -> drawDoorT(canvas, rect, hasTransom = true, frameThickness)
             WindowConfig.LayoutType.ASYMMETRIC_SPLIT -> drawAsymmetric(canvas, rect, cfg.cols, cfg.rows, frameThickness)
+            WindowConfig.LayoutType.ARBOL -> drawArbol(canvas, rect, cfg, frameThickness)
         }
     }
 
@@ -872,41 +897,7 @@ class WindowPreviewView @JvmOverloads constructor(
             canvas.drawRect(glassL, glassT, glassR, glassB, frameBorderPaint)
             dibujarBarrasVidrio(canvas, RectF(glassL, glassT, glassR, glassB), paneIndex, 0)
         } else {
-            // Imposta interior de la hoja (como la original): 2 o 3 vidrios repartidos a partes iguales
-            val horizontal = imp <= 2
-            val n = if (imp % 2 == 1) 2 else 3
-            val mask = paneSandwichSub[paneIndex] ?: (if (isSandwich) 7 else 0)
-            val bar = dpToPx(3f)
-            val total = if (horizontal) glassB - glassT else glassR - glassL
-            // Posición de las impostas: reparto igual o los offsets (mm) guardados para el paño
-            val offs = paneImpOff[paneIndex]?.split(",")?.map { it.trim().toFloatOrNull() } ?: emptyList()
-            fun corte(k: Int): Float {
-                val porDefecto = total * (k + 1) / n
-                val o0 = offs.getOrNull(0); val o1 = offs.getOrNull(1)
-                val v = when (imp) {
-                    1 -> o0?.let { total - it * pxPorMm }
-                    2 -> if (k == 0) o0?.let { it * pxPorMm } else o1?.let { total - it * pxPorMm }
-                    3 -> o0?.let { it * pxPorMm }
-                    else -> if (k == 0) o0?.let { it * pxPorMm } else o1?.let { total - it * pxPorMm }
-                } ?: porDefecto
-                return v.coerceIn(total * 0.08f, total * 0.92f)
-            }
-            val bordes = FloatArray(n + 1) { k -> if (k == 0) 0f else if (k == n) total else corte(k - 1) }
-            for (i in 0 until n) {
-                val a = bordes[i] + (if (i > 0) bar / 2 else 0f)
-                val b = bordes[i + 1] - (if (i < n - 1) bar / 2 else 0f)
-                val r = if (horizontal) RectF(glassL, glassT + a, glassR, glassT + b) else RectF(glassL + a, glassT, glassL + b, glassB)
-                canvas.drawRect(r, if (((mask shr i) and 1) == 1) sandwichPaint else glassPaint)
-                canvas.drawRect(r, frameBorderPaint)
-                dibujarBarrasVidrio(canvas, r, paneIndex, i)
-            }
-            for (i in 1 until n) {
-                val c = bordes[i]
-                val r = if (horizontal) RectF(glassL, glassT + c - bar / 2, glassR, glassT + c + bar / 2)
-                else RectF(glassL + c - bar / 2, glassT, glassL + c + bar / 2, glassB)
-                canvas.drawRect(r, framePaint)
-                canvas.drawRect(r, frameBorderPaint)
-            }
+            dibujarVidriosImposta(canvas, glassL, glassT, glassR, glassB, paneIndex, imp, paneSandwichSub[paneIndex] ?: (if (isSandwich) 7 else 0))
         }
 
         if (showShadows && glassR - glassL > dpToPx(6f) && glassB - glassT > dpToPx(6f)) {
@@ -1024,6 +1015,47 @@ class WindowPreviewView @JvmOverloads constructor(
     }
 
     /**
+     * Vidrio de una hoja con imposta interior (como la original): 2 o 3 vidrios con la(s) imposta(s) en la posición guardada
+     * (o repartidos a partes iguales). [imp]: 1 hor. x1, 2 hor. x2, 3 ver. x1, 4 ver. x2; [mask] = bits de sándwich por vidrio.
+     */
+    private fun dibujarVidriosImposta(canvas: Canvas, glassL: Float, glassT: Float, glassR: Float, glassB: Float, paneIndex: Int, imp: Int, mask: Int) {
+        // Imposta interior de la hoja (como la original): 2 o 3 vidrios repartidos a partes iguales
+        val horizontal = imp <= 2
+        val n = if (imp % 2 == 1) 2 else 3
+        val bar = dpToPx(3f)
+        val total = if (horizontal) glassB - glassT else glassR - glassL
+        // Posición de las impostas: reparto igual o los offsets (mm) guardados para el paño
+        val offs = paneImpOff[paneIndex]?.split(",")?.map { it.trim().toFloatOrNull() } ?: emptyList()
+        fun corte(k: Int): Float {
+            val porDefecto = total * (k + 1) / n
+            val o0 = offs.getOrNull(0); val o1 = offs.getOrNull(1)
+            val v = when (imp) {
+                1 -> o0?.let { total - it * pxPorMm }
+                2 -> if (k == 0) o0?.let { it * pxPorMm } else o1?.let { total - it * pxPorMm }
+                3 -> o0?.let { it * pxPorMm }
+                else -> if (k == 0) o0?.let { it * pxPorMm } else o1?.let { total - it * pxPorMm }
+            } ?: porDefecto
+            return v.coerceIn(total * 0.08f, total * 0.92f)
+        }
+        val bordes = FloatArray(n + 1) { k -> if (k == 0) 0f else if (k == n) total else corte(k - 1) }
+        for (i in 0 until n) {
+            val a = bordes[i] + (if (i > 0) bar / 2 else 0f)
+            val b = bordes[i + 1] - (if (i < n - 1) bar / 2 else 0f)
+            val r = if (horizontal) RectF(glassL, glassT + a, glassR, glassT + b) else RectF(glassL + a, glassT, glassL + b, glassB)
+            canvas.drawRect(r, if (((mask shr i) and 1) == 1) sandwichPaint else glassPaint)
+            canvas.drawRect(r, frameBorderPaint)
+            dibujarBarrasVidrio(canvas, r, paneIndex, i)
+        }
+        for (i in 1 until n) {
+            val c = bordes[i]
+            val r = if (horizontal) RectF(glassL, glassT + c - bar / 2, glassR, glassT + c + bar / 2)
+            else RectF(glassL + c - bar / 2, glassT, glassL + c + bar / 2, glassB)
+            canvas.drawRect(r, framePaint)
+            canvas.drawRect(r, frameBorderPaint)
+        }
+    }
+
+    /**
      * Apertura de varias hojas (corredizas múltiples/verticales y puerta francesa) con las medidas de la original:
      * cada hoja es un contorno con su vidrio, flecha de corrida (o bisagras en la francesa) y manija.
      */
@@ -1036,6 +1068,7 @@ class WindowPreviewView @JvmOverloads constructor(
         val wM = (pR - pL) / pxM.toDouble()
         val hM = (pB - pT) / pxM.toDouble()
         val hojas = AperturasMulti.hojas(mec, wM, hM, isPuerta)
+        val impMulti = (paneCols[paneIndex] ?: 0).let { if (it in 11..14) it - 10 else 0 }.takeIf { AperturasMulti.impostaPermitida(mec, it) } ?: 0
         if (showShadows) canvas.drawRect(pL + dpToPx(1.2f), pT + dpToPx(1.2f), pR + dpToPx(1.2f), pB + dpToPx(1.2f), shadowPaint)
         canvas.drawRect(pL, pT, pR, pB, frameBorderPaint)
         val esFrancesa = AperturasMulti.grupo(mec) == AperturasMulti.Grupo.FRANCESA
@@ -1050,10 +1083,15 @@ class WindowPreviewView @JvmOverloads constructor(
             canvas.drawRect(ol, ot, orr, ob, frameBorderPaint)
             if (gr <= gl || gb <= gt) continue
             // Cada hoja se configura por separado (sándwich por bit; sin dato = el del paño)
-            val hojaSandwich = paneSandwichSub[paneIndex]?.let { ((it shr i) and 1) == 1 } ?: isSandwich
-            canvas.drawRect(gl, gt, gr, gb, if (hojaSandwich) sandwichPaint else glassPaint)
-            canvas.drawRect(gl, gt, gr, gb, frameBorderPaint)
-            dibujarBarrasVidrio(canvas, RectF(gl, gt, gr, gb), paneIndex, i)
+            if (impMulti > 0) {
+                // Imposta interior: cada hoja se parte igual y los datos (sándwich, barras) son por vidrio, iguales en todas las hojas
+                dibujarVidriosImposta(canvas, gl, gt, gr, gb, paneIndex, impMulti, paneSandwichSub[paneIndex] ?: (if (isSandwich) 7 else 0))
+            } else {
+                val hojaSandwich = paneSandwichSub[paneIndex]?.let { ((it shr i) and 1) == 1 } ?: isSandwich
+                canvas.drawRect(gl, gt, gr, gb, if (hojaSandwich) sandwichPaint else glassPaint)
+                canvas.drawRect(gl, gt, gr, gb, frameBorderPaint)
+                dibujarBarrasVidrio(canvas, RectF(gl, gt, gr, gb), paneIndex, i)
+            }
             if (isMosq && h.movil) {
                 val sx = (gr - gl) / 14f; val sy = (gb - gt) / 14f
                 for (k in 1..13) {
@@ -1153,36 +1191,9 @@ class WindowPreviewView @JvmOverloads constructor(
         }
     }
 
-    private fun getActiveLayoutRows(cfg: WindowConfig): Int {
-        return when (cfg.layoutType) {
-            WindowConfig.LayoutType.TOP_TRANSOM,
-            WindowConfig.LayoutType.BOTTOM_TRANSOM,
-            WindowConfig.LayoutType.DOOR_L_LEFT,
-            WindowConfig.LayoutType.DOOR_L_RIGHT,
-            WindowConfig.LayoutType.DOOR_T_CENTER,
-            WindowConfig.LayoutType.DOOR_L_LEFT_TRANSOM,
-            WindowConfig.LayoutType.DOOR_L_RIGHT_TRANSOM,
-            WindowConfig.LayoutType.DOOR_T_CENTER_TRANSOM -> 2
+    private fun getActiveLayoutRows(cfg: WindowConfig): Int = cfg.filasActivas()
 
-            WindowConfig.LayoutType.TOP_BOTTOM_TRANSOM -> 3
-
-            else -> maxOf(1, cfg.rows)
-        }
-    }
-
-    private fun getActiveLayoutCols(cfg: WindowConfig): Int {
-        return when (cfg.layoutType) {
-            WindowConfig.LayoutType.DOOR_T_CENTER,
-            WindowConfig.LayoutType.DOOR_T_CENTER_TRANSOM -> maxOf(3, cfg.cols)
-
-            WindowConfig.LayoutType.DOOR_L_LEFT,
-            WindowConfig.LayoutType.DOOR_L_RIGHT,
-            WindowConfig.LayoutType.DOOR_L_LEFT_TRANSOM,
-            WindowConfig.LayoutType.DOOR_L_RIGHT_TRANSOM -> maxOf(2, cfg.cols)
-
-            else -> maxOf(1, cfg.cols)
-        }
-    }
+    private fun getActiveLayoutCols(cfg: WindowConfig): Int = cfg.colsActivas()
 
     private fun drawGrid(canvas: Canvas, rect: RectF, cols: Int, rows: Int, t: Float) {
         canvas.drawRect(rect, framePaint)
@@ -1410,6 +1421,44 @@ class WindowPreviewView @JvmOverloads constructor(
             drawPaneWithMechanism(canvas, iL + padding, iT + padding, splitLeftX - padding, windowBottomY - padding, paneIndex = 0)
             drawPaneWithMechanism(canvas, splitRightX + padding, iT + padding, iR - padding, windowBottomY - padding, paneIndex = 2)
             drawPaneWithMechanism(canvas, splitLeftX + padding, iT + padding, splitRightX - padding, iB - padding, paneIndex = 1)
+        }
+    }
+
+    /**
+     * Modelos de la original: cada paño se dibuja con la estructura exacta decodificada de su fórmula (ver ModelosOriginales).
+     * Los huecos vacíos (ventanas en L / T) no se dibujan; los lados que dan al vacío o al exterior llevan el marco completo.
+     */
+    private fun drawArbol(canvas: Canvas, rect: RectF, cfg: WindowConfig, t: Float) {
+        val mo = cfg.modeloOriginal ?: return
+        val w = anchoTotalMm.toFloat().coerceAtLeast(1f)
+        val h = altoTotalMm.toFloat().coerceAtLeast(1f)
+        val k = minOf(rect.width() / w, rect.height() / h)
+        val ox = rect.left + (rect.width() - w * k) / 2f
+        val oy = rect.top + (rect.height() - h * k) / 2f
+        pxPorMm = k
+        val plano = com.example.vineuro_pvc.data.ModelosOriginales.plano(mo, w.toDouble(), h.toDouble(), sectionWidths, sectionHeights)
+        val pad = dpToPx(1f)
+        if (showShadows) {
+            for (c in plano.celdas) {
+                val sh = dpToPx(2.5f)
+                canvas.drawRect(ox + c.x0.toFloat() * k + sh, oy + c.y0.toFloat() * k + sh, ox + c.x1.toFloat() * k + sh, oy + c.y1.toFloat() * k + sh, shadowPaint)
+            }
+        }
+        for (c in plano.celdas) {
+            val l = ox + c.x0.toFloat() * k; val tp = oy + c.y0.toFloat() * k
+            val r = ox + c.x1.toFloat() * k; val b = oy + c.y1.toFloat() * k
+            canvas.drawRect(l, tp, r, b, framePaint)
+            canvas.drawRect(l, tp, r, b, frameBorderPaint)
+        }
+        for ((i, c) in plano.celdas.withIndex()) {
+            val l = ox + c.x0.toFloat() * k; val tp = oy + c.y0.toFloat() * k
+            val r = ox + c.x1.toFloat() * k; val b = oy + c.y1.toFloat() * k
+            drawPaneWithMechanism(
+                canvas,
+                l + (if (c.izq) t else pad), tp + (if (c.arr) t else pad),
+                r - (if (c.der) t else pad), b - (if (c.aba) t else pad),
+                paneIndex = i, row = 0, col = i,
+            )
         }
     }
 

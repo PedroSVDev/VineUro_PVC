@@ -23,6 +23,10 @@ class PedidosAdapter(
 
     private var lista: List<Pedido> = emptyList()
 
+    /** Casilla "ICONS" de la original: mostrar u ocultar las miniaturas. */
+    var mostrarIconos: Boolean = true
+        set(v) { field = v; notifyDataSetChanged() }
+
     /** Miniaturas de la primera ventana de cada pedido (se dibujan una vez y se guardan). */
     private val miniaturas = LruCache<String, Bitmap>(60)
     private var dibujante: com.example.vineuro_pvc.views.WindowPreviewView? = null
@@ -56,7 +60,8 @@ class PedidosAdapter(
     inner class PedidoViewHolder(private val b: ItemPedidoBinding) : RecyclerView.ViewHolder(b.root) {
         fun bind(p: Pedido) {
             b.tvBadgeVentanas.text = p.totalVentanas.toString()
-            b.imgMiniatura.setImageBitmap(miniatura(b.root.context, p))
+            b.imgMiniatura.visibility = if (mostrarIconos) android.view.View.VISIBLE else android.view.View.GONE
+            if (mostrarIconos) b.imgMiniatura.setImageBitmap(miniatura(b.root.context, p))
             b.tvCodigoPedido.text = p.codigo
             val cliente = p.clienteNombre.ifBlank { "Cliente sin nombre" }
             b.tvClientePedido.text = if (p.idOferta.isBlank()) cliente else "$cliente : ${p.idOferta}"

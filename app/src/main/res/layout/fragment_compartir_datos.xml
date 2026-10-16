@@ -7,13 +7,13 @@
     android:background="#EFEFEF"
     tools:context=".CompartirDatosFragment">
 
-    <!-- Top Header Title: PVC Windows Studio V44.4 -->
+    <!-- Título de la app -->
     <com.example.vineuro_pvc.views.StrokeTextView
         android:id="@+id/tv_title_app"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="28dp"
-        android:text="PVC Windows Studio V44.4"
+        android:text="@string/app_brand"
         android:textColor="#FFFFFF"
         android:textSize="20sp"
         android:textStyle="bold"

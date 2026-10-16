@@ -71,7 +71,14 @@ object CalculadoraPrecios {
         val hojasDetalle: List<HojaCalc>,
         val lamInternaM2: Double,     // superficie de perfil a laminar, cara interior
         val lamExternaM2: Double,     // superficie de perfil a laminar, cara exterior
-    )
+        /** Bases (marcos rectangulares): una por bloque en las ventanas L / T, una en las demás. */
+        val bases: List<ReglasBases.BaseDim> = emptyList(),
+        /** Metros de perfiles adicionales y anchos de umbral, ya con las reglas por base de la original. */
+        val adic: ReglasBases.Metros? = null,
+    ) {
+        /** Esquineros de refuerzo del marco: 4 por base. */
+        val esquinerosMarco: Int get() = 4 * bases.size.coerceAtLeast(1)
+    }
 
     /** Costos (sin margen) por concepto, en la moneda base de la lista de precios. */
     data class Costos(
@@ -144,7 +151,7 @@ object CalculadoraPrecios {
         fun s(c: Int) = num(sistema, c)
 
         // Marco: perímetro x (perfil + refuerzo) + 4 esquineros de refuerzo
-        val marco = q.marcoM * (s(COL_MARCO) + s(COL_REFUERZO_MARCO)) + 4 * s(COL_ESQUINERO_MARCO)
+        val marco = q.marcoM * (s(COL_MARCO) + s(COL_REFUERZO_MARCO)) + q.esquinerosMarco * s(COL_ESQUINERO_MARCO)
 
         // Imposta: longitud x (perfil + refuerzo) + 2 conectores por pieza
         val imposta = q.impostaM * (s(COL_IMPOSTA) + s(COL_REFUERZO_IMPOSTA)) + q.impostaN * s(COL_CONECTOR_IMPOSTA) * 2
@@ -204,12 +211,13 @@ object CalculadoraPrecios {
         var accesorios = 0.0
         var cUmbExt = 0.0; var qUmbExt = 0.0
         var cUmbInt = 0.0; var qUmbInt = 0.0
+        val anchosUmbral = q.adic?.anchosUmbral?.takeIf { it.isNotEmpty() } ?: listOf(anchoM)
         op.umbralesExternos.forEach { n -> fila(precios.umbralExt, n)?.let {
-            val c = precioUmbral(it, anchoM); cUmbExt += c; accesorios += c
-            qUmbExt += piezasUmbral(it, anchoM).sumOf { p -> p.first * p.second } } }
+            val c = precioUmbral(it, anchosUmbral); cUmbExt += c; accesorios += c
+            qUmbExt += piezasUmbral(it, anchosUmbral).sumOf { p -> p.first * p.second } } }
         op.umbralesInternos.forEach { n -> fila(precios.umbralInt, n)?.let {
-            val c = precioUmbral(it, anchoM); cUmbInt += c; accesorios += c
-            qUmbInt += piezasUmbral(it, anchoM).sumOf { p -> p.first * p.second } } }
+            val c = precioUmbral(it, anchosUmbral); cUmbInt += c; accesorios += c
+            qUmbInt += piezasUmbral(it, anchosUmbral).sumOf { p -> p.first * p.second } } }
         var cMueble = 0.0
         op.mueble?.let { n ->
             // La original (pk_e3.b) cobra UNA manija "regular" (columna 1) por cada hoja que no sea fija, puertas incluidas;
@@ -227,34 +235,26 @@ object CalculadoraPrecios {
         accesorios += cMosq
         // Perfiles adicionales (selección del panel de la ventana)
         var cAsiento = 0.0; var cDorsill = 0.0; var cJamba = 0.0
-        if ("perfil del asiento" in op.adicionales) cAsiento = q.anchoM * s(COL_PERFIL_ASIENTO)
-        if ("dorsill" in op.adicionales) cDorsill = q.anchoM * s(COL_DORSILL)
-        if ("jamba de la esquina" in op.adicionales) cJamba = q.altoM * s(COL_JAMBA_ESQUINA)
+        val am = q.adic ?: ReglasBases.metros(listOf(ReglasBases.BaseDim(q.anchoM, q.altoM)), op)
+        cAsiento = am.asiento * s(COL_PERFIL_ASIENTO)
+        cDorsill = am.dorsill * s(COL_DORSILL)
+        cJamba = am.jamba * s(COL_JAMBA_ESQUINA)
         accesorios += cAsiento + cDorsill + cJamba
         // Costo y metros por tipo de perfil de lado (juntas, 90°, 135°, huecos y extensores 15..100)
         val cPerfil = mutableMapOf<String, Double>()
         val qPerfil = mutableMapOf<String, Double>()
-        // Lados: 0 izquierda, 1 arriba, 2 abajo, 3 derecha (izq./der. miden el alto; arriba/abajo el ancho)
-        fun largoLado(lado: Int) = if (lado == 0 || lado == 3) q.altoM else q.anchoM
-        op.perfiles.forEach { clave ->
-            val p = clave.split(":")
-            val lado = p.lastOrNull()?.toIntOrNull() ?: return@forEach
-            val col = when {
-                p[0] == "juntas" -> COL_JUNTA
-                p[0] == "juntas90" -> COL_JUNTA_90
-                p[0] == "juntas135" -> COL_JUNTA_135
-                p[0] == "huecos" -> COL_HUECO
-                p[0] == "extensor" && p.size == 3 -> when (p[1]) {
-                    "15" -> COL_EXT_15; "20" -> COL_EXT_20; "40" -> COL_EXT_40
-                    "60" -> COL_EXT_60; "80" -> COL_EXT_80; "100" -> COL_EXT_100
-                    else -> return@forEach
-                }
-                else -> return@forEach
-            }
-            accesorios += largoLado(lado) * s(col)
-            val tipo = if (p[0] == "extensor") "ext" + p[1] else p[0]
-            cPerfil[tipo] = (cPerfil[tipo] ?: 0.0) + largoLado(lado) * s(col)
-            qPerfil[tipo] = (qPerfil[tipo] ?: 0.0) + largoLado(lado)
+        // Metros por tipo según las reglas por base (ver ReglasBases): juntas, 90°, 135°, huecos y extensores 15..100
+        val colTipo = mapOf(
+            "juntas" to COL_JUNTA, "juntas90" to COL_JUNTA_90, "juntas135" to COL_JUNTA_135, "huecos" to COL_HUECO,
+            "ext15" to COL_EXT_15, "ext20" to COL_EXT_20, "ext40" to COL_EXT_40, "ext60" to COL_EXT_60,
+            "ext80" to COL_EXT_80, "ext100" to COL_EXT_100,
+        )
+        for ((tipo, col) in colTipo) {
+            val m = am.porTipo[tipo] ?: 0.0
+            if (m == 0.0) continue
+            accesorios += m * s(col)
+            cPerfil[tipo] = m * s(col)
+            qPerfil[tipo] = m
         }
         var cExtras = 0.0
         op.extras.forEach { n -> precios.extras.find { it.nombre == n }?.let { cExtras += precioSeleccion(it, q) } }
@@ -317,9 +317,9 @@ object CalculadoraPrecios {
             lin("K", "muebles", 0.0, 2, cMueble),
             lin("L", "mosquitero", q.panosMosquitero.toDouble(), 2, cMosq),
             lin("M", "extras", 0.0, 2, cExtras),
-            lin("N", "perfil asiento", if ("perfil del asiento" in op.adicionales) q.anchoM else 0.0, 0, cAsiento),
-            lin("O", "dorsill", if ("dorsill" in op.adicionales) q.anchoM else 0.0, 0, cDorsill),
-            lin("P", "jamba esquina", if ("jamba de la esquina" in op.adicionales) q.altoM else 0.0, 0, cJamba),
+            lin("N", "perfil asiento", am.asiento, 0, cAsiento),
+            lin("O", "dorsill", am.dorsill, 0, cDorsill),
+            lin("P", "jamba esquina", am.jamba, 0, cJamba),
             lin("Q", "perf. juntas", qPerfil["juntas"] ?: 0.0, 0, cPerfil["juntas"] ?: 0.0),
             lin("Q1", "juntas 90°", qPerfil["juntas90"] ?: 0.0, 0, cPerfil["juntas90"] ?: 0.0),
             lin("Q2", "juntas 135°", qPerfil["juntas135"] ?: 0.0, 0, cPerfil["juntas135"] ?: 0.0),
@@ -369,7 +369,13 @@ object CalculadoraPrecios {
      * Piezas de umbral a comprar según la fila de Precios (columna 3, "1500x2 800x1" = mm x cantidad), como el
      * "override" de la original (pk_j5.c). Vacío o "-" = una sola pieza a la medida del ancho de la ventana.
      */
-    fun piezasUmbral(fila: List<String>?, anchoM: Double): List<Pair<Double, Int>> {
+    fun piezasUmbral(fila: List<String>?, anchoM: Double): List<Pair<Double, Int>> = piezasUmbral(fila, listOf(anchoM))
+
+    /**
+     * Con medidas fijas en la fila, esas son las piezas (no dependen de la ventana). Si no, una pieza por cada ancho de
+     * [anchos] (una por base con umbral en las ventanas L / T).
+     */
+    fun piezasUmbral(fila: List<String>?, anchos: List<Double>): List<Pair<Double, Int>> {
         val texto = fila?.getOrNull(3)?.trim().orEmpty()
         val piezas = texto.split(" ", ";", ",").mapNotNull { t ->
             val p = t.trim().lowercase().split("x")
@@ -377,12 +383,12 @@ object CalculadoraPrecios {
             val n = if (p.size > 1) p[1].toIntOrNull() ?: return@mapNotNull null else 1
             if (mm > 0 && n > 0) mm / 1000.0 to n else null
         }
-        return piezas.ifEmpty { listOf(anchoM to 1) }
+        return piezas.ifEmpty { anchos.map { it to 1 } }
     }
 
     /** Precio de un umbral: largo total x precio por metro + 2 tapones por cada pieza. */
-    private fun precioUmbral(fila: List<String>, anchoM: Double): Double {
-        val piezas = piezasUmbral(fila, anchoM)
+    private fun precioUmbral(fila: List<String>, anchos: List<Double>): Double {
+        val piezas = piezasUmbral(fila, anchos)
         return piezas.sumOf { it.first * it.second } * num(fila, 1) + piezas.sumOf { it.second } * 2 * num(fila, 2)
     }
 
@@ -405,7 +411,11 @@ object CalculadoraPrecios {
     }
 
     /** [impostaCortes]: longitud de CORTE (m) de cada pieza de imposta (entre caras de marco/imposta), para la guía de corte. */
-    data class Geometria(val panos: List<Pano>, val impostaM: Double, val impostaN: Int, val impostaCortes: List<Double> = emptyList())
+    data class Geometria(
+        val panos: List<Pano>, val impostaM: Double, val impostaN: Int, val impostaCortes: List<Double> = emptyList(),
+        /** Marcos (bases) de la ventana; vacío = uno solo del tamaño total. */
+        val bases: List<ReglasBases.BaseDim> = emptyList(),
+    )
 
     /** Hoja calculada: perímetro EXTERIOR de la hoja (hueco + 13 mm por lado) y su tipo. */
     data class HojaCalc(
@@ -427,21 +437,9 @@ object CalculadoraPrecios {
         else DoubleArray(n) { totalMm / 1000.0 / n }
     }
 
-    private fun filasActivas(c: WindowConfig): Int = when (c.layoutType) {
-        WindowConfig.LayoutType.TOP_TRANSOM, WindowConfig.LayoutType.BOTTOM_TRANSOM,
-        WindowConfig.LayoutType.DOOR_L_LEFT, WindowConfig.LayoutType.DOOR_L_RIGHT, WindowConfig.LayoutType.DOOR_T_CENTER,
-        WindowConfig.LayoutType.DOOR_L_LEFT_TRANSOM, WindowConfig.LayoutType.DOOR_L_RIGHT_TRANSOM,
-        WindowConfig.LayoutType.DOOR_T_CENTER_TRANSOM -> 2
-        WindowConfig.LayoutType.TOP_BOTTOM_TRANSOM -> 3
-        else -> max(1, c.rows)
-    }
+    private fun filasActivas(c: WindowConfig): Int = c.filasActivas()
 
-    private fun colsActivas(c: WindowConfig): Int = when (c.layoutType) {
-        WindowConfig.LayoutType.DOOR_T_CENTER, WindowConfig.LayoutType.DOOR_T_CENTER_TRANSOM -> max(3, c.cols)
-        WindowConfig.LayoutType.DOOR_L_LEFT, WindowConfig.LayoutType.DOOR_L_RIGHT,
-        WindowConfig.LayoutType.DOOR_L_LEFT_TRANSOM, WindowConfig.LayoutType.DOOR_L_RIGHT_TRANSOM -> max(2, c.cols)
-        else -> max(1, c.cols)
-    }
+    private fun colsActivas(c: WindowConfig): Int = c.colsActivas()
 
     private class Base(val idx: Int, val w: Double, val h: Double, val l: Boolean, val t: Boolean, val r: Boolean, val b: Boolean)
 
@@ -457,6 +455,7 @@ object CalculadoraPrecios {
         var imposta = 0.0
         var piezas = 0
         val cortes = mutableListOf<Double>()
+        val basesVentana = mutableListOf<ReglasBases.BaseDim>()
         /** Largo libre de una pieza de imposta: total - 48 mm si apoya en marco, - 26 mm (media imposta) si apoya en otra imposta. */
         fun hueco(total: Double, iniMarco: Boolean, finMarco: Boolean) =
             (total - (if (iniMarco) ANCHO_MARCO_M else ANCHO_IMPOSTA_M / 2) - (if (finMarco) ANCHO_MARCO_M else ANCHO_IMPOSTA_M / 2)).coerceAtLeast(0.0)
@@ -530,6 +529,19 @@ object CalculadoraPrecios {
                 imposta = 2 * altoVentana; piezas = 2
                 repeat(2) { cortes += hueco(altoVentana, true, true) }
             }
+            WindowConfig.LayoutType.ARBOL -> {
+                // Modelos de la original: paños, impostas y apoyos en el marco salen de la estructura decodificada
+                val mo = cfg.modeloOriginal
+                if (mo != null) {
+                    val pl = ModelosOriginales.plano(mo, item.anchoTotalMm.toDouble(), item.altoTotalMm.toDouble(), item.sectionWidths, item.sectionHeights)
+                    if (pl.bases.size > 1) pl.bases.forEach { basesVentana += ReglasBases.BaseDim(it.ancho / 1000.0, it.alto / 1000.0) }
+                    pl.celdas.forEachIndexed { i, c -> base += Base(i, c.ancho / 1000.0, c.alto / 1000.0, c.izq, c.arr, c.der, c.aba) }
+                    for (d in pl.divisiones) {
+                        imposta += d.largo / 1000.0; piezas++
+                        cortes += hueco(d.largo / 1000.0, d.iniMarco, d.finMarco)
+                    }
+                }
+            }
             WindowConfig.LayoutType.DOOR_T_CENTER_TRANSOM -> {
                 val altoVentana = escalar(item.sectionHeights, 2, item.altoTotalMm)[0]
                 base += Base(0, W, altoVentana, true, true, true, false)
@@ -556,7 +568,7 @@ object CalculadoraPrecios {
                 panos += Pano(b.idx, b.idx, b.w, b.h, b.l, b.t, b.r, b.b)
             }
         }
-        return Geometria(panos, imposta, piezas, cortes)
+        return Geometria(panos, imposta, piezas, cortes, basesVentana)
     }
 
     /** Vidrio (o panel sándwich) individual dentro de una hoja o paño. */
@@ -619,31 +631,36 @@ object CalculadoraPrecios {
          * vidrio de borde = posición - 26 mm (media imposta) - perfil de hoja, vidrio restante = lo que queda menos la(s) imposta(s) de 52 mm.
          */
         val piezas: List<Vid> by lazy {
-            multi?.let { m -> return@lazy m.mapIndexed { i, h -> Vid(h.ancho, h.alto, bit(i), bh(i), bv(i)) } }
-            val gw = vidrioAncho; val gh = vidrioAlto
-            val prof = if (hoja) perfilHoja else 0.0
             val media = ANCHO_IMPOSTA_M / 2
             // Posición de las impostas (mm desde el borde indicado, como los offsets de pk_r4.a); sin dato = reparto igual
             val offs = impOff?.split(",")?.map { it.trim().toDoubleOrNull()?.div(1000.0) } ?: emptyList()
-            fun borde(total: Double, n: Int, k: Int) = ((offs.getOrNull(k) ?: (total / n)) - media - prof).coerceAtLeast(0.0)
-            when (imp) {
+            fun borde(total: Double, n: Int, k: Int, prof: Double) = ((offs.getOrNull(k) ?: (total / n)) - media - prof).coerceAtLeast(0.0)
+            /** Vidrios de UNA hoja de vidrio [gw] x [gh] con la imposta interior [imp] (la misma para cada hoja, como la original). */
+            fun partir(gw: Double, gh: Double, prof: Double): List<Vid> = when (imp) {
                 // 1 = horizontal x1 (offset desde abajo), 2 = horizontal x2 (desde arriba y desde abajo)
-                1 -> { val fb = borde(pano.huecoAlto, 2, 0); listOf(Vid(gw, (gh - fb - ANCHO_IMPOSTA_M).coerceAtLeast(0.0), bit(0), bh(0), bv(0)), Vid(gw, fb, bit(1), bh(1), bv(1))) }
-                2 -> { val ft = borde(pano.huecoAlto, 3, 0); val fb = borde(pano.huecoAlto, 3, 1); listOf(Vid(gw, ft, bit(0), bh(0), bv(0)), Vid(gw, (gh - ft - fb - 2 * ANCHO_IMPOSTA_M).coerceAtLeast(0.0), bit(1), bh(1), bv(1)), Vid(gw, fb, bit(2), bh(2), bv(2))) }
+                1 -> { val fb = borde(pano.huecoAlto, 2, 0, prof); listOf(Vid(gw, (gh - fb - ANCHO_IMPOSTA_M).coerceAtLeast(0.0), bit(0), bh(0), bv(0)), Vid(gw, fb, bit(1), bh(1), bv(1))) }
+                2 -> { val ft = borde(pano.huecoAlto, 3, 0, prof); val fb = borde(pano.huecoAlto, 3, 1, prof); listOf(Vid(gw, ft, bit(0), bh(0), bv(0)), Vid(gw, (gh - ft - fb - 2 * ANCHO_IMPOSTA_M).coerceAtLeast(0.0), bit(1), bh(1), bv(1)), Vid(gw, fb, bit(2), bh(2), bv(2))) }
                 // 3 = vertical x1 (offset desde la izquierda), 4 = vertical x2 (desde izquierda y desde derecha)
-                3 -> { val fb = borde(pano.huecoAncho, 2, 0); listOf(Vid(fb, gh, bit(0), bh(0), bv(0)), Vid((gw - fb - ANCHO_IMPOSTA_M).coerceAtLeast(0.0), gh, bit(1), bh(1), bv(1))) }
-                4 -> { val fl = borde(pano.huecoAncho, 3, 0); val fr = borde(pano.huecoAncho, 3, 1); listOf(Vid(fl, gh, bit(0), bh(0), bv(0)), Vid((gw - fl - fr - 2 * ANCHO_IMPOSTA_M).coerceAtLeast(0.0), gh, bit(1), bh(1), bv(1)), Vid(fr, gh, bit(2), bh(2), bv(2))) }
+                3 -> { val fb = borde(pano.huecoAncho, 2, 0, prof); listOf(Vid(fb, gh, bit(0), bh(0), bv(0)), Vid((gw - fb - ANCHO_IMPOSTA_M).coerceAtLeast(0.0), gh, bit(1), bh(1), bv(1))) }
+                4 -> { val fl = borde(pano.huecoAncho, 3, 0, prof); val fr = borde(pano.huecoAncho, 3, 1, prof); listOf(Vid(fl, gh, bit(0), bh(0), bv(0)), Vid((gw - fl - fr - 2 * ANCHO_IMPOSTA_M).coerceAtLeast(0.0), gh, bit(1), bh(1), bv(1)), Vid(fr, gh, bit(2), bh(2), bv(2))) }
                 else -> listOf(Vid(gw, gh, sandwich, bh(0), bv(0)))
             }
+            multi?.let { m ->
+                // Aperturas de varias hojas: sin imposta, un vidrio por hoja (sándwich por hoja); con imposta (horizontal en
+                // corredizas y francesas, vertical en corredizas verticales) cada hoja se parte igual y los datos son por vidrio.
+                return@lazy if (imp > 0) m.flatMap { h -> partir(h.ancho, h.alto, h.perfil) }
+                else m.mapIndexed { i, h -> Vid(h.ancho, h.alto, bit(i), bh(i), bv(i)) }
+            }
+            partir(vidrioAncho, vidrioAlto, if (hoja) perfilHoja else 0.0)
         }
 
-        /** Largo de cada imposta interior: ancho del vidrio (horizontales) o alto del vidrio (verticales). */
-        val impostasInternas: List<Double> get() = when (imp) {
-            1 -> listOf(vidrioAncho)
-            2 -> listOf(vidrioAncho, vidrioAncho)
-            3 -> listOf(vidrioAlto)
-            4 -> listOf(vidrioAlto, vidrioAlto)
-            else -> emptyList()
+        /** Largo de cada imposta interior: ancho del vidrio (horizontales) o alto del vidrio (verticales); una serie por hoja. */
+        val impostasInternas: List<Double> get() {
+            val n = when (imp) { 1, 3 -> 1; 2, 4 -> 2; else -> return emptyList() }
+            val horizontal = imp <= 2
+            val hs = multi
+            return if (hs == null) List(n) { if (horizontal) vidrioAncho else vidrioAlto }
+            else hs.flatMap { h -> List(n) { if (horizontal) h.ancho else h.alto } }
         }
     }
 
@@ -651,7 +668,7 @@ object CalculadoraPrecios {
         val puerta = item.panePuerta[p.clave] ?: item.panePuerta[p.padre] ?: false
         val mec = item.paneMechanisms[p.clave] ?: item.paneMechanisms[p.padre] ?: MECANISMO_FIJO
         // Códigos 11..14 de paneCols = imposta interior de la hoja (11 hor.x1, 12 hor.x2, 13 ver.x1, 14 ver.x2)
-        val imp = if (p.clave == p.padre) (item.paneCols[p.padre] ?: 0).let { if (it in 11..14) it - 10 else 0 } else 0
+        val imp = if (p.clave == p.padre) (item.paneCols[p.padre] ?: 0).let { if (it in 11..14) it - 10 else 0 }.takeIf { AperturasMulti.impostaPermitida(mec, it) } ?: 0 else 0
         Detalle(
             p, hoja = puerta || mec != MECANISMO_FIJO, puerta = puerta,
             sandwich = item.paneSandwich[p.clave] ?: item.paneSandwich[p.padre] ?: false,
@@ -670,8 +687,10 @@ object CalculadoraPrecios {
         val d = detalles(item, g)
         val altoM = item.altoTotalMm / 1000.0
         val anchoM = item.anchoTotalMm / 1000.0
-        val area = altoM * anchoM
-        val perimetroMarco = 2 * (altoM + anchoM)
+        val area = item.areaM2
+        val bases = g.bases.ifEmpty { listOf(ReglasBases.BaseDim(anchoM, altoM)) }
+        // Cada base es un marco propio: perímetro = suma de los perímetros de sus bases
+        val perimetroMarco = bases.sumOf { 2 * (it.anchoM + it.altoM) }
 
         val hojas = d.filter { it.hoja }.map { it.hojaCalc() }
         val piezas = d.flatMap { it.piezas }
@@ -725,6 +744,8 @@ object CalculadoraPrecios {
             hojasDetalle = hojas,
             lamInternaM2 = r4(lamInterna),
             lamExternaM2 = r4(lamExterna),
+            bases = bases,
+            adic = ReglasBases.metros(bases, item.opciones),
         )
     }
 
@@ -753,8 +774,10 @@ object CalculadoraPrecios {
             val l = mm(largoM) + extraMm
             if (l > 0) repeat(n) { out += PiezaCorte(perfil, etiqueta, l) }
         }
-        add("Marco", "marco ancho", item.anchoTotalMm / 1000.0, 2, soldaduraMm)
-        add("Marco", "marco alto", item.altoTotalMm / 1000.0, 2, soldaduraMm)
+        g.bases.ifEmpty { listOf(ReglasBases.BaseDim(item.anchoTotalMm / 1000.0, item.altoTotalMm / 1000.0)) }.forEach {
+            add("Marco", "marco ancho", it.anchoM, 2, soldaduraMm)
+            add("Marco", "marco alto", it.altoM, 2, soldaduraMm)
+        }
         g.impostaCortes.forEach { add("Imposta", "imposta", it, 1) }
         d.filter { it.hoja }.forEach {
             val perfil = if (it.puerta) "Hoja puerta" else "Hoja"

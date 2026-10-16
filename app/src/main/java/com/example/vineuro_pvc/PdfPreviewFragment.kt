@@ -86,7 +86,7 @@ class PdfPreviewFragment : Fragment() {
         var totalCount = 0
         for (item in items) {
             val cant = item.opciones.cantidad.coerceAtLeast(1)
-            totalArea += (item.altoTotalMm / 1000.0) * (item.anchoTotalMm / 1000.0) * cant
+            totalArea += item.areaM2 * cant
             totalCount += cant
         }
 
@@ -122,7 +122,7 @@ class PdfPreviewFragment : Fragment() {
             var totalCount = 0
             for (item in items) {
                 val cant = item.opciones.cantidad.coerceAtLeast(1)
-                totalArea += (item.altoTotalMm / 1000.0) * (item.anchoTotalMm / 1000.0) * cant
+                totalArea += item.areaM2 * cant
                 totalCount += cant
             }
 

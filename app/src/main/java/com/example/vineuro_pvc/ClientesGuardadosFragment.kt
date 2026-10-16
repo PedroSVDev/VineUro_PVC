@@ -94,10 +94,11 @@ class ClientesGuardadosFragment : Fragment() {
         val etApellidos = campo("Apellidos", cliente.apellidos, android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS or android.text.InputType.TYPE_CLASS_TEXT)
         val etTelefono = campo("Teléfono (9 dígitos)", cliente.telefono, android.text.InputType.TYPE_CLASS_PHONE)
         val etEmail = campo("Correo electrónico", cliente.email, android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS)
+        val etNota = campo("Adicional (nota)", cliente.nota, android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES)
         val caja = android.widget.LinearLayout(ctx).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             setPadding((20 * dp).toInt(), (8 * dp).toInt(), (20 * dp).toInt(), 0)
-            listOf(etNombres, etApellidos, etTelefono, etEmail).forEach { addView(it) }
+            listOf(etNombres, etApellidos, etTelefono, etEmail, etNota).forEach { addView(it) }
         }
         val dialogo = MaterialAlertDialogBuilder(ctx)
             .setTitle("Editar cliente")
@@ -117,7 +118,7 @@ class ClientesGuardadosFragment : Fragment() {
                     telefono.isNotEmpty() && !Regex("^\\d{9}$").matches(telefono) -> etTelefono.error = "El teléfono debe tener 9 dígitos"
                     else -> {
                         val ok = clientRepository.guardarCliente(
-                            cliente.copy(nombres = nombres, apellidos = apellidos, telefono = telefono, email = email),
+                            cliente.copy(nombres = nombres, apellidos = apellidos, telefono = telefono, email = email, nota = etNota.text.toString().trim()),
                         )
                         Toast.makeText(ctx, if (ok) "Cliente actualizado" else "Error al guardar el cliente", Toast.LENGTH_SHORT).show()
                         refrescarLista()

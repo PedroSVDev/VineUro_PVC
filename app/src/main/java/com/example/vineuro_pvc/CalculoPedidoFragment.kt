@@ -17,7 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.vineuro_pvc.data.AperturasMulti
 import com.example.vineuro_pvc.data.CalculadoraPrecios
-import com.example.vineuro_pvc.views.AperturaIconDrawable
+import com.example.vineuro_pvc.views.AperturaOriginalDrawable
 import com.example.vineuro_pvc.data.ClientRepository
 import com.example.vineuro_pvc.data.OrderItem
 import com.example.vineuro_pvc.data.OrderItemHolder
@@ -33,7 +33,6 @@ import com.example.vineuro_pvc.databinding.DialogSelectConfigGeneralBinding
 import com.example.vineuro_pvc.databinding.FragmentCalculoPedidoBinding
 import com.example.vineuro_pvc.databinding.ItemOrderWindowTabBinding
 import com.example.vineuro_pvc.views.WindowPreviewView
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -80,7 +79,7 @@ class CalculoPedidoFragment : Fragment() {
         AperturaMechanism("10", "Hoja fija", R.drawable.ic_apertura_fixed_sash),
     ) + AperturasMulti.TODAS.map { id ->
         // Francesas, corredizas verticales y corredizas múltiples de la original, con icono dibujado por código
-        AperturaMechanism(id, AperturasMulti.nombre(id), 0) { AperturaIconDrawable(id) }
+        AperturaMechanism(id, AperturasMulti.nombre(id), 0) { AperturaOriginalDrawable(id, resources.displayMetrics.density) }
     }
 
     override fun onCreateView(
@@ -153,6 +152,14 @@ class CalculoPedidoFragment : Fragment() {
             actualizarPanelParametros()
         }
 
+        // "diagonales": diagonales de cada marco con su medida (comprobación de escuadra)
+        binding.cbDiagonales.isChecked = prefsUi.getBoolean("diagonales", false)
+        binding.wpvMainCanvas.showDiagonals = binding.cbDiagonales.isChecked
+        binding.cbDiagonales.setOnCheckedChangeListener { _, marcado ->
+            prefsUi.edit().putBoolean("diagonales", marcado).apply()
+            binding.wpvMainCanvas.showDiagonals = marcado
+        }
+
         // "shadows": sombras del dibujo (como la original, marcado por defecto)
         binding.cbShadows.isChecked = prefsUi.getBoolean("shadows", true)
         binding.wpvMainCanvas.showShadows = binding.cbShadows.isChecked
@@ -215,11 +222,26 @@ class CalculoPedidoFragment : Fragment() {
         }
         guardarEstadoItemActivo()
         val item = itemsOrden[activeItemIndex]
-        PanelConfigVentana(requireContext(), preciosRepository.obtener(), item.opciones) { nuevasOpciones ->
+        // Siempre con los precios guardados más recientes (por si se cambiaron en la pestaña Precios)
+        precios = preciosRepository.obtener()
+        PanelConfigVentana(requireContext(), precios, item.opciones) { nuevasOpciones ->
             item.opciones = nuevasOpciones
+            precios = preciosRepository.obtener()
             refrescarTablaMatriz()
             guardarPedido(mostrarResultado = false)
             Toast.makeText(requireContext(), "Configuración de la ventana ${item.index} guardada", Toast.LENGTH_SHORT).show()
+            // Si el sistema o el cristal elegidos no tienen precios, el costo sale 0: se avisa en vez de dejarlo mudo
+            val graves = CalculadoraPrecios.advertencias(item, precios).filter {
+                it.startsWith("El sistema") || it.startsWith("El cristal") || it.startsWith("No hay sistema") || it.startsWith("No hay tipo de cristal")
+            }
+            if (graves.isNotEmpty()) {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("El costo sale en 0")
+                    .setMessage(graves.joinToString("\n\n• ", prefix = "• ") +
+                        "\n\nEn la pestaña Precios completa esas filas, o usa el botón verde \"CARGAR PRECIOS DE EJEMPLO\" de la pantalla Precios.")
+                    .setPositiveButton("Entendido", null)
+                    .show()
+            }
         }.mostrar()
     }
 
@@ -298,11 +320,13 @@ class CalculoPedidoFragment : Fragment() {
 
     private fun mostrarMenuOpcionesFlotante() {
         val dialogBinding = com.example.vineuro_pvc.databinding.DialogMenuOpcionesBinding.inflate(layoutInflater)
-        val dialog = AlertDialog.Builder(requireContext())
-            .setView(dialogBinding.root)
-            .create()
-
+        // Panel lateral a pantalla completa como el menú de la original; tocar fuera del panel lo cierra
+        val dialog = android.app.Dialog(requireContext())
+        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
+        dialog.setContentView(dialogBinding.root)
+        dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialogBinding.flMenuFondo.setOnClickListener { dialog.dismiss() }
 
         // 1. CREAR PDF SÓLO PROYECTOS
         dialogBinding.btnPdfSoloProyectos.setOnClickListener {
@@ -392,9 +416,6 @@ class CalculoPedidoFragment : Fragment() {
         dialogBinding.btnCerrarMenu.setOnClickListener {
             dialog.dismiss()
         }
-        dialogBinding.btnCerrarMenuX.setOnClickListener {
-            dialog.dismiss()
-        }
 
         dialog.show()
     }
@@ -453,7 +474,7 @@ class CalculoPedidoFragment : Fragment() {
 
     private fun inicializarConfiguraciones() {
         listaConfiguraciones.clear()
-        listaConfiguraciones.addAll(WindowConfigCatalog.obtenerTodas())
+        listaConfiguraciones.addAll(WindowConfigCatalog.originales())
     }
 
     private fun inicializarOrdenVacia() {
@@ -479,8 +500,8 @@ class CalculoPedidoFragment : Fragment() {
 
     private fun inicializarOrdenSugerida() {
         itemsOrden.clear()
-        // Buscar "2 Paneles V."
-        val configSugerida = listaConfiguraciones.find { it.nombre == "2 Paneles V." } ?: listaConfiguraciones.first()
+        // 2 paneles verticales (werAB) de la original
+        val configSugerida = listaConfiguraciones.find { it.modelo == "werAB" } ?: listaConfiguraciones.first()
 
         val window1 = OrderItem.create(
             index = 1,
@@ -629,33 +650,52 @@ class CalculoPedidoFragment : Fragment() {
         actualizarTablaMatriz(item.config)
     }
 
+    /**
+     * Diálogo centrado casi a pantalla completa (como los de la original). No usa BottomSheet:
+     * el sheet se tragaba el gesto de desplazar y las listas largas (aperturas, catálogo) no bajaban.
+     */
+    private fun dialogoGrande(): android.app.Dialog {
+        val d = android.app.Dialog(requireContext())
+        d.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
+        d.setOnShowListener {
+            val m = resources.displayMetrics
+            d.window?.setLayout((m.widthPixels * 0.94).toInt(), (m.heightPixels * 0.90).toInt())
+            d.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+        }
+        return d
+    }
+
+    /**
+     * Selector de modelos como el de la original: ventana pequeña (80 % del ancho, proporción 1 : 1,2) con cabecera "configuración",
+     * rejilla de 3 columnas con solo los dibujos y botones NO / SÍ.
+     */
+    private fun dialogoCatalogo(): android.app.Dialog {
+        val d = android.app.Dialog(requireContext())
+        d.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
+        d.setOnShowListener {
+            val m = resources.displayMetrics
+            val ancho = minOf(m.widthPixels * 0.80f, m.heightPixels * 0.96f / 1.2f)
+            d.window?.setLayout(ancho.toInt(), (ancho * 1.2f).toInt())
+            d.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+        }
+        return d
+    }
+
     private fun mostrarDialogoSeleccionCatalogGeneral() {
-        val dialog = BottomSheetDialog(requireContext())
+        val dialog = dialogoCatalogo()
         val dialogBinding = DialogSelectConfigGeneralBinding.inflate(layoutInflater)
         dialog.setContentView(dialogBinding.root)
 
         var tempConfigSeleccionada: WindowConfig = listaConfiguraciones.first()
 
-        val catalogAdapter = WindowConfigAdapter(
+        dialogBinding.rvCatalogConfigs.adapter = WindowConfigAdapter(
             listaConfiguraciones,
             selectedId = tempConfigSeleccionada.id,
         ) { config ->
             tempConfigSeleccionada = config
         }
-        dialogBinding.rvCatalogConfigs.adapter = catalogAdapter
 
-        dialogBinding.chipGroupCatalogCategories.setOnCheckedStateChangeListener { _, checkedIds ->
-            if (checkedIds.isEmpty()) return@setOnCheckedStateChangeListener
-            val filtrados = when (checkedIds.first()) {
-                R.id.chip_cat_estandar -> listaConfiguraciones.filter { it.categoria == "Estándar" }
-                R.id.chip_cat_puertas -> listaConfiguraciones.filter { it.categoria == "Puerta-Ventana" }
-                R.id.chip_cat_fijos -> listaConfiguraciones.filter { it.categoria == "Con Fijo" }
-                else -> listaConfiguraciones
-            }
-            dialogBinding.rvCatalogConfigs.adapter = WindowConfigAdapter(filtrados) { config ->
-                tempConfigSeleccionada = config
-            }
-        }
+        dialogBinding.btnCancelarCatalogConfig.setOnClickListener { dialog.dismiss() }
 
         dialogBinding.btnAceptarCatalogConfig.setOnClickListener {
             guardarEstadoItemActivo()
@@ -722,7 +762,7 @@ class CalculoPedidoFragment : Fragment() {
     }
 
     private fun mostrarDialogoSeleccionConfigParaPano(targetPaneIndex: Int) {
-        val dialog = BottomSheetDialog(requireContext())
+        val dialog = dialogoGrande()
         val dialogBinding = DialogSelectConfigBinding.inflate(layoutInflater)
         dialog.setContentView(dialogBinding.root)
 
@@ -746,8 +786,8 @@ class CalculoPedidoFragment : Fragment() {
         cbsSandwich.forEachIndexed { i, cb -> cb.isChecked = ((maskActual shr i) and 1) == 1 }
         // Vidrios que se configuran por separado: los de la imposta interior o, en aperturas de varias hojas, uno por hoja (como la original)
         fun vidriosDelPano(): Int =
-            if (AperturasMulti.esMulti(tempMecanismoSeleccionado.id)) AperturasMulti.hojas(tempMecanismoSeleccionado.id, 1.0, 1.0, false).size
-            else when (tempImp) { 0 -> 1; 1, 3 -> 2; else -> 3 }
+            if (AperturasMulti.esMulti(tempMecanismoSeleccionado.id) && tempImp == 0) AperturasMulti.hojas(tempMecanismoSeleccionado.id, 1.0, 1.0, false).size
+            else when (tempImp) { 0 -> 1; 1, 3 -> 2; else -> 3 }   // con imposta: los vidrios de la imposta (los mismos en cada hoja)
         fun actualizarSandwich() {
             val visibles = vidriosDelPano()
             cbsSandwich.forEachIndexed { i, cb ->
@@ -776,33 +816,39 @@ class CalculoPedidoFragment : Fragment() {
 
         // Barras de vidrio (glazing bars): horizontales x verticales por cada vidrio, como la original
         var tempBars: String = binding.wpvMainCanvas.paneBars[targetPaneIndex] ?: ""
-        dialogBinding.btnGlazingBars.setOnClickListener {
-            val vidrios = vidriosDelPano()
-            mostrarDialogoBarras(tempBars, vidrios) { nuevo ->
-                tempBars = nuevo
-                dialogBinding.btnGlazingBars.text = if (nuevo.isBlank()) "glazing bars" else "glazing bars: $nuevo"
-            }
-        }
-        if (tempBars.isNotBlank()) dialogBinding.btnGlazingBars.text = "glazing bars: $tempBars"
 
-        val impostaConfigs = listOf(
-            WindowConfig("imp_0", "Sin imposta", "Estándar", WindowConfig.LayoutType.GRID, cols = 1, rows = 1),
-            WindowConfig("imp_3", "Vertical x1", "Estándar", WindowConfig.LayoutType.GRID, cols = 2, rows = 1),
-            WindowConfig("imp_1", "Horizontal x1", "Estándar", WindowConfig.LayoutType.GRID, cols = 1, rows = 2),
-            WindowConfig("imp_4", "Vertical x2", "Estándar", WindowConfig.LayoutType.GRID, cols = 3, rows = 1),
-            WindowConfig("imp_2", "Horizontal x2", "Estándar", WindowConfig.LayoutType.GRID, cols = 1, rows = 3),
+        // Panel "impostas" como la original: 1ª celda = glazing bars, después ninguna / vert.1 / hor.1 / vert.2 / hor.2.
+        // Regla de la original (pk_r2.z): corredizas y puertas francesas admiten solo impostas horizontales; corredizas verticales
+        // solo verticales; el resto se muestra atenuado (alpha 0.3, no pulsable). Cada hoja se parte igual.
+        fun maskIconos(): Int = cbsSandwich.withIndex().sumOf { (i, cb) -> if (cb.isChecked && cb.visibility == android.view.View.VISIBLE) (1 shl i) else 0 }
+        fun itemsImposta(mecId: String) = listOf(
+            ImpostaItem(ImpostaItem.BARRAS), ImpostaItem(0),
+            ImpostaItem(3, AperturasMulti.impostaPermitida(mecId, 3)), ImpostaItem(1, AperturasMulti.impostaPermitida(mecId, 1)),
+            ImpostaItem(4, AperturasMulti.impostaPermitida(mecId, 4)), ImpostaItem(2, AperturasMulti.impostaPermitida(mecId, 2)),
         )
-
-        val layoutAdapter = WindowConfigAdapter(
-            impostaConfigs,
-            selectedId = "imp_$impActual",
-        ) { config ->
-            tempImp = config.id.removePrefix("imp_").toIntOrNull() ?: 0
-            tempCols = if (tempImp == 0) 1 else 10 + tempImp
-            actualizarSandwich()
-            actualizarOffsets()
+        /** Categoría de apertura para reiniciar la imposta como la original: 0 normal, 1 corrediza/francesa, 2 corrediza vertical. */
+        fun categoria(id: String) = when (AperturasMulti.grupo(id)) {
+            null -> 0
+            AperturasMulti.Grupo.CORREDIZA, AperturasMulti.Grupo.FRANCESA -> 1
+            AperturasMulti.Grupo.CORREDIZA_VERT -> 2
         }
+        var categoriaActual = categoria(tempMecanismoSeleccionado.id)
+        lateinit var layoutAdapter: ImpostaIconAdapter
+        layoutAdapter = ImpostaIconAdapter(
+            itemsImposta(tempMecanismoSeleccionado.id), tempImp, maskIconos(),
+            alElegir = { imp ->
+                tempImp = imp
+                tempCols = if (tempImp == 0) 1 else 10 + tempImp
+                actualizarSandwich()
+                actualizarOffsets()
+                layoutAdapter.actualizarMascara(maskIconos())
+            },
+            alPulsarBarras = {
+                mostrarDialogoBarras(tempBars, vidriosDelPano()) { nuevo -> tempBars = nuevo }
+            },
+        )
         dialogBinding.rvImpostasLayouts.adapter = layoutAdapter
+        cbsSandwich.forEach { cb -> cb.setOnCheckedChangeListener { _, _ -> layoutAdapter.actualizarMascara(maskIconos()) } }
 
         // Reglas de la original (pk_r2): sin apertura ("+") bloquea puerta y mosquitero; hoja fija bloquea mosquitero.
         fun aplicarReglasApertura(id: String) {
@@ -814,12 +860,13 @@ class CalculoPedidoFragment : Fragment() {
             }
             bloquear(dialogBinding.cbPuerta, id == "5")
             bloquear(dialogBinding.cbMosqNet, id == "5" || id == "10")
-            // Las aperturas de varias hojas llevan sus propias hojas: sin imposta interior
-            val multi = AperturasMulti.esMulti(id)
-            dialogBinding.rvImpostasLayouts.visibility = if (multi) android.view.View.GONE else android.view.View.VISIBLE
-            if (multi) { tempImp = 0; tempCols = 1 }
+            // Al cambiar de categoría la original reinicia la imposta elegida
+            val categoriaNueva = categoria(id)
+            if (categoriaNueva != categoriaActual || !AperturasMulti.impostaPermitida(id, tempImp)) { tempImp = 0; tempCols = 1 }
+            categoriaActual = categoriaNueva
             actualizarSandwich()
             actualizarOffsets()
+            layoutAdapter.actualizar(itemsImposta(id), tempImp, maskIconos())
         }
         aplicarReglasApertura(tempMecanismoSeleccionado.id)
 
@@ -829,6 +876,10 @@ class CalculoPedidoFragment : Fragment() {
         ) { mecanismo ->
             tempMecanismoSeleccionado = mecanismo
             aplicarReglasApertura(mecanismo.id)
+        }
+        (dialogBinding.rvAperturaMechanisms.layoutManager as androidx.recyclerview.widget.GridLayoutManager).apply {
+            spanCount = AperturaAdapter.SPANS
+            spanSizeLookup = aperturaAdapter.spanSizeLookup()
         }
         dialogBinding.rvAperturaMechanisms.adapter = aperturaAdapter
 
@@ -907,7 +958,7 @@ class CalculoPedidoFragment : Fragment() {
         val resultados = itemsOrden.map { CalculadoraPrecios.calcular(it, precios) }
         val r = CalculadoraPrecios.resumenPedido(resultados)
         val s = simboloMoneda()
-        val area = itemsOrden.sumOf { (it.altoTotalMm / 1000.0) * (it.anchoTotalMm / 1000.0) * maxOf(1, it.opciones.cantidad) }
+        val area = itemsOrden.sumOf { it.areaM2 * maxOf(1, it.opciones.cantidad) }
         val p = pedidoActual
         val resumen = buildString {
             append("Cliente: $nombreClienteActual\n")

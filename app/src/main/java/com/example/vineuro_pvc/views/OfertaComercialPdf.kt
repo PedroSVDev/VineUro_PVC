@@ -88,21 +88,72 @@ object OfertaComercialPdf {
             pdf.finishPage(pg)
         }
 
-        // ===================== 1) PROYECTOS: cliente + dibujos (misma hoja que "PDF solo proyectos") =====================
-        run {
-            val porHoja = 6
-            val hojas = ((d.items.size + porHoja - 1) / porHoja).coerceAtLeast(1)
-            // La hoja dibuja en dp: se dibuja a ~400 dp de ancho y se reduce a la hoja A4
+        // ===================== 1) PÁGINAS DE LA OFERTA (formato de la original) =====================
+        // "Oferta comercial" = 2 ventanas por hoja; "Oferta comercial 2" = 1 por hoja. Encabezado con el título solo en la
+        // primera hoja; cada celda lleva el dibujo, la lista de propiedades (arriba a la derecha) y la tabla de precios
+        // (abajo a la derecha); el pie con los totales de toda la orden y las firmas va solo en la última hoja.
+        val area = d.items.sumOf { it.areaM2 * it.opciones.cantidad.coerceAtLeast(1) }
+        val cantidad = d.items.sumOf { it.opciones.cantidad.coerceAtLeast(1) }
+
+        fun totales(yIni: Float) {
+            var yy = yIni
+            val totalPrincipal = d.resultados.sumOf { it.totalVenta }
+            texto(c, "TOTAL (${d.simbolo})", M, yy + 10f, 10f, AZUL, negrita = true)
+            textoDerecha(c, num(totalPrincipal), W - M, yy + 10f, 11f, negrita = true)
+            yy += 24f
+            texto(c, String.format(Locale.US, "Equivale a:  US$ %,.2f   ·   S/ %,.2f   (T.C. S/ %.3f)", d.totalUsd, d.totalPen, d.tipoCambio), M, yy + 9f, 8.5f, GRIS_TEXTO)
+            yy += 14f
+            texto(c, textoTarjeta(d), M, yy + 9f, 8.5f, GRIS_TEXTO)
+            if (d.notaPedido.isNotBlank()) {
+                yy += 24f
+                val l = parrafo("Nota: ${d.notaPedido}", W - 2 * M, 8.6f, Color.BLACK)
+                c.save(); c.translate(M, yy); l.draw(c); c.restore()
+            }
+        }
+
+        if (d.items.isNotEmpty()) {
+            val porHoja = if (d.variante == 2) 1 else 2
+            val hojas = (d.items.size + porHoja - 1) / porHoja
+            // La hoja dibuja en "unidades de hoja" (400 = ancho): se pinta a ~400 dp de ancho y se reduce a la hoja A4
             val anchoV = (400f * context.resources.displayMetrics.density).toInt()
             val altoV = (anchoV * H / W).toInt()
             val esc = W / anchoV
-            val area = d.items.sumOf { (it.altoTotalMm / 1000.0) * (it.anchoTotalMm / 1000.0) * it.opciones.cantidad.coerceAtLeast(1) }
-            val cantidad = d.items.sumOf { it.opciones.cantidad.coerceAtLeast(1) }
             fun v(t: String) = t.ifBlank { "......" }
+            fun par(t: String) = t.substringBefore(' ') to t.substringAfter(' ', "")
+
+            val tablas = d.items.indices.map { i ->
+                val item = d.items[i]; val r = d.resultados[i]
+                val f = 1.0 - r.descuentoPct / 100.0
+                val hayDesc = r.descuentoPct > 0.0 && f > 0.0
+                val unit = r.precioUnitarioTotal
+                val unitSin = if (hayDesc) unit / f else unit
+                val ar = par(Unidades.areaM2(item.areaM2))
+                buildList {
+                    add(FilaTabla("área de productos", ar.first, ar.second))
+                    add(FilaTabla("precio", num(unitSin), d.simbolo))
+                    if (hayDesc) add(FilaTabla("precio c/ dto. (-${String.format(Locale.US, "%.1f", r.descuentoPct)}%)", num(unit), d.simbolo))
+                    add(FilaTabla("cantidad", "${r.cantidad}", "pc"))
+                    if (hayDesc) add(FilaTabla("costo", num(unitSin * r.cantidad), d.simbolo))
+                    add(FilaTabla(if (hayDesc) "costo c/ dto." else "costo", num(r.totalVenta), d.simbolo))
+                }
+            }
+            val costoSin = d.items.indices.sumOf { i ->
+                val r = d.resultados[i]; val f = 1.0 - r.descuentoPct / 100.0
+                (if (r.descuentoPct > 0.0 && f > 0.0) r.precioUnitarioTotal / f else r.precioUnitarioTotal) * r.cantidad
+            }
+            val totalVenta = d.resultados.sumOf { it.totalVenta }
+            val descGlobal = if (costoSin > 0.0) (1.0 - totalVenta / costoSin) * 100.0 else 0.0
+            val ar = par(Unidades.areaM2(area))
+            val totalesTabla = listOf(
+                FilaTabla("cantidad", "$cantidad", "pc"),
+                FilaTabla("toda el área de productos", ar.first, ar.second),
+                FilaTabla("costo", num(costoSin), d.simbolo),
+                FilaTabla("precio con descuento (-${String.format(Locale.US, "%.0f", descGlobal.coerceAtLeast(0.0))}%)", num(totalVenta), d.simbolo, grande = true),
+            )
             for (h in 0 until hojas) {
                 val pg = nuevaPagina()
                 val desde = h * porHoja
-                val sub = if (desde < d.items.size) d.items.subList(desde, minOf(desde + porHoja, d.items.size)) else emptyList()
+                val sub = d.items.subList(desde, minOf(desde + porHoja, d.items.size))
                 val hoja = PdfPageSheetView(context)
                 hoja.layout(0, 0, anchoV, altoV)
                 hoja.bindData(
@@ -117,6 +168,10 @@ object OfertaComercialPdf {
                     totalOrderCount = cantidad,
                     totalOrderAreaM2 = area,
                     requisitos = d.requisitos,
+                    ofertaPorPagina = porHoja,
+                    tablasCelda = tablas.subList(desde, minOf(desde + porHoja, d.items.size)),
+                    tablaTotales = totalesTabla,
+                    tituloOferta = d.requisitos.cabecera.ifBlank { "Oferta comercial" },
                 )
                 pg.canvas.save()
                 pg.canvas.scale(esc, esc)
@@ -126,164 +181,13 @@ object OfertaComercialPdf {
             }
         }
 
-        // ===================== 2) DETALLE DE VENTANAS =====================
-        if (d.items.isNotEmpty() && d.variante == 2) {
-            // Oferta comercial 2 (como el original): UNA ventana por página, dibujo grande, y a la derecha
-            // cantidad, nota, propiedades y el bloque de precios (área, precio, con descuento, cantidad, costo).
-            val dibujante = WindowPreviewView(context)
-            val k = context.resources.displayMetrics.density * 400f / W * 1.8f
-            val anchoDer = 162f
-            d.items.forEachIndexed { idx, item ->
-                val r = d.resultados[idx]
-                page = nuevaPagina(); c = page.canvas
-                var yy = M
-                rect(c, M, yy, W - M, yy + 22f, AZUL)
-                texto(c, "DETALLE DE LAS VENTANAS", M + 8f, yy + 15f, 11f, Color.WHITE, negrita = true)
-                yy += 30f
-                texto(c, "Cotización N° ${d.numero}   ·   Cliente: ${d.clienteNombre}   ·   ${d.fecha}", M, yy + 8f, 8.5f, GRIS_TEXTO, maxAncho = W - 2 * M)
-                yy += 16f
-                val top = yy; val bottom = H - 56f
-                borde(c, M, top, W - M, bottom)
-                val dib = RectF(M + 6f, top + 6f, W - M - anchoDer - 6f, bottom - 6f)
-                c.save()
-                c.scale(1f / k, 1f / k)
-                runCatching { dibujante.drawItem(c, RectF(dib.left * k, dib.top * k, dib.right * k, dib.bottom * k), item, true, true) }
-                c.restore()
-                texto(c, "${item.index}", dib.left + 4f, top + 20f, 14f, Color.BLACK, negrita = true)
-
-                // columna derecha: cantidad, descripción
-                val xr = W - M - anchoDer + 2f
-                val anchoTxt = anchoDer - 8f
-                var ry = top + 8f
-                if (r.cantidad > 1) {
-                    texto(c, "Cant.: ${r.cantidad} pz", xr, ry + 11f, 11f, Color.BLACK, negrita = true, maxAncho = anchoTxt)
-                    ry += 18f
-                }
-                val lay = parrafo(descripcion(item), anchoTxt, 7.8f, Color.BLACK)
-                c.save(); c.translate(xr, ry); c.clipRect(0f, 0f, anchoTxt, (bottom - ry - 120f).coerceAtLeast(40f)); lay.draw(c); c.restore()
-
-                // bloque de precios (inc_doc_total_one del original): oculta las filas con descuento si no hay descuento
-                val f = 1.0 - r.descuentoPct / 100.0
-                val hayDesc = r.descuentoPct > 0.0 && f > 0.0
-                val unit = r.precioUnitarioTotal
-                val unitSin = if (hayDesc) unit / f else unit
-                val area = (item.altoTotalMm / 1000.0) * (item.anchoTotalMm / 1000.0)
-                val filas = buildList {
-                    add("Área" to Unidades.areaM2(area))
-                    add("Precio" to "${num(unitSin)} ${d.simbolo}")
-                    if (hayDesc) add("Precio c/ dto. (-${String.format(Locale.US, "%.1f", r.descuentoPct)}%)" to "${num(unit)} ${d.simbolo}")
-                    add("Cantidad" to "${r.cantidad}")
-                    if (hayDesc) add("Costo" to "${num(unitSin * r.cantidad)} ${d.simbolo}")
-                    add((if (hayDesc) "Costo c/ dto." else "Costo") to "${num(r.totalVenta)} ${d.simbolo}")
-                }
-                val altoBloque = filas.size * 13f + 8f
-                val yb = bottom - 6f - altoBloque
-                rect(c, xr - 2f, yb, W - M - 4f, bottom - 6f, Color.parseColor("#F3F4F6"))
-                borde(c, xr - 2f, yb, W - M - 4f, bottom - 6f)
-                filas.forEachIndexed { i, (n, v) ->
-                    val ult = i == filas.lastIndex
-                    texto(c, n, xr + 2f, yb + 12f + i * 13f, 7.4f, GRIS_TEXTO, negrita = ult, maxAncho = anchoTxt * 0.55f)
-                    textoDerecha(c, v, W - M - 8f, yb + 12f + i * 13f, if (ult) 9f else 8f, negrita = ult)
-                }
-                pie(c, numPagina)
-                pdf.finishPage(page)
-            }
-            // Totales (las páginas de ventana no los llevan)
+        // ===================== 2) RESUMEN DE LA COTIZACIÓN (total, equivalencia en US$ / S/, tarjeta y nota) =====================
+        run {
             page = nuevaPagina(); c = page.canvas
-            var yy = M
-            rect(c, M, yy, W - M, yy + 22f, AZUL)
-            texto(c, "TOTAL DEL PEDIDO", M + 8f, yy + 15f, 11f, Color.WHITE, negrita = true)
-            yy += 36f
-            val totalPrincipal = d.resultados.sumOf { it.totalVenta }
-            texto(c, "TOTAL (${d.simbolo})", M, yy + 10f, 10f, AZUL, negrita = true)
-            textoDerecha(c, num(totalPrincipal), W - M, yy + 10f, 11f, negrita = true)
-            yy += 24f
-            texto(c, String.format(Locale.US, "Equivale a:  US$ %,.2f   ·   S/ %,.2f   (T.C. S/ %.3f)", d.totalUsd, d.totalPen, d.tipoCambio), M, yy + 9f, 8.5f, GRIS_TEXTO)
-            yy += 14f
-            texto(c, textoTarjeta(d), M, yy + 9f, 8.5f, GRIS_TEXTO)
-            if (d.notaPedido.isNotBlank()) {
-                yy += 24f
-                val l = parrafo("Nota: ${d.notaPedido}", W - 2 * M, 8.6f, Color.BLACK)
-                c.save(); c.translate(M, yy); l.draw(c); c.restore()
-            }
-            pie(c, numPagina)
-            pdf.finishPage(page)
-        } else if (d.items.isNotEmpty()) {
-            val dibujante = WindowPreviewView(context)
-            // px virtuales por punto: el dibujo usa medidas en dp; se dibuja más grande y se reduce para que las cotas no tapen la ventana
-            val k = context.resources.displayMetrics.density * 400f / W * 1.8f
-            val anchoTabla = W - 2 * M
-            // columnas: N°, diseño, descripción, cant., p. unit, subtotal
-            val cols = floatArrayOf(22f, 118f, 0f, 34f, 70f, 76f)
-            cols[2] = anchoTabla - cols.sum()
-            val xs = FloatArray(cols.size + 1).also { a -> a[0] = M; for (i in cols.indices) a[i + 1] = a[i] + cols[i] }
-            val altoFila = 104f
-
-            fun inicioAnexo(): Float {
-                page = nuevaPagina(); c = page.canvas
-                var yy = M
-                rect(c, M, yy, W - M, yy + 22f, AZUL)
-                texto(c, "DETALLE DE LAS VENTANAS", M + 8f, yy + 15f, 11f, Color.WHITE, negrita = true)
-                yy += 30f
-                texto(c, "Cotización N° ${d.numero}   ·   Cliente: ${d.clienteNombre}   ·   ${d.fecha}", M, yy + 8f, 8.5f, GRIS_TEXTO, maxAncho = anchoTabla)
-                yy += 16f
-                // encabezado de la tabla
-                rect(c, M, yy, W - M, yy + 18f, CELESTE)
-                val titulos = listOf("N°", "Diseño", "Descripción", "Cant.", "P. unit. (${d.simbolo})", "Subtotal (${d.simbolo})")
-                titulos.forEachIndexed { i, t -> texto(c, t, xs[i] + 4f, yy + 12.5f, 7.6f, AZUL, negrita = true, maxAncho = cols[i] - 6f) }
-                borde(c, M, yy, W - M, yy + 18f)
-                return yy + 18f
-            }
-
-            y = inicioAnexo()
-            d.items.forEachIndexed { idx, item ->
-                if (y + altoFila > H - 70f) {
-                    pie(c, numPagina); pdf.finishPage(page)
-                    y = inicioAnexo()
-                }
-                val r = d.resultados[idx]
-                // bordes de la fila
-                for (i in 0..cols.size) c.drawLine(xs[i], y, xs[i], y + altoFila, lineaPaint)
-                c.drawLine(M, y + altoFila, W - M, y + altoFila, lineaPaint)
-
-                texto(c, "${item.index}", xs[0] + 6f, y + 14f, 10f, Color.BLACK, negrita = true)
-
-                // dibujo de la ventana (se dibuja en "px virtuales" y se reduce a puntos)
-                val caja = RectF(xs[1] + 4f, y + 4f, xs[2] - 4f, y + altoFila - 4f)
-                c.save()
-                c.scale(1f / k, 1f / k)
-                runCatching {
-                    dibujante.drawItem(c, RectF(caja.left * k, caja.top * k, caja.right * k, caja.bottom * k), item, true, true)
-                }
-                c.restore()
-
-                // descripción
-                val desc = descripcion(item)
-                val lay = parrafo(desc, cols[2] - 8f, 7.6f, Color.BLACK)
-                c.save(); c.translate(xs[2] + 4f, y + 5f)
-                c.clipRect(0f, 0f, cols[2] - 8f, altoFila - 8f)
-                lay.draw(c); c.restore()
-
-                val unit = if (r.cantidad > 0) r.totalVenta / r.cantidad else r.totalVenta
-                textoDerecha(c, "${r.cantidad}", xs[4] - 6f, y + 14f, 9f)
-                textoDerecha(c, num(unit), xs[5] - 6f, y + 14f, 9f)
-                textoDerecha(c, num(r.totalVenta), xs[6] - 6f, y + 14f, 9f, negrita = true)
-                y += altoFila
-            }
-
-            // Totales del anexo
-            if (y + 60f > H - 40f) { pie(c, numPagina); pdf.finishPage(page); y = inicioAnexo() }
-            val totalPrincipal = d.resultados.sumOf { it.totalVenta }
-            y += 6f
-            rect(c, xs[4], y, W - M, y + 18f, CELESTE)
-            texto(c, "TOTAL (${d.simbolo})", xs[4] + 4f, y + 12.5f, 8f, AZUL, negrita = true)
-            textoDerecha(c, num(totalPrincipal), W - M - 6f, y + 12.5f, 9.5f, negrita = true)
-            borde(c, xs[4], y, W - M, y + 18f)
-            y += 24f
-            texto(c, String.format(Locale.US, "Equivale a:  US$ %,.2f   ·   S/ %,.2f   (T.C. S/ %.3f)", d.totalUsd, d.totalPen, d.tipoCambio),
-                M, y + 9f, 8.5f, GRIS_TEXTO)
-            y += 13f
-            texto(c, textoTarjeta(d), M, y + 9f, 8.5f, GRIS_TEXTO)
+            rect(c, M, M, W - M, M + 22f, AZUL)
+            texto(c, "TOTAL DEL PEDIDO", M + 8f, M + 15f, 11f, Color.WHITE, negrita = true)
+            texto(c, "Cotización N° ${d.numero}   ·   Cliente: ${d.clienteNombre}   ·   ${d.fecha}", M, M + 38f, 8.5f, GRIS_TEXTO, maxAncho = W - 2 * M)
+            totales(M + 52f)
             pie(c, numPagina)
             pdf.finishPage(page)
         }
@@ -383,7 +287,7 @@ object OfertaComercialPdf {
         if (dirLinea != null) centrado(dirLinea, 438f, 10f, GRIS_TEXTO)
 
         val unidades = d.items.sumOf { it.opciones.cantidad.coerceAtLeast(1) }
-        val area = d.items.sumOf { (it.altoTotalMm / 1000.0) * (it.anchoTotalMm / 1000.0) * it.opciones.cantidad.coerceAtLeast(1) }
+        val area = d.items.sumOf { it.areaM2 * it.opciones.cantidad.coerceAtLeast(1) }
         val y0 = 490f
         rect(c, M + 30f, y0, W - M - 30f, y0 + 92f, Color.parseColor("#F3F6FA"))
         borde(c, M + 30f, y0, W - M - 30f, y0 + 92f)
@@ -433,7 +337,7 @@ object OfertaComercialPdf {
             y += lay.height + 9f
         }
         val unidades = d.items.sumOf { it.opciones.cantidad.coerceAtLeast(1) }
-        val area = d.items.sumOf { (it.altoTotalMm / 1000.0) * (it.anchoTotalMm / 1000.0) * it.opciones.cantidad.coerceAtLeast(1) }
+        val area = d.items.sumOf { it.areaM2 * it.opciones.cantidad.coerceAtLeast(1) }
         bloque(
             "PARTES",
             "EL CONTRATISTA: ${r.ejecutante}, RUC ${r.ruc}, con domicilio en ${r.direccion}, representado por ${r.firmaNombre} (${r.firmaCargo}).\n" +
@@ -548,17 +452,15 @@ object OfertaComercialPdf {
         return y + 32f
     }
 
+    /** Descripción de la ventana: las mismas propiedades que lista la original (categoría: valores), más la nota. */
     private fun descripcion(item: OrderItem): String {
         val op = item.opciones
         return buildString {
             append(item.config.nombre).append("\n")
             append("Ancho x Alto: ${com.example.vineuro_pvc.data.Unidades.dimensiones(item.anchoTotalMm, item.altoTotalMm)}\n")
-            op.sistemaVentana?.let { append("Sistema: $it\n") }
-            op.tipoCristal?.let { append("Cristal: $it\n") }
-            op.color?.let { append("Color: $it\n") }
-            op.mosquitero?.let { append("Mosquitero: $it\n") }
-            if (op.extras.isNotEmpty()) append("Extras: ${op.extras.sorted().joinToString(", ")}\n")
-            if (op.trabajos.isNotEmpty()) append("Trabajos: ${op.trabajos.sorted().joinToString(", ")}\n")
+            for (cat in com.example.vineuro_pvc.data.TextoPropiedades.categorias(item)) {
+                append("● ").append(cat.titulo).append(": ").append(cat.lineas.joinToString(", ")).append("\n")
+            }
             if (op.nota.isNotBlank()) append("Nota: ${op.nota}")
         }.trimEnd()
     }

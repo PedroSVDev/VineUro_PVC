@@ -42,7 +42,7 @@ object ListadoMateriales {
         for (it in items) {
             val cant = maxOf(1, it.opciones.cantidad)
             unidades += cant
-            area += it.altoTotalMm / 1000.0 * it.anchoTotalMm / 1000.0 * cant
+            area += it.areaM2 * cant
             val q = CalculadoraPrecios.cantidades(it)
             caucho += q.cauchoM * cant
             mosq += q.panosMosquitero * cant

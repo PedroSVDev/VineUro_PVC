@@ -52,49 +52,48 @@ data class OrderItem(
         ),
     )
 
+    /** Área real de la ventana (m²): en los modelos en L / T de la original no cuenta el hueco vacío. */
+    val areaM2: Double
+        get() {
+            val mo = config.modeloOriginal
+            if (mo != null) {
+                val pl = ModelosOriginales.plano(mo, anchoTotalMm.toDouble(), altoTotalMm.toDouble(), sectionWidths, sectionHeights)
+                return pl.celdas.sumOf { it.ancho * it.alto } / 1_000_000.0
+            }
+            return (altoTotalMm / 1000.0) * (anchoTotalMm / 1000.0)
+        }
+
     companion object {
         fun create(
             index: Int,
             config: WindowConfig,
-            altoMm: Int = 1800,
-            anchoMm: Int = 1500,
+            altoMm: Int? = null,
+            anchoMm: Int? = null,
             colorBgHex: String = "#42A5F5"
         ): OrderItem {
-            val rows = when (config.layoutType) {
-                WindowConfig.LayoutType.TOP_TRANSOM,
-                WindowConfig.LayoutType.BOTTOM_TRANSOM,
-                WindowConfig.LayoutType.DOOR_L_LEFT,
-                WindowConfig.LayoutType.DOOR_L_RIGHT,
-                WindowConfig.LayoutType.DOOR_T_CENTER,
-                WindowConfig.LayoutType.DOOR_L_LEFT_TRANSOM,
-                WindowConfig.LayoutType.DOOR_L_RIGHT_TRANSOM,
-                WindowConfig.LayoutType.DOOR_T_CENTER_TRANSOM -> 2
-
-                WindowConfig.LayoutType.TOP_BOTTOM_TRANSOM -> 3
-
-                else -> maxOf(1, config.rows)
+            // Los modelos de la original traen su propio tamaño inicial y sus secciones (según los pesos de su estructura)
+            val modelo = config.modeloOriginal
+            val alto = altoMm ?: modelo?.altoMm ?: 1800
+            val ancho = anchoMm ?: modelo?.anchoMm ?: 1500
+            if (modelo != null) {
+                val (anchos, altos) = ModelosOriginales.seccionesPorDefecto(modelo, ancho.toFloat(), alto.toFloat())
+                return OrderItem(
+                    index = index, config = config, altoTotalMm = alto, anchoTotalMm = ancho,
+                    sectionHeights = altos, sectionWidths = anchos, colorBgHex = colorBgHex,
+                )
             }
 
-            val cols = when (config.layoutType) {
-                WindowConfig.LayoutType.DOOR_T_CENTER,
-                WindowConfig.LayoutType.DOOR_T_CENTER_TRANSOM -> maxOf(3, config.cols)
+            val rows = config.filasActivas()
+            val cols = config.colsActivas()
 
-                WindowConfig.LayoutType.DOOR_L_LEFT,
-                WindowConfig.LayoutType.DOOR_L_RIGHT,
-                WindowConfig.LayoutType.DOOR_L_LEFT_TRANSOM,
-                WindowConfig.LayoutType.DOOR_L_RIGHT_TRANSOM -> maxOf(2, config.cols)
-
-                else -> maxOf(1, config.cols)
-            }
-
-            val defaultH = altoMm.toFloat() / rows
-            val defaultW = anchoMm.toFloat() / cols
+            val defaultH = alto.toFloat() / rows
+            val defaultW = ancho.toFloat() / cols
 
             return OrderItem(
                 index = index,
                 config = config,
-                altoTotalMm = altoMm,
-                anchoTotalMm = anchoMm,
+                altoTotalMm = alto,
+                anchoTotalMm = ancho,
                 sectionHeights = FloatArray(rows) { defaultH },
                 sectionWidths = FloatArray(cols) { defaultW },
                 colorBgHex = colorBgHex

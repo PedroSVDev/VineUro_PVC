@@ -31,6 +31,17 @@
         app:layout_constraintStart_toStartOf="parent" />
 
     <Button
+        android:id="@+id/btnEjemplo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:backgroundTint="#2E7D32"
+        android:text="CARGAR PRECIOS DE EJEMPLO"
+        android:textColor="@color/white"
+        app:layout_constraintBottom_toTopOf="@id/btnConvertir"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
         android:id="@+id/btnBack"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -45,7 +56,7 @@
         android:id="@+id/scrollViewPrecios"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@id/btnBack"
+        app:layout_constraintBottom_toTopOf="@id/btnEjemplo"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvTitle">
@@ -238,7 +249,7 @@
                     <TableRow android:background="#F0F0F0">
                         <TextView android:textColor="#212121" android:padding="8dp" android:text="Tipo de umbral externo" android:gravity="center" android:textStyle="bold" />
                         <TextView android:textColor="#212121" android:padding="8dp" android:text="el cuerpo exterior del batiente S/ por m" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:textColor="#212121" android:padding="8dp" android:text="de tapón S/ por la ps" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="de tapón S/ por pz" android:gravity="center" android:textStyle="bold" />
                         <TextView android:textColor="#212121" android:padding="8dp" android:text="piezas a comprar (mm x cantidad, ej. 1500x2 800x1; - = a medida)" android:gravity="center" android:textStyle="bold" />
                         <TextView android:textColor="#212121" android:padding="8dp" android:text="" />
                     </TableRow>
@@ -257,7 +268,7 @@
                     <TableRow android:background="#F0F0F0">
                         <TextView android:textColor="#212121" android:padding="8dp" android:text="Tipo de umbral interno" android:gravity="center" android:textStyle="bold" />
                         <TextView android:textColor="#212121" android:padding="8dp" android:text="cuerpo del peldaño S/ por m" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:textColor="#212121" android:padding="8dp" android:text="de tapón S/ por la ps" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="de tapón S/ por pz" android:gravity="center" android:textStyle="bold" />
                         <TextView android:textColor="#212121" android:padding="8dp" android:text="piezas a comprar (mm x cantidad, ej. 1500x2 800x1; - = a medida)" android:gravity="center" android:textStyle="bold" />
                         <TextView android:textColor="#212121" android:padding="8dp" android:text="" />
                     </TableRow>
@@ -275,9 +286,9 @@
                 <TableLayout android:id="@+id/tableMuebles" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@color/white" android:stretchColumns="*">
                     <TableRow android:background="#F0F0F0">
                         <TextView android:textColor="#212121" android:padding="8dp" android:text="marca de muebles" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:textColor="#212121" android:padding="8dp" android:text="manejar regulares S/ por la ps" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:textColor="#212121" android:padding="8dp" android:text="manejar con cerradura S/ por la ps" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:textColor="#212121" android:padding="8dp" android:text="manija balcón S/ por la ps" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="manija regular S/ por pz" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="manija con cerradura S/ por pz" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="manija balcón S/ por pz" android:gravity="center" android:textStyle="bold" />
                         <TextView android:textColor="#212121" android:padding="8dp" android:text="" />
                     </TableRow>
                 </TableLayout>
@@ -343,9 +354,9 @@
                         <TextView android:textColor="#212121" android:padding="8dp" android:text="red S/ por m2" android:gravity="center" android:textStyle="bold" />
                         <TextView android:textColor="#212121" android:padding="8dp" android:text="perfil del marco S/ por m" android:gravity="center" android:textStyle="bold" />
                         <TextView android:textColor="#212121" android:padding="8dp" android:text="sellador de goma S/ por m" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:textColor="#212121" android:padding="8dp" android:text="esquina S/ por la ps" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:textColor="#212121" android:padding="8dp" android:text="poseedor S/ por la ps" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:textColor="#212121" android:padding="8dp" android:text="oído-mango S/ por la ps" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="esquina S/ por pz" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="poseedor S/ por pz" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="oído-mango S/ por pz" android:gravity="center" android:textStyle="bold" />
                         <TextView android:textColor="#212121" android:padding="8dp" android:text="" />
                     </TableRow>
                 </TableLayout>

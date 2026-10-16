@@ -130,6 +130,24 @@
                         android:textSize="16sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <!-- Adicional (como "additionally" de la original) -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/til_nota_cliente"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:hint="Adicional (nota)">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_nota_cliente"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textCapSentences|textMultiLine"
+                        android:minLines="2"
+                        android:textSize="16sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
                 <!-- Save Button -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_guardar_cliente"

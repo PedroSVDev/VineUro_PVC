@@ -37,6 +37,17 @@ object AperturasMulti {
     }
 
     fun esMulti(mec: String?) = grupo(mec) != null
+
+    /**
+     * Impostas interiores permitidas según la apertura (pk_r2.z de la original): en las aperturas normales todas;
+     * en corredizas y puertas francesas solo las horizontales (1 = x1, 2 = x2); en corredizas verticales solo las verticales (3, 4).
+     * [imp]: 0 ninguna, 1 hor. x1, 2 hor. x2, 3 ver. x1, 4 ver. x2.
+     */
+    fun impostaPermitida(mec: String?, imp: Int): Boolean = when (grupo(mec)) {
+        null -> true
+        Grupo.CORREDIZA, Grupo.FRANCESA -> imp == 0 || imp == 1 || imp == 2
+        Grupo.CORREDIZA_VERT -> imp == 0 || imp == 3 || imp == 4
+    }
     fun clave(mec: String) = mec.substring(2)
 
     fun nombre(mec: String): String = when (grupo(mec)) {
@@ -66,9 +77,9 @@ object AperturasMulti {
     }
 
     /** Hojas del mecanismo [mec] dentro de un hueco de [huecoAncho] x [huecoAlto] (m). */
-    fun hojas(mec: String, huecoAncho: Double, huecoAlto: Double, puerta: Boolean = false): List<Hoja> {
+    fun hojas(mec: String, huecoAncho: Double, huecoAlto: Double, puerta: Boolean = false, perfil: Double? = null): List<Hoja> {
         val g = grupo(mec) ?: return emptyList()
-        val f8 = if (puerta) PERFIL_PUERTA_M else PERFIL_NORMAL_M
+        val f8 = perfil ?: if (puerta) PERFIL_PUERTA_M else PERFIL_NORMAL_M
         val clave = clave(mec)
         return if (g == Grupo.FRANCESA) francesa(clave, huecoAncho, huecoAlto, f8) else corredizas(parsear(clave), g == Grupo.CORREDIZA_VERT, huecoAncho, huecoAlto, f8)
     }

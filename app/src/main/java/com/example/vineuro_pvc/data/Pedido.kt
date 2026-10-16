@@ -32,7 +32,7 @@ data class Pedido(
     val totalVentanas: Int get() = items.size
 
     val areaTotalM2: Double
-        get() = items.sumOf { (it.altoTotalMm / 1000.0) * (it.anchoTotalMm / 1000.0) }
+        get() = items.sumOf { it.areaM2 }
 
     val fechaActualizacionTexto: String
         get() = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(fechaActualizacion))

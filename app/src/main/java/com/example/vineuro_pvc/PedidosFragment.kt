@@ -53,7 +53,9 @@ class PedidosFragment : Fragment() {
         binding.tvOrdenar.setOnClickListener {
             val popup = androidx.appcompat.widget.PopupMenu(requireContext(), it)
             Orden.values().forEachIndexed { i, o -> popup.menu.add(0, i, i, o.texto) }
+            popup.menu.add(1, 100, 100, if (adapter.mostrarIconos) "✔ Mostrar iconos" else "Mostrar iconos")
             popup.setOnMenuItemClickListener { m ->
+                if (m.itemId == 100) { adapter.mostrarIconos = !adapter.mostrarIconos; return@setOnMenuItemClickListener true }
                 orden = Orden.values()[m.itemId]
                 binding.tvOrdenar.text = "Ordenar: ${orden.texto} ▾"
                 mostrar(repo.buscarPedidos(binding.etSearchPedido.text?.toString() ?: ""))

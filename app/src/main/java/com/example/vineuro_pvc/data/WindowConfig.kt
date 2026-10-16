@@ -16,6 +16,8 @@ data class WindowConfig(
     val glazBeadsCount: Int = 4,
     val precioEstimado: Double = 150.0,
     val costoEstimado: Double = 100.0,
+    /** Id del modelo de la original (ver [ModelosOriginales]); solo con [LayoutType.ARBOL]. */
+    val modelo: String? = null,
 ) {
     enum class LayoutType {
         GRID,
@@ -29,5 +31,26 @@ data class WindowConfig(
         DOOR_L_RIGHT_TRANSOM,
         DOOR_T_CENTER_TRANSOM,
         ASYMMETRIC_SPLIT,
+        /** Estructura exacta de la original: divisiones decodificadas de su fórmula (ver [ModelosOriginales]). */
+        ARBOL,
+    }
+
+    /** Modelo de la original de esta configuración (null si es un modelo antiguo). */
+    val modeloOriginal: ModelosOriginales.M? get() = if (layoutType == LayoutType.ARBOL) ModelosOriginales.buscar(modelo) else null
+
+    /** Número de secciones de alto editables. */
+    fun filasActivas(): Int = modeloOriginal?.let { ModelosOriginales.nAlto(it) } ?: when (layoutType) {
+        LayoutType.TOP_TRANSOM, LayoutType.BOTTOM_TRANSOM,
+        LayoutType.DOOR_L_LEFT, LayoutType.DOOR_L_RIGHT, LayoutType.DOOR_T_CENTER,
+        LayoutType.DOOR_L_LEFT_TRANSOM, LayoutType.DOOR_L_RIGHT_TRANSOM, LayoutType.DOOR_T_CENTER_TRANSOM -> 2
+        LayoutType.TOP_BOTTOM_TRANSOM -> 3
+        else -> maxOf(1, rows)
+    }
+
+    /** Número de secciones de ancho editables. */
+    fun colsActivas(): Int = modeloOriginal?.let { ModelosOriginales.nAncho(it) } ?: when (layoutType) {
+        LayoutType.DOOR_T_CENTER, LayoutType.DOOR_T_CENTER_TRANSOM -> maxOf(3, cols)
+        LayoutType.DOOR_L_LEFT, LayoutType.DOOR_L_RIGHT, LayoutType.DOOR_L_LEFT_TRANSOM, LayoutType.DOOR_L_RIGHT_TRANSOM -> maxOf(2, cols)
+        else -> maxOf(1, cols)
     }
 }

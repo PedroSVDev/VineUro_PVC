@@ -3,14 +3,15 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:background="#CCCCCC"
     android:orientation="vertical">
 
     <!-- Top Two Column Body -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="440dp"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:orientation="horizontal">
 
         <!-- LEFT PANEL: impostas -->
@@ -35,7 +36,9 @@
             <ScrollView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:fillViewport="true">
+                android:fadeScrollbars="false"
+                android:fillViewport="true"
+                android:scrollbars="vertical">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -47,10 +50,11 @@
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_impostas_layouts"
                         android:layout_width="match_parent"
-                        android:layout_height="220dp"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"
                         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
                         app:spanCount="2"
-                        tools:listitem="@layout/item_window_config" />
+                        tools:listitem="@layout/item_icono_config" />
 
                     <!-- Toggle Options with Icons -->
                     <LinearLayout
@@ -237,18 +241,6 @@
                             </LinearLayout>
                         </LinearLayout>
 
-                        <!-- Option 4: Glazing bars (barras de vidrio) -->
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_glazing_bars"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:backgroundTint="#42A5F5"
-                            android:text="glazing bars"
-                            android:textColor="@color/white"
-                            android:textSize="13sp"
-                            app:cornerRadius="0dp" />
-
                                         </LinearLayout>
 
                 </LinearLayout>
@@ -287,10 +279,12 @@
                 android:id="@+id/rv_apertura_mechanisms"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:padding="8dp"
+                android:clipToPadding="false"
+                android:fadeScrollbars="false"
+                android:scrollbars="vertical"
                 app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-                app:spanCount="3"
-                tools:listitem="@layout/item_window_config" />
+                app:spanCount="12"
+                tools:listitem="@layout/item_icono_config" />
 
         </LinearLayout>
 

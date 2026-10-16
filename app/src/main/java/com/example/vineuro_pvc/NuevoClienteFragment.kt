@@ -75,6 +75,7 @@ class NuevoClienteFragment : Fragment() {
             apellidos = apellidos,
             telefono = telefono,
             email = email,
+            nota = binding.etNotaCliente.text.toString().trim(),
         )
 
         // Como "such customer is exist" de la original: avisa si ya hay un cliente con el mismo nombre

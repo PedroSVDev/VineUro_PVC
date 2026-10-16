@@ -78,6 +78,7 @@ class PreciosFragment : Fragment() {
         binding.btnBack.setOnClickListener { findNavController().navigateUp() }
         binding.btnActualizarTipoCambio.setOnClickListener { actualizarTipoCambio() }
         binding.btnConvertir.setOnClickListener { elegirMonedaParaConvertir() }
+        binding.btnEjemplo.setOnClickListener { cargarPreciosDeEjemplo() }
         mostrarInfoTipoCambioGuardado()
 
         // Botones de añadir

@@ -3,8 +3,11 @@ package com.example.vineuro_pvc.views
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.RectF
+import android.graphics.Shader
 import android.util.AttributeSet
 import android.view.View
 import com.example.vineuro_pvc.data.OrderItem
@@ -12,11 +15,16 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/** Fila de una tabla de importes del PDF: etiqueta | valor | unidad ("área de productos | 2.25 | m2"). */
+data class FilaTabla(val etiqueta: String, val valor: String, val unidad: String, val grande: Boolean = false)
+
 /**
- * Custom View que dibuja una hoja A4 completa con el formato oficial de la orden de proyectos:
- * - Encabezado (Ejecutante, Logo, Cliente con formateo anti-solapamiento)
- * - Cuadrícula 2x3 para hasta 6 proyectos por página con sus cotas de medidas
- * - Pie de página con resumen de toda la orden, firmas y fecha.
+ * Hoja A4 con el formato de la original (WinStudio):
+ *  - Proyectos / con detalles: 6 celdas por página (2 x 3).
+ *  - Oferta comercial: 2 celdas por página, con lista de propiedades arriba a la derecha y tabla de precios abajo a la derecha.
+ *  - Oferta comercial 2: 1 celda por página.
+ * Encabezado solo en la primera página (etiquetas alineadas a la derecha, banner con el logo) y pie solo en la última
+ * (toda la orden, firmas y fecha). Todas las medidas se expresan en "unidades de hoja" (400 = ancho de la hoja).
  */
 class PdfPageSheetView @JvmOverloads constructor(
     context: Context,
@@ -24,76 +32,55 @@ class PdfPageSheetView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    private fun dpToPx(dp: Float): Float = dp * context.resources.displayMetrics.density
-
-    // Paints
-    private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE
-        style = Paint.Style.FILL
-    }
-
-    private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#888888")
-        style = Paint.Style.STROKE
-        strokeWidth = dpToPx(1f)
-    }
-
-    private val gridBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#AAAAAA")
-        style = Paint.Style.STROKE
-        strokeWidth = dpToPx(0.8f)
-    }
-
-    private val textSecondaryPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#444444")
-        textSize = dpToPx(7.5f)
-    }
-
-    private val textBoldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.BLACK
-        textSize = dpToPx(8f)
-        isFakeBoldText = true
-    }
-
-    private val headerGradientPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#EBF5FA")
-        style = Paint.Style.FILL
-    }
-
     private var pageIndex: Int = 0
     private var totalPages: Int = 1
     private var pageItems: List<OrderItem> = emptyList()
-    private var clientName: String = "Kafe Swan"
-    private var clientAddress: String = "5 Green Avenue"
-    private var clientPhone: String = "123-123-123"
-    private var clientEmail: String = "aistmail@mail.com"
+    private var clientName: String = ""
+    private var clientAddress: String = ""
+    private var clientPhone: String = ""
+    private var clientEmail: String = ""
     private var offerId: String = ""
     private var totalOrderCount: Int = 0
     private var totalOrderAreaM2: Double = 0.0
     private var requisitos: com.example.vineuro_pvc.data.RequisitosDocumento = com.example.vineuro_pvc.data.RequisitosDocumento()
     private var conDetalles: Boolean = false
+    /** 0 = proyectos (6 por hoja), 2 = oferta comercial (2 por hoja), 1 = oferta comercial 2 (1 por hoja). */
+    private var ofertaPorPagina: Int = 0
+    private var tablasCelda: List<List<FilaTabla>> = emptyList()
+    private var tablaTotales: List<FilaTabla>? = null
+    private var tituloOferta: String = "Oferta comercial"
 
     private val windowPreviewHelper = WindowPreviewView(context)
 
     /** Logo de la empresa (se carga una sola vez). */
-    private val logoBitmap: android.graphics.Bitmap by lazy {
-        com.example.vineuro_pvc.data.LogoEmpresa.cargar(context)
-    }
+    private val logoBitmap: android.graphics.Bitmap by lazy { com.example.vineuro_pvc.data.LogoEmpresa.cargar(context) }
     private val logoPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+
+    private val bgPaint = Paint().apply { color = Color.WHITE; style = Paint.Style.FILL }
+    private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#888888"); style = Paint.Style.STROKE }
+    private val celdaPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#999999"); style = Paint.Style.STROKE }
+    private val fondoGris = Paint().apply { color = Color.parseColor("#EEEEEE"); style = Paint.Style.FILL }
+    private val fondoCat = Paint().apply { color = Color.parseColor("#DCDCDD"); style = Paint.Style.FILL }
+    private val lineaPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#777777"); style = Paint.Style.STROKE }
+    private val txt = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.BLACK }
 
     fun bindData(
         pageIndex: Int,
         totalPages: Int,
         pageItems: List<OrderItem>,
         clientName: String,
-        clientAddress: String = "5 Green Avenue",
-        clientPhone: String = "123-123-123",
-        clientEmail: String = "aistmail@mail.com",
+        clientAddress: String = "",
+        clientPhone: String = "",
+        clientEmail: String = "",
         offerId: String = "",
         totalOrderCount: Int = 0,
         totalOrderAreaM2: Double = 0.0,
         requisitos: com.example.vineuro_pvc.data.RequisitosDocumento = com.example.vineuro_pvc.data.RequisitosDocumento(),
         conDetalles: Boolean = false,
+        ofertaPorPagina: Int = 0,
+        tablasCelda: List<List<FilaTabla>> = emptyList(),
+        tablaTotales: List<FilaTabla>? = null,
+        tituloOferta: String = "Oferta comercial",
     ) {
         this.conDetalles = conDetalles
         this.requisitos = requisitos
@@ -107,263 +94,244 @@ class PdfPageSheetView @JvmOverloads constructor(
         this.offerId = offerId
         this.totalOrderCount = totalOrderCount
         this.totalOrderAreaM2 = totalOrderAreaM2
+        this.ofertaPorPagina = ofertaPorPagina
+        this.tablasCelda = tablasCelda
+        this.tablaTotales = tablaTotales
+        this.tituloOferta = tituloOferta
         invalidate()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val width = MeasureSpec.getSize(widthMeasureSpec)
-        // Proporción A4 aproximada 1 : 1.414
-        val targetHeight = (width * 1.414f).toInt()
-        setMeasuredDimension(width, targetHeight)
+        setMeasuredDimension(width, (width * 1.414f).toInt()) // proporción A4
     }
 
-    private fun drawTruncatedText(canvas: Canvas, text: String, x: Float, y: Float, paint: Paint, maxW: Float) {
-        if (paint.measureText(text) <= maxW) {
-            canvas.drawText(text, x, y, paint)
-        } else {
-            var sub = text
-            while (sub.length > 2 && paint.measureText("$sub...") > maxW) {
-                sub = sub.substring(0, sub.length - 1)
-            }
-            canvas.drawText("$sub...", x, y, paint)
-        }
+    private fun recortado(text: String, p: Paint, maxW: Float): String {
+        if (p.measureText(text) <= maxW) return text
+        var sub = text
+        while (sub.length > 2 && p.measureText("$sub...") > maxW) sub = sub.dropLast(1)
+        return "$sub..."
     }
 
-    /** Lista de propiedades de la ventana (categoría sombreada + valores), recortada a su recuadro. */
-    private fun dibujarPropiedades(canvas: Canvas, item: OrderItem, caja: RectF) {
+    private fun tamano(p: Paint, u: Float, size: Float, bold: Boolean = false) { p.textSize = size * u; p.isFakeBoldText = bold }
+
+    /** Propiedades de la ventana alineadas a la derecha: categoría con fondo gris y valores terminados en "●", como la original. */
+    private fun dibujarPropiedades(canvas: Canvas, item: OrderItem, caja: RectF, u: Float, size: Float) {
         val cats = com.example.vineuro_pvc.data.TextoPropiedades.categorias(item)
         if (cats.isEmpty()) return
-        val tam = dpToPx(5.6f)
-        val pCat = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.BLACK; textSize = tam; isFakeBoldText = true }
-        val pTxt = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.BLACK; textSize = tam }
-        val fondo = Paint().apply { color = Color.parseColor("#DCDCDD"); style = Paint.Style.FILL }
-        val alto = tam * 1.25f
-        canvas.save()
-        canvas.clipRect(caja)
+        tamano(txt, u, size)
+        val alto = size * u * 1.3f
+        val tam = size * u
+        canvas.save(); canvas.clipRect(caja)
         var y = caja.top
         for (c in cats) {
             if (y + alto > caja.bottom) break
-            canvas.drawRect(caja.left, y, caja.right, y + alto, fondo)
-            drawTruncatedText(canvas, c.titulo, caja.left + dpToPx(2f), y + tam, pCat, caja.width() - dpToPx(4f))
+            val t = recortado(c.titulo, txt, caja.width() - 4 * u)
+            val w = txt.measureText(t) + 3 * u
+            canvas.drawRect(caja.right - w, y, caja.right, y + alto, fondoCat)
+            txt.textAlign = Paint.Align.RIGHT
+            canvas.drawText(t, caja.right - 1.5f * u, y + tam, txt)
             y += alto
             for (l in c.lineas) {
                 if (y + alto > caja.bottom) break
-                drawTruncatedText(canvas, "$l", caja.left + dpToPx(4f), y + tam, pTxt, caja.width() - dpToPx(6f))
+                canvas.drawText(recortado("$l", txt, caja.width() - 4 * u) + "●", caja.right - 0.5f * u, y + tam, txt)
                 y += alto
             }
+            txt.textAlign = Paint.Align.LEFT
         }
+        txt.textAlign = Paint.Align.LEFT
         canvas.restore()
+    }
+
+    /** Tabla con borde de 3 columnas (etiqueta | valor | unidad) anclada abajo a la derecha de [caja]. */
+    private fun dibujarTabla(canvas: Canvas, filas: List<FilaTabla>, left: Float, top: Float, width: Float, rowH: Float, u: Float, size: Float) {
+        val wEt = width * 0.56f; val wVal = width * 0.28f
+        filas.forEachIndexed { i, f ->
+            val t = top + i * rowH
+            canvas.drawRect(left, t, left + width, t + rowH, celdaPaint)
+            canvas.drawLine(left + wEt, t, left + wEt, t + rowH, celdaPaint)
+            canvas.drawLine(left + wEt + wVal, t, left + wEt + wVal, t + rowH, celdaPaint)
+            val s = if (f.grande) size * 1.05f else size
+            tamano(txt, u, s, f.grande)
+            val base = t + rowH / 2f + txt.textSize * 0.35f
+            canvas.drawText(recortado(f.etiqueta, txt, wEt - 3 * u), left + 1.8f * u, base, txt)
+            txt.textAlign = Paint.Align.CENTER
+            canvas.drawText(f.valor, left + wEt + wVal / 2f, base, txt)
+            tamano(txt, u, size)
+            canvas.drawText(f.unidad, left + wEt + wVal + (width - wEt - wVal) / 2f, base, txt)
+            txt.textAlign = Paint.Align.LEFT
+        }
+        tamano(txt, u, size)
+    }
+
+    private fun dibujarEncabezado(canvas: Canvas, m: Float, top: Float, cw: Float, hh: Float, u: Float) {
+        // Banner degradado centrado con el logo (como la imagen de cabecera de la original)
+        val bx0 = m + cw * 0.27f; val bx1 = m + cw * 0.73f
+        val g = Paint().apply {
+            shader = LinearGradient(
+                bx0, 0f, bx1, 0f,
+                intArrayOf(0x00FFFFFF, 0xFFC4D1DB.toInt(), 0xFFE6EDF2.toInt(), 0xFFC4D1DB.toInt(), 0x00FFFFFF),
+                floatArrayOf(0f, 0.22f, 0.5f, 0.78f, 1f), Shader.TileMode.CLAMP,
+            )
+        }
+        canvas.drawRect(bx0, top, bx1, top + hh, g)
+        val ola = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; color = 0x66FFFFFF; strokeWidth = 1.6f * u }
+        for (k in 0 until 3) {
+            val p = Path()
+            val y0 = top + hh * (0.25f + 0.22f * k)
+            p.moveTo(bx0 + (bx1 - bx0) * 0.05f, y0)
+            p.cubicTo(bx0 + (bx1 - bx0) * 0.3f, y0 - hh * 0.35f, bx0 + (bx1 - bx0) * 0.6f, y0 + hh * 0.3f, bx1 - (bx1 - bx0) * 0.05f, y0 - hh * 0.1f)
+            canvas.drawPath(p, ola)
+        }
+        val lw = (cw * 0.17f); val lh = hh - 6 * u
+        val esc = minOf(lw / logoBitmap.width, lh / logoBitmap.height)
+        val w = logoBitmap.width * esc; val h = logoBitmap.height * esc
+        val cx = m + cw * 0.53f
+        canvas.drawBitmap(logoBitmap, null, RectF(cx - w / 2f, top + (hh - h) / 2f, cx + w / 2f, top + (hh + h) / 2f), logoPaint)
+
+        // Textos: etiqueta alineada a la derecha contra los dos puntos; valor a la izquierda
+        val size = 6.4f
+        val interl = 8.8f * u
+        fun v(s: String) = s.ifBlank { "......" }
+        fun bloque(colonX: Float, maxX: Float, filas: List<Pair<String, String>>) {
+            tamano(txt, u, size)
+            var y = top + 8.2f * u
+            for ((et, valor) in filas) {
+                txt.textAlign = Paint.Align.RIGHT
+                canvas.drawText("$et :", colonX, y, txt)
+                txt.textAlign = Paint.Align.LEFT
+                canvas.drawText(recortado(valor, txt, maxX - colonX - 3 * u), colonX + 3 * u, y, txt)
+                y += interl
+            }
+        }
+        val ejec = buildList {
+            add("EJECUTANTE" to v(requisitos.ejecutante))
+            if (requisitos.ruc.isNotBlank()) add("RUC" to requisitos.ruc)
+            add("dirección" to v(requisitos.direccion))
+            add("teléfono" to v(requisitos.telefono))
+            add("correo electrónico" to v(requisitos.correo))
+            add("página web" to v(requisitos.paginaWeb))
+        }
+        bloque(m + 70 * u, m + cw * 0.41f, ejec)
+        bloque(m + cw - 84 * u, m + cw, listOf(
+            "CLIENTE" to clientName.ifBlank { "......" },
+            "dirección" to v(clientAddress),
+            "teléfono" to v(clientPhone),
+            "correo electrónico" to v(clientEmail),
+            "ID de oferta" to offerId,
+        ))
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-
-        val w = width.toFloat()
-        val h = height.toFloat()
+        val w = width.toFloat(); val h = height.toFloat()
         if (w <= 0 || h <= 0) return
+        val u = w / 400f
+        borderPaint.strokeWidth = 1f * u; celdaPaint.strokeWidth = 0.9f * u; lineaPaint.strokeWidth = 0.7f * u
 
-        // 1. Fondo de la hoja blanca y borde exterior
-        val pageRect = RectF(0f, 0f, w, h)
-        canvas.drawRect(pageRect, bgPaint)
-        canvas.drawRect(pageRect, borderPaint)
+        canvas.drawRect(0f, 0f, w, h, bgPaint)
+        canvas.drawRect(0f, 0f, w, h, borderPaint)
 
-        val margin = dpToPx(8f)
-        val contentW = w - (margin * 2)
+        val m = 10f * u
+        val cw = w - 2 * m
+        val conCabecera = pageIndex == 0
+        val conPie = pageIndex >= totalPages - 1
+        val esOferta = ofertaPorPagina > 0
 
-        // 2. Sección Encabezado (Header)
-        val headerH = dpToPx(78f)
-        val headerRect = RectF(margin, margin, margin + contentW, margin + headerH)
-        
-        canvas.drawRect(headerRect, headerGradientPaint)
-        canvas.drawRect(headerRect, gridBorderPaint)
-
-        val colW = contentW / 3f
-        val maxHeaderTextW = colW - dpToPx(10f)
-        val lineH = dpToPx(12.5f)
-
-        // Izquierda: EJECUTANTE
-        var yPos = margin + dpToPx(13f)
-        val leftX = margin + dpToPx(6f)
-
-        textBoldPaint.textSize = dpToPx(7.5f)
-        textSecondaryPaint.textSize = dpToPx(7.5f)
-
-        // Datos del ejecutante: salen de "Configurar requisitos" (editables por la empresa)
-        fun v(s: String) = s.ifBlank { "......" }
-        val lineEj = dpToPx(10.8f)
-        drawTruncatedText(canvas, "EJECUTANTE : ${v(requisitos.ejecutante)}", leftX, yPos, textBoldPaint, maxHeaderTextW)
-        yPos += lineEj
-        drawTruncatedText(canvas, "RUC : ${v(requisitos.ruc)}", leftX, yPos, textSecondaryPaint, maxHeaderTextW)
-        yPos += lineEj
-        drawTruncatedText(canvas, "dirección : ${v(requisitos.direccion)}", leftX, yPos, textSecondaryPaint, maxHeaderTextW)
-        yPos += lineEj
-        drawTruncatedText(canvas, "teléfono : ${v(requisitos.telefono)}", leftX, yPos, textSecondaryPaint, maxHeaderTextW)
-        yPos += lineEj
-        drawTruncatedText(canvas, "correo electrónico : ${v(requisitos.correo)}", leftX, yPos, textSecondaryPaint, maxHeaderTextW)
-        yPos += lineEj
-        drawTruncatedText(canvas, "página web : ${v(requisitos.paginaWeb)}", leftX, yPos, textSecondaryPaint, maxHeaderTextW)
-
-        // Centro: Logo de VINEURO PVC (imagen res/drawable-nodpi/logo_vineuro.png)
-        val logoCenterX = margin + colW * 1.5f
-        val logoMaxW = colW - dpToPx(8f)
-        val logoMaxH = headerH - dpToPx(22f) // deja espacio para la cabecera debajo
-        val logoW: Float
-        val logoH: Float
-        if (logoBitmap.width / logoBitmap.height.toFloat() > logoMaxW / logoMaxH) {
-            logoW = logoMaxW; logoH = logoMaxW * logoBitmap.height / logoBitmap.width
-        } else {
-            logoH = logoMaxH; logoW = logoMaxH * logoBitmap.width / logoBitmap.height
+        var y = m
+        // Título "Oferta comercial" solo en las ofertas (primera página), como la original
+        if (esOferta && conCabecera) {
+            canvas.drawRect(m, y, m + cw, y + 11f * u, fondoGris)
+            tamano(txt, u, 7.8f); txt.textAlign = Paint.Align.CENTER
+            canvas.drawText(tituloOferta, m + cw / 2f, y + 8.2f * u, txt)
+            txt.textAlign = Paint.Align.LEFT
+            y += 11f * u
         }
-        val logoTop = margin + dpToPx(4f)
-        val logoRect = RectF(logoCenterX - logoW / 2f, logoTop, logoCenterX + logoW / 2f, logoTop + logoH)
-        canvas.drawBitmap(logoBitmap, null, logoRect, logoPaint)
-
-        // Cabecera del documento (p. ej. "OFERTA COMERCIAL") debajo del logo
-        val tituloPaint = Paint(textBoldPaint).apply {
-            textSize = dpToPx(8.5f)
-            textAlign = Paint.Align.CENTER
-            color = Color.parseColor("#1E3A5F")
+        if (conCabecera) {
+            val filasEj = 5 + (if (requisitos.ruc.isNotBlank()) 1 else 0)
+            val hh = maxOf(46f, 8.8f * filasEj + 5f) * u
+            dibujarEncabezado(canvas, m, y, cw, hh, u)
+            y += hh + 3f * u
         }
-        var titulo = requisitos.cabecera.ifBlank { "Oferta comercial" }.uppercase(Locale("es", "PE"))
-        while (titulo.length > 3 && tituloPaint.measureText(titulo) > colW - dpToPx(6f)) titulo = titulo.dropLast(1)
-        canvas.drawText(titulo, logoCenterX, margin + headerH - dpToPx(7f), tituloPaint)
 
-        // Derecha: CLIENTE
-        val rightX = margin + colW * 2f + dpToPx(6f)
-        var yPosRight = margin + dpToPx(13f)
+        // Pie: filas de la tabla de "toda la orden"
+        val filasTotal: List<FilaTabla> = tablaTotales ?: listOf(
+            FilaTabla("cantidad", "${totalOrderCount.coerceAtLeast(pageItems.size)}", "pc"),
+            com.example.vineuro_pvc.data.Unidades.areaM2(totalOrderAreaM2).let { FilaTabla("toda el área de productos", it.substringBefore(' '), it.substringAfter(' ', "")) },
+        )
+        val rowF = 8.8f * u
+        val footerH = if (conPie) (1.2f + 9f) * u + filasTotal.size * rowF + 3f * u else 0f
+        val gridTop = y
+        val gridBottom = h - m - footerH - (if (conPie) 3f * u else 0f)
+        val cols = if (esOferta) 1 else 2
+        val rows = when (ofertaPorPagina) { 2 -> 2; 1 -> 1; else -> 3 }
+        val cellW = cw / cols; val cellH = (gridBottom - gridTop) / rows
+        val gap = 2f * u
 
-        drawTruncatedText(canvas, "CLIENTE : $clientName", rightX, yPosRight, textBoldPaint, maxHeaderTextW)
-        yPosRight += lineH
-        drawTruncatedText(canvas, "dirección : $clientAddress", rightX, yPosRight, textSecondaryPaint, maxHeaderTextW)
-        yPosRight += lineH
-        drawTruncatedText(canvas, "teléfono : $clientPhone", rightX, yPosRight, textSecondaryPaint, maxHeaderTextW)
-        yPosRight += lineH
-        drawTruncatedText(canvas, "correo electrónico : $clientEmail", rightX, yPosRight, textSecondaryPaint, maxHeaderTextW)
-        yPosRight += lineH
-        drawTruncatedText(canvas, "ID de oferta : ${offerId.ifEmpty { "......" }}", rightX, yPosRight, textSecondaryPaint, maxHeaderTextW)
+        for (idx in 0 until cols * rows) {
+            val row = idx / cols; val col = idx % cols
+            val l = m + col * cellW + gap; val t = gridTop + row * cellH + gap
+            val r = m + (col + 1) * cellW - gap; val b = gridTop + (row + 1) * cellH - gap
+            canvas.drawRect(l, t, r, b, celdaPaint)
+            if (idx >= pageItems.size) continue
+            val item = pageItems[idx]
+            val cW = r - l
 
-        // 3. Sección Cuadrícula de Proyectos (2 Columnas x 3 Filas = 6 por página)
-        val gridTop = margin + headerH + dpToPx(6f)
-        val footerH = dpToPx(85f)
-        val gridH = h - gridTop - footerH - margin
+            tamano(txt, u, 9f)
+            val numY = t + 11.5f * u
+            canvas.drawText("${item.index}", l + 6f * u, numY, txt)
+            var xTxt = l + 6f * u + txt.measureText("${item.index}") + 8f * u
 
-        val cellW = contentW / 2f
-        val cellH = gridH / 3f
+            tamano(txt, u, 6.4f)
+            if (!esOferta && item.opciones.cantidad >= 2) {
+                val t2 = "cantidad ${item.opciones.cantidad}pc"
+                canvas.drawText(t2, xTxt, numY, txt); xTxt += txt.measureText(t2) + 8f * u
+            }
+            if (item.opciones.nota.isNotBlank()) {
+                tamano(txt, u, 5.6f)
+                canvas.drawText(recortado(item.opciones.nota, txt, (if (esOferta) cW * 0.5f else cW * 0.42f) - (xTxt - l)), xTxt, numY, txt)
+            }
 
-        for (row in 0 until 3) {
-            for (col in 0 until 2) {
-                val itemIndexInPage = row * 2 + col
-                val cellLeft = margin + col * cellW
-                val cellTop = gridTop + row * cellH
-                val cellRight = cellLeft + cellW
-                val cellBottom = cellTop + cellH
+            val conLista = conDetalles || esOferta
+            val drawBounds = RectF(l + 3f * u, t + 13f * u, if (conLista) r - cW * 0.24f else r - 3f * u, b - 2f * u)
+            if (esOferta) { drawBounds.left = l + 8f * u; drawBounds.top = t + 16f * u; drawBounds.bottom = b - 6f * u }
+            windowPreviewHelper.drawItem(canvas, drawBounds, item, showTechnicalDetails = true, isCompactMode = true)
 
-                val cellRect = RectF(cellLeft, cellTop, cellRight, cellBottom)
-                canvas.drawRect(cellRect, gridBorderPaint)
-
-                if (itemIndexInPage < pageItems.size) {
-                    val item = pageItems[itemIndexInPage]
-
-                    // Número del ítem (1, 2, 3...)
-                    val numX = cellLeft + dpToPx(8f)
-                    val numY = cellTop + dpToPx(15f)
-                    textBoldPaint.textSize = dpToPx(11f)
-                    canvas.drawText("${item.index}", numX, numY, textBoldPaint)
-
-                    // Cantidad de piezas del pedido (solo si es 2 o más, como en el original)
-                    textSecondaryPaint.textSize = dpToPx(8f)
-                    if (item.opciones.cantidad >= 2) {
-                        val countText = "cantidad ${item.opciones.cantidad}pc"
-                        val countX = cellRight - dpToPx(8f) - textSecondaryPaint.measureText(countText)
-                        canvas.drawText(countText, countX, numY, textSecondaryPaint)
-                    }
-
-                    // Dibujo técnico de la ventana
-                    val drawMarginH = dpToPx(3f)
-                    val drawMarginV = dpToPx(14f)
-                    val drawBounds = RectF(
-                        cellLeft + drawMarginH,
-                        cellTop + drawMarginV,
-                        cellRight - drawMarginH,
-                        cellBottom - dpToPx(2f)
-                    )
-                    // Con detalles: el dibujo ocupa la parte alta y debajo va la lista de propiedades
-                    if (conDetalles) drawBounds.bottom = cellTop + (cellBottom - cellTop) * 0.52f
-
-                    windowPreviewHelper.drawItem(canvas, drawBounds, item, showTechnicalDetails = true, isCompactMode = true)
-
-                    if (conDetalles) {
-                        val top = drawBounds.bottom + dpToPx(2f)
-                        dibujarPropiedades(canvas, item, RectF(cellLeft + dpToPx(3f), top, cellRight - dpToPx(3f), cellBottom - dpToPx(2f)))
-                    }
-                    // Nota de la ventana (el original la muestra si no está vacía)
-                    if (item.opciones.nota.isNotBlank()) {
-                        textSecondaryPaint.textSize = dpToPx(6.5f)
-                        drawTruncatedText(canvas, item.opciones.nota, cellLeft + dpToPx(22f), numY, textSecondaryPaint, cellW - dpToPx(90f))
-                    }
-                }
+            if (conLista) {
+                val alto = if (esOferta) {
+                    val n = tablasCelda.getOrNull(idx)?.size ?: 0
+                    (b - t) - (n * 8.8f + 10f) * u
+                } else (b - t) - 6f * u
+                dibujarPropiedades(canvas, item, RectF(r - cW * 0.3f, t + 4f * u, r - 2f * u, t + 4f * u + alto.coerceAtLeast(20f * u)), u, if (esOferta) 4.8f else 4.5f)
+            }
+            if (esOferta) tablasCelda.getOrNull(idx)?.let { filas ->
+                val ancho = cW * 0.23f
+                dibujarTabla(canvas, filas, r - ancho - 3f * u, b - 3f * u - filas.size * 8.8f * u, ancho, 8.8f * u, u, 4.8f)
             }
         }
 
-        // 4. Sección Pie de Página (Footer Table & Signatures)
-        val footerTop = h - footerH - margin
-        val footerRect = RectF(margin, footerTop, margin + contentW, footerTop + footerH)
-        canvas.drawRect(footerRect, gridBorderPaint)
-
-        // Fila 1 del footer: Encabezado de la tabla de totales
-        val headerTableH = dpToPx(16f)
-        val tableHeaderRect = RectF(margin, footerTop, margin + contentW, footerTop + headerTableH)
-        canvas.drawRect(tableHeaderRect, headerGradientPaint)
-        canvas.drawLine(margin, footerTop + headerTableH, margin + contentW, footerTop + headerTableH, gridBorderPaint)
-
-        // Columnas del footer
-        val footCol1W = contentW * 0.42f
-        val footCol2W = contentW * 0.33f
-
-        val x1 = margin
-        val x2 = x1 + footCol1W
-        val x3 = x2 + footCol2W
-
-        // Dibujar divisiones verticales del footer
-        canvas.drawLine(x2, footerTop, x2, footerTop + footerH, gridBorderPaint)
-        canvas.drawLine(x3, footerTop, x3, footerTop + footerH, gridBorderPaint)
-
-        // Textos del encabezado del footer
-        textBoldPaint.textSize = dpToPx(8f)
-        textSecondaryPaint.textSize = dpToPx(7.5f)
-
-        canvas.drawText("toda la orden", x1 + dpToPx(6f), footerTop + dpToPx(11.5f), textBoldPaint)
-        canvas.drawText("Firmas", x2 + dpToPx(6f), footerTop + dpToPx(11.5f), textBoldPaint)
-
-        val currentDateStr = SimpleDateFormat("dd MMM yyyy", Locale("es", "ES")).format(Date())
-        canvas.drawText(currentDateStr, x3 + dpToPx(6f), footerTop + dpToPx(11.5f), textSecondaryPaint)
-
-        // Contenido Columna 1: Totales de la Orden
-        val row1Y = footerTop + headerTableH + dpToPx(16f)
-        canvas.drawText("cantidad", x1 + dpToPx(6f), row1Y, textSecondaryPaint)
-        canvas.drawText("${totalOrderCount.coerceAtLeast(pageItems.size)}", x1 + footCol1W * 0.65f, row1Y, textBoldPaint)
-        canvas.drawText("pc", x1 + footCol1W * 0.85f, row1Y, textSecondaryPaint)
-
-        val lineY1 = footerTop + headerTableH + dpToPx(23f)
-        canvas.drawLine(x1, lineY1, x2, lineY1, gridBorderPaint)
-
-        val row2Y = lineY1 + dpToPx(16f)
-        canvas.drawText("toda el área de productos", x1 + dpToPx(6f), row2Y, textSecondaryPaint)
-        val areaFormatted = String.format(Locale.US, "%.2f", totalOrderAreaM2)
-        canvas.drawText(areaFormatted, x1 + footCol1W * 0.65f, row2Y, textBoldPaint)
-        canvas.drawText("m2", x1 + footCol1W * 0.85f, row2Y, textSecondaryPaint)
-
-        // Contenido Columna 2: Firmas
-        val sig1Y = footerTop + headerTableH + dpToPx(18f)
-        canvas.drawText("Ejecutante", x2 + dpToPx(6f), sig1Y, textSecondaryPaint)
-
-        val sigLine1Y = footerTop + headerTableH + dpToPx(28f)
-        canvas.drawLine(x2 + dpToPx(55f), sigLine1Y, x3 - dpToPx(10f), sigLine1Y, gridBorderPaint)
-
-        val sig2Y = sigLine1Y + dpToPx(20f)
-        canvas.drawText("Cliente", x2 + dpToPx(6f), sig2Y, textSecondaryPaint)
-
-        val sigLine2Y = sig2Y + dpToPx(10f)
-        canvas.drawLine(x2 + dpToPx(55f), sigLine2Y, x3 - dpToPx(10f), sigLine2Y, gridBorderPaint)
+        if (!conPie) return
+        val top = h - m - footerH
+        val x2 = m + cw * 0.46f
+        canvas.drawRect(m, top, m + cw, top + 1.2f * u, Paint().apply { color = Color.parseColor("#999999") })
+        canvas.drawRect(m, top + 1.2f * u, m + cw, top + 10.2f * u, fondoGris)
+        tamano(txt, u, 6.6f)
+        val by = top + 8f * u
+        canvas.drawText("toda la orden", m + 4f * u, by, txt)
+        canvas.drawText("Firmas", x2, by, txt)
+        txt.textAlign = Paint.Align.RIGHT
+        canvas.drawText(SimpleDateFormat("dd MMM yyyy", Locale("es", "ES")).format(Date()).replace(".", ""), m + cw - 4f * u, by, txt)
+        txt.textAlign = Paint.Align.LEFT
+        val tTop = top + 10.2f * u
+        dibujarTabla(canvas, filasTotal, m, tTop, cw * 0.43f, rowF, u, 5.4f)
+        // Firmas: línea al pie de la fila 2 (Ejecutante) y de la última (Cliente)
+        val filaEj = if (filasTotal.size >= 4) 1 else 0
+        val filaCl = filaEj + 1 + (if (filasTotal.size >= 4) 1 else 0)
+        tamano(txt, u, 5.4f)
+        for ((et, k) in listOf("Ejecutante" to filaEj, "Cliente" to filaCl.coerceAtMost(filasTotal.size - 1))) {
+            val yl = tTop + (k + 1) * rowF
+            canvas.drawText(et, x2, yl - 2.4f * u, txt)
+            canvas.drawLine(x2, yl, m + cw, yl, lineaPaint)
+        }
     }
 }
