@@ -30,7 +30,7 @@ data class Precios(
     val fechaActualizacion: Long = System.currentTimeMillis(),
 ) {
     companion object {
-        /** Columnas numéricas de un sistema de ventanas (las 37 de la original; la 0 es el nombre). */
+        /** Columnas numéricas de un sistema de ventanas (las 37; la 0 es el nombre). */
         const val COLUMNAS_SISTEMA = 37
 
         /** Completa con "0.00" las filas guardadas antes de ampliar la tabla (solo tenían 9 columnas). */
@@ -102,7 +102,7 @@ data class Precios(
                 listOf("oak dark", "75.00"),
                 listOf("oak light", "75.00"),
             ),
-            // Los 18 colores de la tabla original (códigos de su paleta B05, C01, ...) + los propios de VINEURO
+            // Los 18 colores de la tabla (códigos de su paleta B05, C01, ...) + los propios de VINEURO
             colores = listOf(
                 FilaColor("alder", "#fccfae"),
                 FilaColor("ash", "#eeba8e"),

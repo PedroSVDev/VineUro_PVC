@@ -183,7 +183,7 @@ class PdfPreviewFragment : Fragment() {
 
             Toast.makeText(requireContext(), "PDF guardado exitosamente: ${pdfFile.name}", Toast.LENGTH_LONG).show()
 
-            // Enviar o abrir el PDF (diálogo como el de la original)
+            // Enviar o abrir el PDF (diálogo como el)
             com.example.vineuro_pvc.views.PdfAcciones.mostrarDialogo(requireContext(), pdfFile, "PDF de Oferta")
 
         } catch (e: Exception) {

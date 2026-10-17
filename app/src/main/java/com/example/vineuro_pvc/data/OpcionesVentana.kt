@@ -49,7 +49,7 @@ data class OpcionesVentana(
         put("perfiles", JSONArray(perfiles.toList()))
     }
 
-    /** Copia independiente (para editar en el menú sin tocar el original hasta pulsar ACEPTAR). */
+    /** Copia independiente (para editar en el menú sin tocar la ventana hasta pulsar ACEPTAR). */
     fun copiar(): OpcionesVentana = fromJson(toJson())
 
     companion object {

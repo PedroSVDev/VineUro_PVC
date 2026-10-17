@@ -8,7 +8,7 @@ import android.graphics.RectF
 import android.graphics.drawable.Drawable
 
 /**
- * Ventanita de la imposta interior, como IconsGroupLeafImposts de la original: marco blanco y vidrios azules.
+ * Ventanita de la imposta interior, como IconsGroupLeafImposts: marco blanco y vidrios azules.
  * [imp]: 0 ninguna, 1 horizontal x1 (2 vidrios apilados), 2 horizontal x2 (3), 3 vertical x1 (2 lado a lado), 4 vertical x2 (3).
  * [mascara]: bit i = vidrio i es panel sándwich (se dibuja gris con rayas). [barras] = icono del botón glazing bars (rejilla).
  */

@@ -83,7 +83,7 @@ class ClientesGuardadosFragment : Fragment() {
             .show()
     }
 
-    /** Edita los datos básicos del cliente (como "customer edit" de la original). */
+    /** Edita los datos básicos del cliente (como "customer edit"). */
     private fun editarCliente(cliente: Cliente) {
         val ctx = requireContext()
         val dp = ctx.resources.displayMetrics.density

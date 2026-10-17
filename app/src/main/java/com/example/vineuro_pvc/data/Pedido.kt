@@ -20,13 +20,13 @@ data class Pedido(
     val estado: String = ESTADO_BORRADOR,
     val fechaCreacion: Long = System.currentTimeMillis(),
     val fechaActualizacion: Long = System.currentTimeMillis(),
-    // --- Datos del pedido del original (pantalla "pedido nuevo"). Por ahora se guardan SOLO en el teléfono
+    // --- Datos del pedido (pantalla "pedido nuevo"). Por ahora se guardan SOLO en el teléfono
     //     (tabla local "configuracion"); NO viajan a Supabase hasta que existan las columnas direccion / id_oferta / nota. ---
-    /** Dirección de la obra o del cliente para este pedido (el original: "dirección"). */
+    /** Dirección de la obra o del cliente para este pedido . */
     val direccion: String = "",
-    /** Identificador de la oferta (el original: "offer ID"). Es el N° de cotización por defecto. */
+    /** Identificador de la oferta . Es el N° de cotización por defecto. */
     val idOferta: String = "",
-    /** Nota general del pedido (el original: "note"). */
+    /** Nota general del pedido . */
     val nota: String = "",
 ) {
     val totalVentanas: Int get() = items.size

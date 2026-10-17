@@ -55,7 +55,7 @@ class DialogRequisitos(private val fragment: Fragment) {
             b.etPaginaWeb, b.etFacebook, b.etLema1, b.etLema2, b.etFirmaNombre, b.etFirmaCargo,
         ).forEach { it.doAfterTextChanged { actualizarVistaPrevia() } }
 
-        // Logo propio (como "sp_logo_path" del original)
+        // Logo propio 
         mostrarLogo()
         b.btnElegirLogo.setOnClickListener { selectorLogo.launch("image/*") }
         b.btnQuitarLogo.setOnClickListener {

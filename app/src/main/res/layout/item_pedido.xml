@@ -25,7 +25,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-            <!-- Icono de la primera ventana del pedido (como el explorador de pedidos del original) -->
+            <!-- Icono de la primera ventana del pedido  -->
             <ImageView
                 android:id="@+id/img_miniatura"
                 android:layout_width="match_parent"

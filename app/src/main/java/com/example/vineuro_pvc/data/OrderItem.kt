@@ -18,7 +18,7 @@ data class OrderItem(
     val paneCols: MutableMap<Int, Int> = mutableMapOf(),
     /** Bits de sándwich por vidrio de la hoja con imposta interior (bit 0 = arriba/izquierda). */
     val paneSandwichSub: MutableMap<Int, Int> = mutableMapOf(),
-    /** Barras de vidrio (glazing bars) por paño: "HxV HxV HxV" (barras horizontales x verticales de cada vidrio, como la original). */
+    /** Barras de vidrio (glazing bars) por paño: "HxV HxV HxV" (barras horizontales x verticales de cada vidrio). */
     val paneBars: MutableMap<Int, String> = mutableMapOf(),
     val paneImpOff: MutableMap<Int, String> = mutableMapOf(),
     var colorBgHex: String = "#42A5F5",
@@ -52,12 +52,12 @@ data class OrderItem(
         ),
     )
 
-    /** Área real de la ventana (m²): en los modelos en L / T de la original no cuenta el hueco vacío. */
+    /** Área real de la ventana (m²): en los modelos en L / T no cuenta el hueco vacío. */
     val areaM2: Double
         get() {
-            val mo = config.modeloOriginal
+            val mo = config.modeloEstructura
             if (mo != null) {
-                val pl = ModelosOriginales.plano(mo, anchoTotalMm.toDouble(), altoTotalMm.toDouble(), sectionWidths, sectionHeights)
+                val pl = ModelosVentana.plano(mo, anchoTotalMm.toDouble(), altoTotalMm.toDouble(), sectionWidths, sectionHeights)
                 return pl.celdas.sumOf { it.ancho * it.alto } / 1_000_000.0
             }
             return (altoTotalMm / 1000.0) * (anchoTotalMm / 1000.0)
@@ -71,12 +71,12 @@ data class OrderItem(
             anchoMm: Int? = null,
             colorBgHex: String = "#42A5F5"
         ): OrderItem {
-            // Los modelos de la original traen su propio tamaño inicial y sus secciones (según los pesos de su estructura)
-            val modelo = config.modeloOriginal
+            // Los modelos traen su propio tamaño inicial y sus secciones (según los pesos de su estructura)
+            val modelo = config.modeloEstructura
             val alto = altoMm ?: modelo?.altoMm ?: 1800
             val ancho = anchoMm ?: modelo?.anchoMm ?: 1500
             if (modelo != null) {
-                val (anchos, altos) = ModelosOriginales.seccionesPorDefecto(modelo, ancho.toFloat(), alto.toFloat())
+                val (anchos, altos) = ModelosVentana.seccionesPorDefecto(modelo, ancho.toFloat(), alto.toFloat())
                 return OrderItem(
                     index = index, config = config, altoTotalMm = alto, anchoTotalMm = ancho,
                     sectionHeights = altos, sectionWidths = anchos, colorBgHex = colorBgHex,

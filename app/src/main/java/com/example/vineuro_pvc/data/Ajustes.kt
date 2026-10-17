@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 
-/** Ajustes de la pantalla de inicio de la original: estilo (tema) e idioma. Las unidades están en [Unidades]. */
+/** Ajustes de la pantalla de inicio: estilo (tema) e idioma. Las unidades están en [Unidades]. */
 object Ajustes {
     private const val PREFS = "pref_ui"
     private const val KEY_TEMA = "tema" // 0 = sistema, 1 = claro, 2 = oscuro

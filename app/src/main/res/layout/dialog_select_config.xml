@@ -89,7 +89,7 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- Un sándwich por vidrio (1, 2 o 3 según la imposta interior), como la original -->
+                        <!-- Un sándwich por vidrio (1, 2 o 3 según la imposta interior) -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"

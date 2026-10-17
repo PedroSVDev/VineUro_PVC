@@ -12,7 +12,7 @@ import java.util.Locale
 /**
  * "Compartir datos": enviar precios o pedidos como un archivo (se comparte por Bluetooth, WhatsApp, correo,
  * Drive…) y recibirlo en otro teléfono con un resumen antes de aplicar: Nuevos, Idénticos, Se reemplazan
- * (el archivo es más reciente) e Ignorados (el archivo es más antiguo), igual que el intercambio del original.
+ * (el archivo es más reciente) e Ignorados (el archivo es más antiguo).
  * También sirve de copia de respaldo (RNF-012): un archivo de pedidos contiene pedidos, clientes y cotizaciones.
  */
 object IntercambioDatos {

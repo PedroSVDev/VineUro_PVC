@@ -1,11 +1,11 @@
 package com.example.vineuro_pvc.data
 
 /**
- * Lista de propiedades de una ventana tal como la imprime el original en "PDF con los detalles":
- * categorías (encabezado) y, debajo, lo elegido. Orden del original:
+ * Lista de propiedades de una ventana tal como se imprime en "PDF con los detalles":
+ * categorías (encabezado) y, debajo, lo elegido. Orden:
  * sistema, cristal, umbrales exteriores, umbrales interiores, herrajes, extras, trabajos, mosquitero,
  * laminación interior, laminación exterior, color y "adiciones por tamaño" (perfiles).
- * Los planes de financiación no se imprimen (el original solo los muestra con material perdido).
+ * Los planes de financiación no se imprimen (solo se muestran cuando falta material).
  */
 object TextoPropiedades {
     data class Categoria(val titulo: String, val lineas: List<String>)

@@ -1,9 +1,8 @@
 package com.example.vineuro_pvc.data
 
 /**
- * Los 63 modelos de ventana del selector de la original (WinStudio V41.8, pk_d4.i), en el mismo orden de su rejilla,
- * con el mismo tamaño inicial y con su estructura exacta, que se decodifica de la misma "fórmula" que usa la original
- * (pk_i2.b / pk_i2.f):
+ * Los 63 modelos de ventana del selector, en el mismo orden de su rejilla,
+ * con su tamaño inicial y su estructura exacta, descrita mediante una "fórmula" de texto:
  *
  *  - "werABC"   columnas A | B | C (divisiones verticales);  "horAB"   filas A / B (divisiones horizontales).
  *  - "(n)" tras una letra = peso relativo de esa parte (por defecto 1): "horA(2)B" -> A mide el doble que B.
@@ -11,10 +10,10 @@ package com.example.vineuro_pvc.data
  *  - "block_o(8,13:9)Q(9,)_A_horAab(4)" = ventana con bloques "o" (ventana baja: 13:9 -> 13/(13+9) de la altura) y "Q" (altura
  *    completa), de ancho relativo 8 y 9; cada bloque lleva su propia fórmula. El hueco bajo una "o" queda vacío (ventana en L / T).
  */
-object ModelosOriginales {
+object ModelosVentana {
     class M(val id: String, val formula: String, val anchoMm: Int, val altoMm: Int)
 
-    /** Orden de la rejilla de la original (dialog__select_win_type_v2). */
+    /** Orden de la rejilla. */
     val TODOS: List<M> = listOf(
         M("A", "A", 1500, 1500),
         M("werAB", "werAB", 1500, 1500),
@@ -222,7 +221,7 @@ object ModelosOriginales {
         val largo get() = hasta - desde
     }
 
-    /** "Base" de la original (pk_g4.a): un marco rectangular. Una ventana en L / T tiene una base por bloque; las demás, una. */
+    /** "Base": un marco rectangular. Una ventana en L / T tiene una base por bloque; las demás, una. */
     class BaseRect(val x0: Double, val y0: Double, val x1: Double, val y1: Double) {
         val ancho get() = x1 - x0
         val alto get() = y1 - y0

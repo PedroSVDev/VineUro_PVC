@@ -27,7 +27,7 @@ class PedidosFragment : Fragment() {
     private lateinit var adapter: PedidosAdapter
     private var orden = Orden.RECIENTES
 
-    /** Los cuatro órdenes del original: más antiguos, más recientes, por nombre y por cantidad de ventanas. */
+    /** Los cuatro órdenes: más antiguos, más recientes, por nombre y por cantidad de ventanas. */
     private enum class Orden(val texto: String) {
         RECIENTES("más recientes"), ANTIGUOS("más antiguos"), NOMBRE("nombre A-Z"), NOMBRE_DESC("nombre Z-A"), VENTANAS("más ventanas"), VENTANAS_ASC("menos ventanas")
     }

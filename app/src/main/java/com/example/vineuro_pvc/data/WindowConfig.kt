@@ -16,7 +16,7 @@ data class WindowConfig(
     val glazBeadsCount: Int = 4,
     val precioEstimado: Double = 150.0,
     val costoEstimado: Double = 100.0,
-    /** Id del modelo de la original (ver [ModelosOriginales]); solo con [LayoutType.ARBOL]. */
+    /** Id del modelo (ver [ModelosVentana]); solo con [LayoutType.ARBOL]. */
     val modelo: String? = null,
 ) {
     enum class LayoutType {
@@ -31,15 +31,15 @@ data class WindowConfig(
         DOOR_L_RIGHT_TRANSOM,
         DOOR_T_CENTER_TRANSOM,
         ASYMMETRIC_SPLIT,
-        /** Estructura exacta de la original: divisiones decodificadas de su fórmula (ver [ModelosOriginales]). */
+        /** Estructura exacta: divisiones decodificadas de su fórmula (ver [ModelosVentana]). */
         ARBOL,
     }
 
-    /** Modelo de la original de esta configuración (null si es un modelo antiguo). */
-    val modeloOriginal: ModelosOriginales.M? get() = if (layoutType == LayoutType.ARBOL) ModelosOriginales.buscar(modelo) else null
+    /** Modelo de esta configuración (null si es un modelo antiguo). */
+    val modeloEstructura: ModelosVentana.M? get() = if (layoutType == LayoutType.ARBOL) ModelosVentana.buscar(modelo) else null
 
     /** Número de secciones de alto editables. */
-    fun filasActivas(): Int = modeloOriginal?.let { ModelosOriginales.nAlto(it) } ?: when (layoutType) {
+    fun filasActivas(): Int = modeloEstructura?.let { ModelosVentana.nAlto(it) } ?: when (layoutType) {
         LayoutType.TOP_TRANSOM, LayoutType.BOTTOM_TRANSOM,
         LayoutType.DOOR_L_LEFT, LayoutType.DOOR_L_RIGHT, LayoutType.DOOR_T_CENTER,
         LayoutType.DOOR_L_LEFT_TRANSOM, LayoutType.DOOR_L_RIGHT_TRANSOM, LayoutType.DOOR_T_CENTER_TRANSOM -> 2
@@ -48,7 +48,7 @@ data class WindowConfig(
     }
 
     /** Número de secciones de ancho editables. */
-    fun colsActivas(): Int = modeloOriginal?.let { ModelosOriginales.nAncho(it) } ?: when (layoutType) {
+    fun colsActivas(): Int = modeloEstructura?.let { ModelosVentana.nAncho(it) } ?: when (layoutType) {
         LayoutType.DOOR_T_CENTER, LayoutType.DOOR_T_CENTER_TRANSOM -> maxOf(3, cols)
         LayoutType.DOOR_L_LEFT, LayoutType.DOOR_L_RIGHT, LayoutType.DOOR_L_LEFT_TRANSOM, LayoutType.DOOR_L_RIGHT_TRANSOM -> maxOf(2, cols)
         else -> maxOf(1, cols)

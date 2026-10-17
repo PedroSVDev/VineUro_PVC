@@ -4,23 +4,23 @@ import com.example.vineuro_pvc.data.WindowConfig.LayoutType
 
 /**
  * Catálogo de modelos de ventana.
- *  - [originales]: los 63 modelos del selector de la original, en su orden y con su estructura exacta (los que se ofrecen).
+ *  - [catalogo]: los 63 modelos del selector, en su orden y con su estructura exacta (los que se ofrecen).
  *  - [antiguas]: las configuraciones de versiones anteriores de la app; ya no se ofrecen, pero se conservan para poder abrir
  *    los pedidos guardados con ellas.
  *  - [obtenerTodas]: ambas (para resolver un pedido guardado por su id).
  */
 object WindowConfigCatalog {
 
-    const val PREFIJO_ORIGINAL = "orig_"
+    const val PREFIJO_MODELO = "orig_"
 
-    fun originales(): List<WindowConfig> = ModelosOriginales.TODOS.map { m ->
+    fun catalogo(): List<WindowConfig> = ModelosVentana.TODOS.map { m ->
         WindowConfig(
-            id = PREFIJO_ORIGINAL + m.id, nombre = ModelosOriginales.nombre(m), categoria = "Original",
+            id = PREFIJO_MODELO + m.id, nombre = ModelosVentana.nombre(m), categoria = "Modelos",
             layoutType = WindowConfig.LayoutType.ARBOL, modelo = m.id,
         )
     }
 
-    fun obtenerTodas(): List<WindowConfig> = originales() + antiguas()
+    fun obtenerTodas(): List<WindowConfig> = catalogo() + antiguas()
 
     fun antiguas(): List<WindowConfig> {
         val list = mutableListOf<WindowConfig>()

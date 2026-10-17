@@ -130,7 +130,7 @@
                         android:textSize="16sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Adicional (como "additionally" de la original) -->
+                <!-- Adicional (como "additionally") -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/til_nota_cliente"
                     style="@style/Widget.Material3.TextInputLayout.OutlinedBox"

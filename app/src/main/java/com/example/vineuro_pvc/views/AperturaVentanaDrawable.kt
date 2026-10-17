@@ -10,13 +10,13 @@ import android.graphics.drawable.Drawable
 import com.example.vineuro_pvc.data.AperturasMulti
 
 /**
- * Icono de apertura dibujado igual que la original (WinStudio V41.8: IconsGroupLeafOpenings / pk_g5.a / pk_e5.b).
+ * Icono de apertura dibujado.
  * Mismos colores (hoja #F5F5F5, vidrio #CDDBEB, trazo #333333 / #111111), mismas proporciones
  * (marco = lado menor / 14, perfil de hoja = lado menor / 10) y mismos símbolos.
  *
  * [mec] = id de mecanismo de la app: "1".."10" (básicas) o "F:/V:/S:<clave>" (francesas, corredizas verticales y corredizas).
  */
-class AperturaOriginalDrawable(private val mec: String, densidad: Float = 2f) : Drawable() {
+class AperturaVentanaDrawable(private val mec: String, densidad: Float = 2f) : Drawable() {
 
     private enum class Simbolo { FIJO, IZQ, DER, ARRIBA, ABAJO, ARRIBA_IZQ, ARRIBA_DER, DESLIZ_IZQ_E, DESLIZ_DER_E, DESLIZ_IZQ, DESLIZ_DER, DESLIZ_ARRIBA, DESLIZ_ABAJO, IZQ_FIJA, DER_FIJA }
 
@@ -69,7 +69,7 @@ class AperturaOriginalDrawable(private val mec: String, densidad: Float = 2f) : 
         else -> Simbolo.FIJO              // "5" sin apertura y "10" hoja fija: cruz
     }
 
-    // ---------- francesas (pk_s4.d.FRENCH) ----------
+    // ---------- francesas ----------
     private fun francesa(c: Canvas, w: Float, h: Float, hm: Float, g: Float, kk: Float) {
         val mitad = w / 2f
         val vidIzq = RectF(kk, kk, mitad - g, h - kk)
@@ -88,7 +88,7 @@ class AperturaOriginalDrawable(private val mec: String, densidad: Float = 2f) : 
         dibujarSimbolo(c, hojaDer, vidDer, sd)
     }
 
-    // ---------- corredizas (pk_e5.b) ----------
+    // ---------- corredizas ----------
     private fun corredizas(c: Canvas, w: Float, h: Float, hm: Float, g: Float) {
         val hojas = AperturasMulti.hojas(mec, (w - 2 * hm).toDouble(), (h - 2 * hm).toDouble(), perfil = g.toDouble())
         for (hj in hojas.sortedBy { it.capa }) {       // orden estable por capa: las capas altas tapan a las bajas
@@ -105,7 +105,7 @@ class AperturaOriginalDrawable(private val mec: String, densidad: Float = 2f) : 
         }
     }
 
-    // ---------- símbolos (pk_g5.a / pk_g5.b / pk_g5.c) ----------
+    // ---------- símbolos ----------
     private fun poli(c: Canvas, vararg p: Pair<Float, Float>) {
         val path = Path(); path.moveTo(p[0].first, p[0].second)
         for (q in p) path.lineTo(q.first, q.second)
@@ -146,7 +146,7 @@ class AperturaOriginalDrawable(private val mec: String, densidad: Float = 2f) : 
         }
     }
 
-    /** Los "pestillos" de la hoja pasiva de la puerta francesa (pk_g5.c). */
+    /** Los "pestillos" de la hoja pasiva de la puerta francesa. */
     private fun fijadoresFrancesa(hoja: RectF, v: RectF, derecha: Boolean): FloatArray {
         val f12 = v.left - hoja.left
         val f13 = 0.25f * f12

@@ -23,7 +23,7 @@ class PedidosAdapter(
 
     private var lista: List<Pedido> = emptyList()
 
-    /** Casilla "ICONS" de la original: mostrar u ocultar las miniaturas. */
+    /** Casilla "ICONS": mostrar u ocultar las miniaturas. */
     var mostrarIconos: Boolean = true
         set(v) { field = v; notifyDataSetChanged() }
 

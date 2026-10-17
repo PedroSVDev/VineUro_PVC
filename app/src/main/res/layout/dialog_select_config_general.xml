@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Selector de modelos de ventana como el de la original: cabecera "configuración", rejilla de 3 columnas con solo los dibujos
-     (los 63 modelos de la original), y botones NO (azul) / SÍ (oliva). El tamaño lo fija el código (80 % del ancho, proporción 1:1,2). -->
+<!-- Selector de modelos de ventana: cabecera "configuración", rejilla de 3 columnas con solo los dibujos
+     (los 63 modelos), y botones NO (azul) / SÍ (oliva). El tamaño lo fija el código (80 % del ancho, proporción 1:1,2). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"

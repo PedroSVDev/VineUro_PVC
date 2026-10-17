@@ -1,27 +1,27 @@
 package com.example.vineuro_pvc
 
-import com.example.vineuro_pvc.data.ModelosOriginales
+import com.example.vineuro_pvc.data.ModelosVentana
 import com.example.vineuro_pvc.data.OrderItem
 import com.example.vineuro_pvc.data.WindowConfigCatalog
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Los 63 modelos del selector de la original, con la estructura decodificada de su fórmula (pk_i2). */
-class ModelosOriginalesTest {
+/** Los 63 modelos del selector, con la estructura decodificada de su fórmula. */
+class ModelosVentanaTest {
     private val D = 1e-6
 
-    private fun plano(id: String): ModelosOriginales.Plano {
-        val m = ModelosOriginales.buscar(id)!!
-        val (aw, ah) = ModelosOriginales.seccionesPorDefecto(m, m.anchoMm.toFloat(), m.altoMm.toFloat())
-        return ModelosOriginales.plano(m, m.anchoMm.toDouble(), m.altoMm.toDouble(), aw, ah)
+    private fun plano(id: String): ModelosVentana.Plano {
+        val m = ModelosVentana.buscar(id)!!
+        val (aw, ah) = ModelosVentana.seccionesPorDefecto(m, m.anchoMm.toFloat(), m.altoMm.toFloat())
+        return ModelosVentana.plano(m, m.anchoMm.toDouble(), m.altoMm.toDouble(), aw, ah)
     }
 
     @Test
     fun hay63ModelosUnicosYSuCatalogo() {
-        assertEquals(63, ModelosOriginales.TODOS.size)
-        assertEquals(63, ModelosOriginales.TODOS.map { it.id }.toSet().size)
-        assertEquals(63, WindowConfigCatalog.originales().size)
+        assertEquals(63, ModelosVentana.TODOS.size)
+        assertEquals(63, ModelosVentana.TODOS.map { it.id }.toSet().size)
+        assertEquals(63, WindowConfigCatalog.catalogo().size)
         // las configuraciones antiguas siguen resolviéndose por su id para abrir pedidos guardados
         assertTrue(WindowConfigCatalog.obtenerTodas().size > 63)
     }
@@ -40,7 +40,7 @@ class ModelosOriginalesTest {
 
     @Test
     fun losPanosNoSeSolapanYSumanElAreaEsperada() {
-        for (m in ModelosOriginales.TODOS) {
+        for (m in ModelosVentana.TODOS) {
             val c = plano(m.id).celdas
             for (i in c.indices) for (j in i + 1 until c.size) {
                 val w = minOf(c[i].x1, c[j].x1) - maxOf(c[i].x0, c[j].x0)
@@ -82,22 +82,22 @@ class ModelosOriginalesTest {
 
     @Test
     fun areaRealDeLasVentanasEnL() {
-        val cfg = WindowConfigCatalog.originales().first { it.modelo == "oQ" }
+        val cfg = WindowConfigCatalog.catalogo().first { it.modelo == "oQ" }
         val it = OrderItem.create(1, cfg)
-        assertEquals(1700, it.anchoTotalMm); assertEquals(2200, it.altoTotalMm)    // medidas iniciales de la original
+        assertEquals(1700, it.anchoTotalMm); assertEquals(2200, it.altoTotalMm)    // medidas iniciales
         val esperado = (800.0 * 2200.0 * 13.0 / 22.0 + 900.0 * 2200.0) / 1e6
         assertEquals(esperado, it.areaM2, 1e-6)
     }
 
     @Test
     fun seccionesEditablesPorModelo() {
-        val a = OrderItem.create(1, WindowConfigCatalog.originales().first { it.modelo == "werABC" })
+        val a = OrderItem.create(1, WindowConfigCatalog.catalogo().first { it.modelo == "werABC" })
         assertEquals(3, a.sectionWidths.size); assertEquals(1, a.sectionHeights.size)
         assertEquals(1800.0, a.sectionWidths.sumOf { it.toDouble() }, 1e-3)
-        val b = OrderItem.create(1, WindowConfigCatalog.originales().first { it.modelo == "horAB_Aab" })
+        val b = OrderItem.create(1, WindowConfigCatalog.catalogo().first { it.modelo == "horAB_Aab" })
         assertEquals(1, b.sectionWidths.size); assertEquals(2, b.sectionHeights.size)
         assertEquals(1000.0, b.sectionHeights[0].toDouble(), 1e-3)
-        val o = OrderItem.create(1, WindowConfigCatalog.originales().first { it.modelo == "oQo" })
+        val o = OrderItem.create(1, WindowConfigCatalog.catalogo().first { it.modelo == "oQo" })
         assertEquals(3, o.sectionWidths.size)
         assertEquals(listOf(600.0, 800.0, 600.0), o.sectionWidths.map { it.toDouble() })
     }

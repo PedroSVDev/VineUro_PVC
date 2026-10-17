@@ -138,7 +138,7 @@ class FirstFragment : Fragment() {
         }
     }
 
-    /** "Penúltimo pedido" de la original ("second to last order"): el anterior al último modificado. */
+    /** "Penúltimo pedido" ("second to last order"): el anterior al último modificado. */
     private fun abrirPenultimoPedido() {
         val pedidos = PedidoRepository(requireContext()).obtenerPedidos().sortedByDescending { it.fechaActualizacion }
         val penultimo = pedidos.getOrNull(1)

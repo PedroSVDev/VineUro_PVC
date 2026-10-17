@@ -1,11 +1,11 @@
 package com.example.vineuro_pvc.data
 
 /**
- * Reglas de perfiles adicionales por "base" (marco rectangular) de la original: pk_h4.a/b/c/d y pk_j5.b.
+ * Reglas de perfiles adicionales por "base" (marco rectangular).
  *
  * Cada base lleva, para cada adicional, una regla por lado: NORMAL (vale lo que el usuario marcó), SIEMPRE o NUNCA.
  * En una ventana de un solo marco todo es NORMAL. En las de varios bloques (L / T) la regla depende de la posición de la
- * base y de si es la más alta (pk_h4.d.b): las juntas van SIEMPRE en el lado donde un bloque toca al siguiente, y el
+ * base y de si es la más alta: las juntas van SIEMPRE en el lado donde un bloque toca al siguiente, y el
  * asiento / umbral solo van en las bases que no son la más alta (la más alta lleva el dorsill).
  */
 object ReglasBases {
@@ -26,7 +26,7 @@ object ReglasBases {
     private val N = R.N; private val A = R.A; private val V = R.V
     private fun l(a: R, b: R, c: R, d: R) = arrayOf(a, b, c, d)
 
-    // Preajustes de pk_h4.c (nombres por su posición en el bloque)
+    // Preajustes (nombres por su posición en el bloque)
     private val medio: Reglas = Reglas(
         umbral = N, asiento = N, dorsill = V, jamba = V, hueco = l(V, N, N, V),
         junta = l(V, N, V, A), junta90 = l(V, N, V, V), junta135 = l(V, N, V, V), extensor = l(V, N, V, V),
@@ -50,7 +50,7 @@ object ReglasBases {
         jamba = V; junta = l(V, N, N, N); junta90 = l(V, N, N, N); junta135 = l(V, N, N, N); extensor = l(V, N, N, N)
     }
 
-    /** Reglas de la base [idx] de [n] bases, siendo [alta] el índice de la base más alta (pk_h4.d.b). */
+    /** Reglas de la base [idx] de [n] bases, siendo [alta] el índice de la base más alta. */
     fun reglas(n: Int, idx: Int, alta: Int): Reglas {
         if (n <= 1) return Reglas()
         val ultimo = n - 1
@@ -71,7 +71,7 @@ object ReglasBases {
 
     class BaseDim(val anchoM: Double, val altoM: Double)
 
-    /** Índice de la base más alta (la primera si hay empate), como la original. */
+    /** Índice de la base más alta (la primera si hay empate). */
     fun indiceAlta(bases: List<BaseDim>): Int {
         var best = 0
         for (i in 1 until bases.size) if (bases[best].altoM < bases[i].altoM) best = i

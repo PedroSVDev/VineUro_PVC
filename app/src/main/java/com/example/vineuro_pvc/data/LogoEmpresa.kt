@@ -7,7 +7,7 @@ import android.net.Uri
 import java.io.File
 
 /**
- * Logo de la empresa. Como en el original ("sp_logo_path"), el usuario puede elegir su propia imagen;
+ * Logo de la empresa. El usuario puede elegir su propia imagen;
  * si no hay una, se usa el logo de VINEURO PVC incluido en la app. Se guarda una copia reducida en
  * el almacenamiento interno (solo local, no se sube a la nube).
  */

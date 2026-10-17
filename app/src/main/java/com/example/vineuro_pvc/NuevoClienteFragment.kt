@@ -78,7 +78,7 @@ class NuevoClienteFragment : Fragment() {
             nota = binding.etNotaCliente.text.toString().trim(),
         )
 
-        // Como "such customer is exist" de la original: avisa si ya hay un cliente con el mismo nombre
+        // Como "such customer is exist": avisa si ya hay un cliente con el mismo nombre
         val repetido = clientRepository.obtenerClientes().any {
             it.nombreCompleto.equals(nuevoCliente.nombreCompleto, ignoreCase = true)
         }

@@ -465,7 +465,7 @@ class PreciosFragment : Fragment() {
      */
     private fun elegirMonedaParaConvertir() {
         val popup = PopupMenu(requireContext(), binding.btnConvertir)
-        popup.menu.add(1, 100, 100, "Cargar precios de ejemplo (originales)")
+        popup.menu.add(1, 100, 100, "Cargar precios de ejemplo")
         MONEDAS.forEachIndexed { i, (simbolo, nombre) -> popup.menu.add(0, i, i, "Convertir a $simbolo  $nombre") }
         popup.setOnMenuItemClickListener { item ->
             if (item.itemId == 100) { cargarPreciosDeEjemplo(); return@setOnMenuItemClickListener true }
@@ -475,11 +475,11 @@ class PreciosFragment : Fragment() {
         popup.show()
     }
 
-    /** Reemplaza las tablas por los precios de ejemplo del programa original (en US$). */
+    /** Reemplaza las tablas por los precios de ejemplo (en US$). */
     private fun cargarPreciosDeEjemplo() {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("¿Cargar precios de ejemplo?")
-            .setMessage("Se reemplazarán TODAS las tablas por los precios de ejemplo del programa original (sistemas, vidrios, umbrales, muebles, extras, trabajos, mosquiteras, laminación y colores), en US$. Tus precios actuales se perderán.")
+            .setMessage("Se reemplazarán TODAS las tablas por los precios de ejemplo (sistemas, vidrios, umbrales, muebles, extras, trabajos, mosquiteras, laminación y colores), en US$. Tus precios actuales se perderán.")
             .setPositiveButton("CARGAR") { _, _ ->
                 mostrarPrecios(Precios.porDefecto())
                 onDatosCambiados()
@@ -650,7 +650,7 @@ class PreciosFragment : Fragment() {
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         
         val grid = dialogView.findViewById<GridLayout>(R.id.gridColors)
-        // Paleta de 49 colores del original (filas A..G, columnas 01..07), con sus valores exactos
+        // Paleta de 49 colores (filas A..G, columnas 01..07), con sus valores exactos
         val colors = listOf(
             Color.parseColor("#f5f5f5"),
             Color.parseColor("#d0d1d5"),

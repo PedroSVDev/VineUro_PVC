@@ -5,7 +5,7 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
- * Unidades de medida (como "units" de la original): métrico (mm) o imperial (pulgadas con fracciones de 1/16).
+ * Unidades de medida (como "units"): métrico (mm) o imperial (pulgadas con fracciones de 1/16).
  * Todo se calcula y guarda en milímetros; esto solo cambia cómo se MUESTRAN y se ESCRIBEN las medidas.
  */
 object Unidades {
@@ -73,7 +73,7 @@ object Unidades {
         return (pulgadas * 25.4).roundToInt()
     }
 
-    /** Longitud en metros para mostrar: "3.20 m" o, en imperial, "10.50 ft" (como units de la original). */
+    /** Longitud en metros para mostrar: "3.20 m" o, en imperial, "10.50 ft" (como units). */
     fun largoM(m: Double): String =
         if (imperial) String.format(Locale.US, "%.2f ft", m * 3.28084) else String.format(Locale.US, "%.2f m", m)
 

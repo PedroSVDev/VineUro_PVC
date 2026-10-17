@@ -2,7 +2,7 @@ package com.example.vineuro_pvc.data
 
 /**
  * Colores de perfil de la tabla de Precios (nombre -> #RRGGBB), disponibles para el dibujo de la ventana
- * ("vista previa de color" del original, en pantalla y en los PDF). Lo actualiza PreciosRepository.
+ * (vista previa de color, en pantalla y en los PDF). Lo actualiza PreciosRepository.
  */
 object ColoresPerfil {
     @Volatile private var mapa: Map<String, String> = emptyMap()

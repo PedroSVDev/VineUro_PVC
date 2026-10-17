@@ -9,7 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Impostas interiores en aperturas de varias hojas (regla de pk_r2.z y pk_l4/pk_v4 de la original). */
+/** Impostas interiores en aperturas de varias hojas. */
 class ImpostasMultiHojaTest {
     private val D = 1e-6
     private fun item(ancho: Int, alto: Int) =

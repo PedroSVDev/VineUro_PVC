@@ -7,7 +7,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.vineuro_pvc.databinding.ItemIconoConfigBinding
 import com.example.vineuro_pvc.views.ImpostaIconDrawable
 
-/** Celda del panel "impostas": [imp] 0..4, o [BARRAS] para el botón de glazing bars (primera celda, como la original). */
+/** Celda del panel "impostas": [imp] 0..4, o [BARRAS] para el botón de glazing bars (primera celda). */
 data class ImpostaItem(val imp: Int, val habilitada: Boolean = true) {
     companion object { const val BARRAS = -1 }
 }

@@ -9,7 +9,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
 
 /**
- * Diálogo "pdf sending" de la original: muestra la ruta y el nombre del PDF recién creado y ofrece
+ * Diálogo "pdf sending": muestra la ruta y el nombre del PDF recién creado y ofrece
  * ENVIAR PDF, ABRIR PDF o CERRAR.
  */
 object PdfAcciones {

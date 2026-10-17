@@ -24,10 +24,10 @@ import kotlin.math.max
  *  - extras / trabajos: precio y unidad (0 pieza, 1 área, 2 perímetro, 3 pendientes, 4 ancho, 5 alto)
  *
  * GEOMETRÍA: se calcula desde los paños REALES que dibuja WindowPreviewView (medidas de cada sección,
- * puertas, travesaños, subdivisiones), no desde conteos del catálogo. Se usan las medidas de perfil de la
- * original: marco 48 mm, imposta 52 mm, hoja 62 mm, hoja de puerta 94 mm, solape de hoja 13 mm.
+ * puertas, travesaños, subdivisiones), no desde conteos del catálogo. Se usan las medidas de perfil del
+ * sistema: marco 48 mm, imposta 52 mm, hoja 62 mm, hoja de puerta 94 mm, solape de hoja 13 mm.
  *
- * PRECIO (misma secuencia que la app original):
+ * PRECIO:
  *   concepto = factor x cantidad x precio, con factor materiales = (1 + margen mat/100) x tarifa
  *   y factor trabajos = tarifa x (1 + margen trab/100).
  *   precio de ventana = suma de conceptos, o el PRECIO PROPIO (que reemplaza esa suma);
@@ -37,10 +37,10 @@ object CalculadoraPrecios {
 
     /** Mecanismo "5" = paño fijo (no lleva hoja ni manija). */
     private const val MECANISMO_FIJO = "5"
-    /** Hoja fija ("OPEN_FIXED" de la original): lleva perfil de hoja pero no kit de herraje ni manija. */
+    /** Hoja fija ("OPEN_FIXED"): lleva perfil de hoja pero no kit de herraje ni manija. */
     private const val HOJA_FIJA = "10"
 
-    // Medidas del sistema verificadas en la app original (en metros)
+    // Medidas del sistema de perfiles (en metros)
     private const val ANCHO_MARCO_M = 0.048     // perfil de marco visible
     private const val ANCHO_IMPOSTA_M = 0.052   // perfil de imposta (las secciones se miden a ejes)
     private const val PERFIL_HOJA_M = 0.062     // perfil de hoja
@@ -73,7 +73,7 @@ object CalculadoraPrecios {
         val lamExternaM2: Double,     // superficie de perfil a laminar, cara exterior
         /** Bases (marcos rectangulares): una por bloque en las ventanas L / T, una en las demás. */
         val bases: List<ReglasBases.BaseDim> = emptyList(),
-        /** Metros de perfiles adicionales y anchos de umbral, ya con las reglas por base de la original. */
+        /** Metros de perfiles adicionales y anchos de umbral, ya con las reglas por base. */
         val adic: ReglasBases.Metros? = null,
     ) {
         /** Esquineros de refuerzo del marco: 4 por base. */
@@ -110,7 +110,7 @@ object CalculadoraPrecios {
     }
 
     /**
-     * Una columna de la "tabla en vivo" de la original (A..X): cantidad física del concepto en UNA ventana y su costo.
+     * Una columna de la "tabla en vivo" (A..X): cantidad física del concepto en UNA ventana y su costo.
      * [unidad]: 0 = metros, 1 = m², 2 = piezas. [costo] y [precio] son de UNA ventana, en la moneda de resultado
      * (costo sin margen ni impuesto; precio con margen, descuento e impuesto).
      */
@@ -138,7 +138,7 @@ object CalculadoraPrecios {
         val op = item.opciones
         val q = cantidades(item)
 
-        // Sin fila elegida => esa partida cuesta 0 (la original tampoco inventa un sistema/vidrio).
+        // Sin fila elegida => esa partida cuesta 0 (no se inventa un sistema/vidrio).
         val sistema = filaElegida(precios.ventanas, op.sistemaVentana)
         val cristal = filaElegida(precios.cristal, op.tipoCristal)
         val plan = op.planFinanciacion?.let { fila(precios.planes, it) }
@@ -146,7 +146,7 @@ object CalculadoraPrecios {
         val tarifa = num(precios.moneda.firstOrNull(), 1).takeIf { it > 0 } ?: 1.0
         val simbolo = precios.moneda.firstOrNull()?.getOrNull(2)?.takeIf { it.isNotBlank() } ?: "S/"
 
-        // ---- Sistema de ventanas (misma estructura que la pestaña "sistema" de la original) ----
+        // ---- Sistema de ventanas (misma estructura que la pestaña "sistema") ----
         // Columnas de precios.ventanas: ver COL_* al final del objeto.
         fun s(c: Int) = num(sistema, c)
 
@@ -162,7 +162,7 @@ object CalculadoraPrecios {
             "2", "9" -> s(COL_KIT_HORIZONTAL)                               // proyectante (abatible superior/inferior)
             "4", "6" -> s(COL_KIT_VERTICAL)                                 // practicable (giro lateral)
             "7", "8" -> s(COL_KIT_ROTACION)                                 // oscilobatiente
-            else -> when (AperturasMulti.grupo(mecanismo)) {                 // aperturas de varias hojas (original)
+            else -> when (AperturasMulti.grupo(mecanismo)) {                 // aperturas de varias hojas
                 AperturasMulti.Grupo.CORREDIZA -> s(COL_KIT_CORREDERA)
                 AperturasMulti.Grupo.CORREDIZA_VERT -> s(COL_KIT_CORREDERA_VERT)
                 AperturasMulti.Grupo.FRANCESA -> s(COL_KIT_FRANCESA)
@@ -180,14 +180,14 @@ object CalculadoraPrecios {
             if (h.esPuerta) hojaPuerta += parcial else hoja += parcial
         }
 
-        // Barras de vidrio: largo x precio/m + cruces x conector (como pk_s3.d.D de la original); se suman a la partida de hojas
+        // Barras de vidrio: largo x precio/m + cruces x conector; se suman a la partida de hojas
         hoja += q.barrasM * s(COL_BARRAS) + q.barrasCruces * s(COL_CONECTOR_BARRAS)
 
         val glazing = q.glazingM * s(COL_SHTAPIK)
         val caucho = q.cauchoM * s(COL_CAUCHO)
 
         // ---- Zona: vidrio + panel sándwich + laminación ----
-        // Vidrio (regla de la original): por m2 = vidrio 1+2+3 + película + gas;
+        // Vidrio (regla): por m2 = vidrio 1+2+3 + película + gas;
         // por metro = secante + sellador + mantequilla + espaciador, donde la mantequilla va x2
         // (x4 si hay 3 vidrios con precio) y el espaciador x2 solo con 3 vidrios.
         val v1 = num(cristal, 1); val v2 = num(cristal, 2); val v3 = num(cristal, 3)
@@ -220,7 +220,7 @@ object CalculadoraPrecios {
             qUmbInt += piezasUmbral(it, anchosUmbral).sumOf { p -> p.first * p.second } } }
         var cMueble = 0.0
         op.mueble?.let { n ->
-            // La original (pk_e3.b) cobra UNA manija "regular" (columna 1) por cada hoja que no sea fija, puertas incluidas;
+            // Se cobra UNA manija "regular" (columna 1) por cada hoja que no sea fija, puertas incluidas;
             // las columnas "con cerradura" y "balcón" existen en la tabla pero su cálculo no las usa.
             fila(precios.muebles, n)?.let { cMueble = q.hojasDetalle.sumOf { h -> if (h.mecanismo != MECANISMO_FIJO && h.mecanismo != HOJA_FIJA) h.manijas else 0 } * num(it, 1) }
         }
@@ -281,7 +281,7 @@ object CalculadoraPrecios {
         )
 
         // Precio propio (en la moneda de resultado): reemplaza la SUMA de conceptos de UNA ventana y
-        // después recibe el descuento y el impuesto, igual que en la original.
+        // después recibe el descuento y el impuesto.
         val precioPropio = op.precioPropio.replace(",", ".").toDoubleOrNull()?.takeIf { it > 0 }
         val unitarioBase = if (precioPropio != null) precioPropio / tarifa * fDesc * fImp else precio.total
         if (precioPropio != null && precio.total > 0) {
@@ -293,7 +293,7 @@ object CalculadoraPrecios {
         val totalCosto = costo.total * cantidad * tarifa
         val margenEfectivo = if (costo.total > 0) ((unitarioBase / fImp / fDesc) / costo.total - 1) * 100 else 0.0
 
-        // Desglose por concepto (columnas A..X de la "tabla en vivo" de la original), de UNA ventana.
+        // Desglose por concepto (columnas A..X de la "tabla en vivo"), de UNA ventana.
         val cBarras = q.barrasM * s(COL_BARRAS) + q.barrasCruces * s(COL_CONECTOR_BARRAS)
         fun lin(cod: String, nom: String, cant: Double, un: Int, c: Double, trabajo: Boolean = false): Linea {
             val f = if (trabajo) fTrab else fMat
@@ -353,7 +353,7 @@ object CalculadoraPrecios {
     fun totalPedido(items: List<OrderItem>, precios: Precios): Double = items.sumOf { calcular(it, precios).totalVenta }
 
     /**
-     * Desglose del pedido como en la original: el descuento ya está aplicado a cada ventana y el
+     * Desglose del pedido: el descuento ya está aplicado a cada ventana y el
      * impuesto se aplica UNA vez sobre el total descontado del pedido.
      */
     data class ResumenPedido(val neto: Double, val impuesto: Double, val total: Double, val impuestoPct: Double)
@@ -367,7 +367,7 @@ object CalculadoraPrecios {
 
     /**
      * Piezas de umbral a comprar según la fila de Precios (columna 3, "1500x2 800x1" = mm x cantidad), como el
-     * "override" de la original (pk_j5.c). Vacío o "-" = una sola pieza a la medida del ancho de la ventana.
+     * "override". Vacío o "-" = una sola pieza a la medida del ancho de la ventana.
      */
     fun piezasUmbral(fila: List<String>?, anchoM: Double): List<Pair<Double, Int>> = piezasUmbral(fila, listOf(anchoM))
 
@@ -530,10 +530,10 @@ object CalculadoraPrecios {
                 repeat(2) { cortes += hueco(altoVentana, true, true) }
             }
             WindowConfig.LayoutType.ARBOL -> {
-                // Modelos de la original: paños, impostas y apoyos en el marco salen de la estructura decodificada
-                val mo = cfg.modeloOriginal
+                // Modelos: paños, impostas y apoyos en el marco salen de la estructura decodificada
+                val mo = cfg.modeloEstructura
                 if (mo != null) {
-                    val pl = ModelosOriginales.plano(mo, item.anchoTotalMm.toDouble(), item.altoTotalMm.toDouble(), item.sectionWidths, item.sectionHeights)
+                    val pl = ModelosVentana.plano(mo, item.anchoTotalMm.toDouble(), item.altoTotalMm.toDouble(), item.sectionWidths, item.sectionHeights)
                     if (pl.bases.size > 1) pl.bases.forEach { basesVentana += ReglasBases.BaseDim(it.ancho / 1000.0, it.alto / 1000.0) }
                     pl.celdas.forEachIndexed { i, c -> base += Base(i, c.ancho / 1000.0, c.alto / 1000.0, c.izq, c.arr, c.der, c.aba) }
                     for (d in pl.divisiones) {
@@ -583,7 +583,7 @@ object CalculadoraPrecios {
 
     /**
      * Detalle de cada paño según sus opciones (hoja/fijo, puerta, sándwich, mosquitero).
-     * [imp] = imposta interior de la hoja (como la original): 0 ninguna, 1 horizontal x1, 2 horizontal x2, 3 vertical x1, 4 vertical x2.
+     * [imp] = imposta interior de la hoja 0 ninguna, 1 horizontal x1, 2 horizontal x2, 3 vertical x1, 4 vertical x2.
      * La hoja sigue siendo UNA (un solo perímetro y un solo kit de herraje) y se parte en 2 o 3 vidrios.
      * [subMask] = bits de sándwich por vidrio (bit 0 = arriba/izquierda); -1 = usar [sandwich] para todo.
      */
@@ -627,15 +627,15 @@ object CalculadoraPrecios {
         private fun bv(i: Int) = barrasPorVidrio.getOrNull(i)?.second ?: 0
 
         /**
-         * Vidrios de la hoja con las fórmulas de la original (pk_v4.a): imposta a 1/2 (o 1/3) del hueco,
+         * Vidrios de la hoja con las fórmulas: imposta a 1/2 (o 1/3) del hueco,
          * vidrio de borde = posición - 26 mm (media imposta) - perfil de hoja, vidrio restante = lo que queda menos la(s) imposta(s) de 52 mm.
          */
         val piezas: List<Vid> by lazy {
             val media = ANCHO_IMPOSTA_M / 2
-            // Posición de las impostas (mm desde el borde indicado, como los offsets de pk_r4.a); sin dato = reparto igual
+            // Posición de las impostas; sin dato = reparto igual
             val offs = impOff?.split(",")?.map { it.trim().toDoubleOrNull()?.div(1000.0) } ?: emptyList()
             fun borde(total: Double, n: Int, k: Int, prof: Double) = ((offs.getOrNull(k) ?: (total / n)) - media - prof).coerceAtLeast(0.0)
-            /** Vidrios de UNA hoja de vidrio [gw] x [gh] con la imposta interior [imp] (la misma para cada hoja, como la original). */
+            /** Vidrios de UNA hoja de vidrio [gw] x [gh] con la imposta interior [imp] (la misma para cada hoja). */
             fun partir(gw: Double, gh: Double, prof: Double): List<Vid> = when (imp) {
                 // 1 = horizontal x1 (offset desde abajo), 2 = horizontal x2 (desde arriba y desde abajo)
                 1 -> { val fb = borde(pano.huecoAlto, 2, 0, prof); listOf(Vid(gw, (gh - fb - ANCHO_IMPOSTA_M).coerceAtLeast(0.0), bit(0), bh(0), bv(0)), Vid(gw, fb, bit(1), bh(1), bv(1))) }
@@ -679,7 +679,7 @@ object CalculadoraPrecios {
         )
     }
 
-    /** Redondeo a 4 decimales de las cantidades agregadas (m, m²), como `g.a(x, 4)` de la original. */
+    /** Redondeo a 4 decimales de las cantidades agregadas (m, m²) */
     private fun r4(x: Double) = Math.round(x * 10000.0) / 10000.0
 
     fun cantidades(item: OrderItem): Cantidades {
@@ -704,11 +704,11 @@ object CalculadoraPrecios {
         val mosqPerims = mosqs.map { 2 * ((it.pano.huecoAncho + 2 * SOLAPE_HOJA_M) + (it.pano.huecoAlto + 2 * SOLAPE_HOJA_M)) }
 
         // Superficie laminable (película sobre el perfil). Cara interior = ancho de perfil;
-        // cara exterior = ancho + 27 mm (sobre el marco/imposta) o + 14 mm (hoja), como en la original.
+        // cara exterior = ancho + 27 mm (sobre el marco/imposta) o + 14 mm (hoja).
         val hojasNormales = hojas.filter { !it.esPuerta }
         val hojasPuerta = hojas.filter { it.esPuerta }
-        // Quirks de la original: la imposta interior de hoja no suma superficie interior (ancho 0) y por fuera cuenta largo x 54 mm;
-        // los junquillos (shtapik) suman 27 mm por la cara interior (pk_q4).
+        // Quirks: la imposta interior de hoja no suma superficie interior (ancho 0) y por fuera cuenta largo x 54 mm;
+        // los junquillos (shtapik) suman 27 mm por la cara interior.
         val glazing = piezas.sumOf { it.perimetro }
         val lamInterna = glazing * 0.027 + perimetroMarco * ANCHO_MARCO_M + g.impostaM * ANCHO_IMPOSTA_M +
             hojasNormales.sumOf { it.perimetroM } * (PERFIL_HOJA_M + 0.012) +
@@ -817,7 +817,7 @@ object CalculadoraPrecios {
 
     /**
      * Problemas que harían que la ventana se cotice por MENOS de lo que cuesta (precios faltantes o en cero,
-     * materiales elegidos que ya no existen en Precios). La original avisa "this materials not found in prices".
+     * materiales elegidos que ya no existen en Precios). Se avisa para que el usuario actualice la tabla.
      */
     fun advertencias(item: OrderItem, precios: Precios): List<String> {
         val op = item.opciones
@@ -898,7 +898,7 @@ object CalculadoraPrecios {
 
     // ===================== AYUDANTES =====================
 
-    // Columnas de Precios.ventanas (índice 0 = nombre). Mismo orden que la pestaña "sistema" de la original.
+    // Columnas de Precios.ventanas (índice 0 = nombre). Mismo orden que la pestaña "sistema".
     const val COL_MARCO = 1; const val COL_IMPOSTA = 2; const val COL_HOJA = 3; const val COL_HOJA_PUERTA = 4
     const val COL_SANDWICH = 5; const val COL_SHTAPIK = 6; const val COL_CAUCHO = 7
     const val COL_BARRAS = 8; const val COL_CONECTOR_BARRAS = 9
@@ -917,7 +917,7 @@ object CalculadoraPrecios {
 
 
     /**
-     * Unidad de extras/trabajos, en el orden de los 6 botones (igual que la original):
+     * Unidad de extras/trabajos, en el orden de los 6 botones ):
      * 0 pieza · 1 área · 2 perímetro · 3 pendientes (W + 2H, inferido) · 4 ancho · 5 alto.
      */
     private fun precioSeleccion(f: FilaSeleccion, q: Cantidades): Double {

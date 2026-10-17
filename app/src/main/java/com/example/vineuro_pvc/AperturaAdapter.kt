@@ -7,18 +7,18 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.vineuro_pvc.databinding.ItemAperturaCeldaBinding
-import com.example.vineuro_pvc.views.AperturaOriginalDrawable
+import com.example.vineuro_pvc.views.AperturaVentanaDrawable
 
 data class AperturaMechanism(
     val id: String,
     val nombre: String,
-    /** Ya no se usa: los iconos se dibujan por código igual que la original ([AperturaOriginalDrawable]). */
+    /** Ya no se usa: los iconos se dibujan por código ([AperturaVentanaDrawable]). */
     val iconRes: Int = 0,
     val icono: (() -> android.graphics.drawable.Drawable)? = null,
 )
 
 /**
- * Rejilla "apertura" idéntica a la de la original (include__leafs_types): sin títulos, en bloques
+ * Rejilla "apertura" idéntica a la: sin títulos, en bloques
  * contiguos de 3 columnas (básicas + hoja fija centrada), 2 (francesas), 4 (corredizas verticales) y 2 (corredizas).
  * Todas las filas miden lo mismo (0,395 × ancho de la rejilla) y la opción elegida se resalta con fondo negro (#111111).
  */
@@ -31,7 +31,7 @@ class AperturaAdapter(
     companion object {
         /** mcm(3, 2, 4) columnas: así cada bloque reparte su ancho con spans enteros (4, 6, 3, 6). */
         const val SPANS = 12
-        /** Alto de fila = 7,5 / 19 del ancho de la rejilla (proporción 1:7,5 con 19 filas de la original). */
+        /** Alto de fila = 7,5 / 19 del ancho de la rejilla (proporción 1:7,5 con 19 filas). */
         private const val ALTO_FILA = 7.5f / 19f
     }
 
@@ -40,7 +40,7 @@ class AperturaAdapter(
     private val celdas: List<Celda> = buildList {
         val basicas = mechanisms.filter { it.id.getOrNull(1) != ':' }
         basicas.forEachIndexed { i, m ->
-            // la hoja fija (última) queda sola en el centro de la última fila, como en la original
+            // la hoja fija (última) queda sola en el centro de la última fila
             if (i == 9) add(Celda(null, 4))
             add(Celda(m, 4))
             if (i == 9) add(Celda(null, 4))
@@ -81,7 +81,7 @@ class AperturaAdapter(
             }
             b.ivIcono.visibility = View.VISIBLE
             val dens = b.root.resources.displayMetrics.density
-            b.ivIcono.setImageDrawable(m.icono?.invoke() ?: AperturaOriginalDrawable(m.id, dens))
+            b.ivIcono.setImageDrawable(m.icono?.invoke() ?: AperturaVentanaDrawable(m.id, dens))
             b.ivIcono.contentDescription = m.nombre
             b.flItem.setBackgroundColor(if (m.id == selectedId) 0xFF111111.toInt() else Color.TRANSPARENT)
             b.root.setOnClickListener {

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Celda del selector de modelos (como la original): solo el dibujo de la ventana; la elegida lleva fondo azul. -->
+<!-- Celda del selector de modelos : solo el dibujo de la ventana; la elegida lleva fondo azul. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/fl_modelo"
     android:layout_width="match_parent"

@@ -19,15 +19,15 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Casos de referencia de la calculadora (CP-06 / CA). Las cifras se derivan a mano de las reglas
- * de la app original (ver comentarios), no de la propia calculadora.
+ * Casos de referencia de la calculadora (CP-06 / CA). Las cifras se derivan a mano de las reglas de cálculo.
+ * Los resultados esperados están verificados a mano (ver comentarios), no calculados con la propia calculadora.
  *
  * Medidas del sistema: marco 48 mm, imposta 52 mm (a ejes), hoja 62 mm, solape de hoja 13 mm.
  */
 class CalculadoraPreciosTest {
 
     private val D = 1e-6
-    /** La original redondea las cantidades agregadas a 4 decimales (g.a(x, 4)). */
+    /** Las cantidades agregadas se redondean a 4 decimales. */
     private fun r4(x: Double) = Math.round(x * 10000.0) / 10000.0
 
     private fun cfg(tipo: LayoutType, cols: Int = 1, rows: Int = 1) =
@@ -210,12 +210,12 @@ class CalculadoraPreciosTest {
         val base = precios().copy(umbralExt = listOf(listOf("U", "4.0", "0.5", "-")))
         // a medida: 1.5 m x 4 + 2 tapones x 0.5
         assertEquals(1.5 * 4.0 + 2 * 0.5, CalculadoraPrecios.calcular(it, base).costoUnitario.accesorios, 1e-9)
-        // por piezas (override de la original): 2 x 1.6 m + 1 x 0.8 m = 4.0 m; 3 piezas = 6 tapones
+        // por piezas (override): 2 x 1.6 m + 1 x 0.8 m = 4.0 m; 3 piezas = 6 tapones
         val pz = precios().copy(umbralExt = listOf(listOf("U", "4.0", "0.5", "1600x2 800x1")))
         assertEquals(4.0 * 4.0 + 6 * 0.5, CalculadoraPrecios.calcular(it, pz).costoUnitario.accesorios, 1e-9)
     }
 
-    // ---------------- Aperturas de varias hojas (original) ----------------
+    // ---------------- Aperturas de varias hojas ----------------
 
     @Test fun corredizaDeDosHojas_geometriaYKit() {
         val it = conSistema(item(LayoutType.GRID, 1500, 1800))
@@ -250,7 +250,7 @@ class CalculadoraPreciosTest {
         assertEquals(5.0 * q.hojaM + 50.0 + 7.0 * 1.730, CalculadoraPrecios.calcular(it, p).costoUnitario.hoja, 1e-9)
     }
 
-    @Test fun aperturasMulti_manijasComoLaOriginal() {
+    @Test fun aperturasMulti_manijas() {
         fun manijas(mec: String) = AperturasMulti.hojas(mec, 1.4, 1.7).count { it.manija }
         assertEquals(2, manijas("S:1R_2L"))
         assertEquals(1, manijas("S:1X_2L"))
@@ -308,7 +308,7 @@ class CalculadoraPreciosTest {
         it.opciones.laminacionInterna = "L"
         val p = precios().copy(laminacion = listOf(listOf("L", "10")))
         val r = CalculadoraPrecios.calcular(it, p)
-        // marco (48 mm de cara) + junquillos (4 por vidrio, 27 mm por la cara interior, como pk_q4.d)
+        // marco (48 mm de cara) + junquillos
         assertEquals(10 * r4(6.6 * 0.048 + 2 * (1.404 + 1.704) * 0.027), r.costoUnitario.zona, D)
     }
 
@@ -406,7 +406,7 @@ class CalculadoraPreciosTest {
         assertEquals(true, a.any { "practicable" in it })
     }
 
-    @Test fun copiar_esIndependienteDelOriginal() {
+    @Test fun copiar_esIndependiente() {
         val o = conSistema(item(LayoutType.GRID, 1500, 1800))
         o.paneMechanisms[0] = "4"; o.opciones.extras.add("E")
         val c = o.copiar(2)

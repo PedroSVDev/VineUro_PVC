@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
         com.example.vineuro_pvc.data.Ajustes.aplicarTema(this)
         com.example.vineuro_pvc.data.Unidades.cargar(this)
         super.onCreate(savedInstanceState)
+        com.example.vineuro_pvc.data.AutoSync.iniciar(this)
         enableEdgeToEdge()
 
         binding = ActivityMainBinding.inflate(layoutInflater)

@@ -17,7 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.vineuro_pvc.data.AperturasMulti
 import com.example.vineuro_pvc.data.CalculadoraPrecios
-import com.example.vineuro_pvc.views.AperturaOriginalDrawable
+import com.example.vineuro_pvc.views.AperturaVentanaDrawable
 import com.example.vineuro_pvc.data.ClientRepository
 import com.example.vineuro_pvc.data.OrderItem
 import com.example.vineuro_pvc.data.OrderItemHolder
@@ -64,7 +64,7 @@ class CalculoPedidoFragment : Fragment() {
     private lateinit var preciosRepository: PreciosRepository
     private var precios: Precios = Precios.porDefecto()
 
-    // Mismo orden de la cuadrícula de la original (3 columnas):
+    // Mismo orden de la cuadrícula (3 columnas):
     // corr. der. | V (inferior) | corr. izq. / giro der. | + (sin apertura) | giro izq. / sup. der. | ^ (superior) | sup. izq. / hoja fija
     private val listaMecanismosApertura = listOf(
         AperturaMechanism("1", "Desliz. Der.", R.drawable.ic_apertura_arrow_right),
@@ -78,8 +78,8 @@ class CalculoPedidoFragment : Fragment() {
         AperturaMechanism("7", "Oscilobat. Izq.", R.drawable.ic_apertura_tilt_turn_left),
         AperturaMechanism("10", "Hoja fija", R.drawable.ic_apertura_fixed_sash),
     ) + AperturasMulti.TODAS.map { id ->
-        // Francesas, corredizas verticales y corredizas múltiples de la original, con icono dibujado por código
-        AperturaMechanism(id, AperturasMulti.nombre(id), 0) { AperturaOriginalDrawable(id, resources.displayMetrics.density) }
+        // Francesas, corredizas verticales y corredizas múltiples, con icono dibujado por código
+        AperturaMechanism(id, AperturasMulti.nombre(id), 0) { AperturaVentanaDrawable(id, resources.displayMetrics.density) }
     }
 
     override fun onCreateView(
@@ -160,7 +160,7 @@ class CalculoPedidoFragment : Fragment() {
             binding.wpvMainCanvas.showDiagonals = marcado
         }
 
-        // "shadows": sombras del dibujo (como la original, marcado por defecto)
+        // "shadows": sombras del dibujo (marcado por defecto)
         binding.cbShadows.isChecked = prefsUi.getBoolean("shadows", true)
         binding.wpvMainCanvas.showShadows = binding.cbShadows.isChecked
         binding.cbShadows.setOnCheckedChangeListener { _, marcado ->
@@ -320,7 +320,7 @@ class CalculoPedidoFragment : Fragment() {
 
     private fun mostrarMenuOpcionesFlotante() {
         val dialogBinding = com.example.vineuro_pvc.databinding.DialogMenuOpcionesBinding.inflate(layoutInflater)
-        // Panel lateral a pantalla completa como el menú de la original; tocar fuera del panel lo cierra
+        // Panel lateral a pantalla completa como el menú; tocar fuera del panel lo cierra
         val dialog = android.app.Dialog(requireContext())
         dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
         dialog.setContentView(dialogBinding.root)
@@ -344,7 +344,7 @@ class CalculoPedidoFragment : Fragment() {
             findNavController().navigate(R.id.action_CalculoPedidoFragment_to_PdfPreviewFragment)
         }
 
-        // 2. CREAR PDF CON LOS DETALLES (como el original: dibujo + lista de propiedades, 6 por página, sin precios)
+        // 2. CREAR PDF CON LOS DETALLES (dibujo + lista de propiedades, 6 por página, sin precios)
         dialogBinding.btnPdfConDetalles.setOnClickListener {
             if (itemsOrden.isEmpty()) {
                 Toast.makeText(requireContext(), "Agrega al menos una ventana al pedido", Toast.LENGTH_SHORT).show()
@@ -377,7 +377,7 @@ class CalculoPedidoFragment : Fragment() {
         }
 
         // 4. PDF OFERTA COMERCIAL 2 (Desbloqueado)
-        // 4. PDF OFERTA COMERCIAL 2: igual que la oferta pero con UNA ventana por página (dibujo grande), como el original
+        // 4. PDF OFERTA COMERCIAL 2: igual que la oferta pero con UNA ventana por página (dibujo grande)
         dialogBinding.btnPdfOfertaComercial2.setOnClickListener {
             dialog.dismiss()
             if (itemsOrden.isEmpty()) {
@@ -474,7 +474,7 @@ class CalculoPedidoFragment : Fragment() {
 
     private fun inicializarConfiguraciones() {
         listaConfiguraciones.clear()
-        listaConfiguraciones.addAll(WindowConfigCatalog.originales())
+        listaConfiguraciones.addAll(WindowConfigCatalog.catalogo())
     }
 
     private fun inicializarOrdenVacia() {
@@ -500,7 +500,7 @@ class CalculoPedidoFragment : Fragment() {
 
     private fun inicializarOrdenSugerida() {
         itemsOrden.clear()
-        // 2 paneles verticales (werAB) de la original
+        // 2 paneles verticales (werAB)
         val configSugerida = listaConfiguraciones.find { it.modelo == "werAB" } ?: listaConfiguraciones.first()
 
         val window1 = OrderItem.create(
@@ -651,7 +651,7 @@ class CalculoPedidoFragment : Fragment() {
     }
 
     /**
-     * Diálogo centrado casi a pantalla completa (como los de la original). No usa BottomSheet:
+     * Diálogo centrado casi a pantalla completa (como los). No usa BottomSheet:
      * el sheet se tragaba el gesto de desplazar y las listas largas (aperturas, catálogo) no bajaban.
      */
     private fun dialogoGrande(): android.app.Dialog {
@@ -666,7 +666,7 @@ class CalculoPedidoFragment : Fragment() {
     }
 
     /**
-     * Selector de modelos como el de la original: ventana pequeña (80 % del ancho, proporción 1 : 1,2) con cabecera "configuración",
+     * Selector de modelos como el: ventana pequeña (80 % del ancho, proporción 1 : 1,2) con cabecera "configuración",
      * rejilla de 3 columnas con solo los dibujos y botones NO / SÍ.
      */
     private fun dialogoCatalogo(): android.app.Dialog {
@@ -771,7 +771,7 @@ class CalculoPedidoFragment : Fragment() {
         dialogBinding.cbMosqNet.isChecked = binding.wpvMainCanvas.paneMosqNet[targetPaneIndex] == true
         dialogBinding.cbPuerta.isChecked = binding.wpvMainCanvas.panePuerta[targetPaneIndex] == true
 
-        // Imposta interior de la hoja (original: ninguna / vertical 1 / horizontal 1 / vertical 2 / horizontal 2).
+        // Imposta interior de la hoja (ninguna / vertical 1 / horizontal 1 / vertical 2 / horizontal 2).
         // paneCols: 1..4 = código antiguo (hojas separadas); 11..14 = imposta interior de una sola hoja.
         val colsActual = binding.wpvMainCanvas.paneCols[targetPaneIndex] ?: 1
         var tempCols = colsActual
@@ -784,7 +784,7 @@ class CalculoPedidoFragment : Fragment() {
         val maskActual = binding.wpvMainCanvas.paneSandwichSub[targetPaneIndex]
             ?: if (binding.wpvMainCanvas.paneSandwich[targetPaneIndex] == true) 255 else 0
         cbsSandwich.forEachIndexed { i, cb -> cb.isChecked = ((maskActual shr i) and 1) == 1 }
-        // Vidrios que se configuran por separado: los de la imposta interior o, en aperturas de varias hojas, uno por hoja (como la original)
+        // Vidrios que se configuran por separado: los de la imposta interior o, en aperturas de varias hojas, uno por hoja
         fun vidriosDelPano(): Int =
             if (AperturasMulti.esMulti(tempMecanismoSeleccionado.id) && tempImp == 0) AperturasMulti.hojas(tempMecanismoSeleccionado.id, 1.0, 1.0, false).size
             else when (tempImp) { 0 -> 1; 1, 3 -> 2; else -> 3 }   // con imposta: los vidrios de la imposta (los mismos en cada hoja)
@@ -797,7 +797,7 @@ class CalculoPedidoFragment : Fragment() {
         }
         actualizarSandwich()
 
-        // Posición de las impostas interiores (mm). Vacío = reparto igual (mitad / tercios), como la original por defecto.
+        // Posición de las impostas interiores (mm). Vacío = reparto igual (mitad / tercios) por defecto.
         val offsGuardados = (binding.wpvMainCanvas.paneImpOff[targetPaneIndex] ?: "").split(",").map { it.trim() }
         dialogBinding.etImpOff1.setText(offsGuardados.getOrNull(0)?.removeSuffix(".0") ?: "")
         dialogBinding.etImpOff2.setText(offsGuardados.getOrNull(1)?.removeSuffix(".0") ?: "")
@@ -814,11 +814,11 @@ class CalculoPedidoFragment : Fragment() {
         }
         actualizarOffsets()
 
-        // Barras de vidrio (glazing bars): horizontales x verticales por cada vidrio, como la original
+        // Barras de vidrio (glazing bars): horizontales x verticales por cada vidrio
         var tempBars: String = binding.wpvMainCanvas.paneBars[targetPaneIndex] ?: ""
 
-        // Panel "impostas" como la original: 1ª celda = glazing bars, después ninguna / vert.1 / hor.1 / vert.2 / hor.2.
-        // Regla de la original (pk_r2.z): corredizas y puertas francesas admiten solo impostas horizontales; corredizas verticales
+        // Panel "impostas": 1ª celda = glazing bars, después ninguna / vert.1 / hor.1 / vert.2 / hor.2.
+        // Regla: corredizas y puertas francesas admiten solo impostas horizontales; corredizas verticales
         // solo verticales; el resto se muestra atenuado (alpha 0.3, no pulsable). Cada hoja se parte igual.
         fun maskIconos(): Int = cbsSandwich.withIndex().sumOf { (i, cb) -> if (cb.isChecked && cb.visibility == android.view.View.VISIBLE) (1 shl i) else 0 }
         fun itemsImposta(mecId: String) = listOf(
@@ -826,7 +826,7 @@ class CalculoPedidoFragment : Fragment() {
             ImpostaItem(3, AperturasMulti.impostaPermitida(mecId, 3)), ImpostaItem(1, AperturasMulti.impostaPermitida(mecId, 1)),
             ImpostaItem(4, AperturasMulti.impostaPermitida(mecId, 4)), ImpostaItem(2, AperturasMulti.impostaPermitida(mecId, 2)),
         )
-        /** Categoría de apertura para reiniciar la imposta como la original: 0 normal, 1 corrediza/francesa, 2 corrediza vertical. */
+        /** Categoría de apertura para reiniciar la imposta: 0 normal, 1 corrediza/francesa, 2 corrediza vertical. */
         fun categoria(id: String) = when (AperturasMulti.grupo(id)) {
             null -> 0
             AperturasMulti.Grupo.CORREDIZA, AperturasMulti.Grupo.FRANCESA -> 1
@@ -850,7 +850,7 @@ class CalculoPedidoFragment : Fragment() {
         dialogBinding.rvImpostasLayouts.adapter = layoutAdapter
         cbsSandwich.forEach { cb -> cb.setOnCheckedChangeListener { _, _ -> layoutAdapter.actualizarMascara(maskIconos()) } }
 
-        // Reglas de la original (pk_r2): sin apertura ("+") bloquea puerta y mosquitero; hoja fija bloquea mosquitero.
+        // Reglas: sin apertura ("+") bloquea puerta y mosquitero; hoja fija bloquea mosquitero.
         fun aplicarReglasApertura(id: String) {
             fun bloquear(cb: android.widget.CheckBox, bloqueado: Boolean) {
                 if (bloqueado) cb.isChecked = false
@@ -860,7 +860,7 @@ class CalculoPedidoFragment : Fragment() {
             }
             bloquear(dialogBinding.cbPuerta, id == "5")
             bloquear(dialogBinding.cbMosqNet, id == "5" || id == "10")
-            // Al cambiar de categoría la original reinicia la imposta elegida
+            // Al cambiar de categoría se reinicia la imposta elegida
             val categoriaNueva = categoria(id)
             if (categoriaNueva != categoriaActual || !AperturasMulti.impostaPermitida(id, tempImp)) { tempImp = 0; tempCols = 1 }
             categoriaActual = categoriaNueva
@@ -942,7 +942,7 @@ class CalculoPedidoFragment : Fragment() {
 
     private var nombreHeaderBase = ""
 
-    /** Como el original: "cliente : ID de oferta" arriba a la derecha. */
+    /** Texto "cliente : ID de oferta" arriba a la derecha. */
     private fun refrescarEncabezadoCliente() {
         _binding?.tvHeaderClienteNombre?.text =
             if (idOfertaPedido.isBlank()) nombreHeaderBase else "$nombreHeaderBase : $idOfertaPedido"
@@ -1080,7 +1080,7 @@ class CalculoPedidoFragment : Fragment() {
         binding.cellCTotal.text = "0.00 (-0%)"
     }
 
-    /** Medida mínima de una sección (columna/fila) de la ventana, igual que la app original. */
+    /** Medida mínima de una sección (columna/fila) de la ventana. */
     private val SECCION_MIN_MM = 300
 
     private fun mostrarDialogoEditarMedida(
@@ -1120,7 +1120,7 @@ class CalculoPedidoFragment : Fragment() {
             .setView(input)
             .setPositiveButton("APLICAR") { dialog, _ ->
                 val nuevoValor = Unidades.aMm(input.text.toString())
-                // Como la original: cada sección mide al menos 300 mm y las demás tampoco pueden quedar por debajo
+                // Cada sección mide al menos 300 mm y las demás tampoco pueden quedar por debajo
                 val esSeccion = type == WindowPreviewView.DimensionType.SECTION_WIDTH || type == WindowPreviewView.DimensionType.SECTION_HEIGHT
                 if (esSeccion && nuevoValor != null) {
                     val esAncho = type == WindowPreviewView.DimensionType.SECTION_WIDTH
@@ -1199,7 +1199,7 @@ class CalculoPedidoFragment : Fragment() {
     }
 
     /**
-     * "Tabla en vivo" completa de la original: por cada concepto (A..X) la cantidad y el precio de UNA ventana y
+     * "Tabla en vivo" completa: por cada concepto (A..X) la cantidad y el precio de UNA ventana y
      * la cantidad y el costo de TODAS las ventanas del pedido. Se abre tocando la tabla inferior.
      */
     private fun mostrarTablaDetallada() {

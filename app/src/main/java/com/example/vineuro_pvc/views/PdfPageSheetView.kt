@@ -19,7 +19,7 @@ import java.util.Locale
 data class FilaTabla(val etiqueta: String, val valor: String, val unidad: String, val grande: Boolean = false)
 
 /**
- * Hoja A4 con el formato de la original (WinStudio):
+ * Hoja A4 con el formato:
  *  - Proyectos / con detalles: 6 celdas por página (2 x 3).
  *  - Oferta comercial: 2 celdas por página, con lista de propiedades arriba a la derecha y tabla de precios abajo a la derecha.
  *  - Oferta comercial 2: 1 celda por página.
@@ -115,7 +115,7 @@ class PdfPageSheetView @JvmOverloads constructor(
 
     private fun tamano(p: Paint, u: Float, size: Float, bold: Boolean = false) { p.textSize = size * u; p.isFakeBoldText = bold }
 
-    /** Propiedades de la ventana alineadas a la derecha: categoría con fondo gris y valores terminados en "●", como la original. */
+    /** Propiedades de la ventana alineadas a la derecha: categoría con fondo gris y valores terminados en "●". */
     private fun dibujarPropiedades(canvas: Canvas, item: OrderItem, caja: RectF, u: Float, size: Float) {
         val cats = com.example.vineuro_pvc.data.TextoPropiedades.categorias(item)
         if (cats.isEmpty()) return
@@ -165,7 +165,7 @@ class PdfPageSheetView @JvmOverloads constructor(
     }
 
     private fun dibujarEncabezado(canvas: Canvas, m: Float, top: Float, cw: Float, hh: Float, u: Float) {
-        // Banner degradado centrado con el logo (como la imagen de cabecera de la original)
+        // Banner degradado centrado con el logo (como la imagen de cabecera)
         val bx0 = m + cw * 0.27f; val bx1 = m + cw * 0.73f
         val g = Paint().apply {
             shader = LinearGradient(
@@ -239,7 +239,7 @@ class PdfPageSheetView @JvmOverloads constructor(
         val esOferta = ofertaPorPagina > 0
 
         var y = m
-        // Título "Oferta comercial" solo en las ofertas (primera página), como la original
+        // Título "Oferta comercial" solo en las ofertas (primera página)
         if (esOferta && conCabecera) {
             canvas.drawRect(m, y, m + cw, y + 11f * u, fondoGris)
             tamano(txt, u, 7.8f); txt.textAlign = Paint.Align.CENTER

@@ -86,7 +86,7 @@ class WindowPreviewView @JvmOverloads constructor(
         strokeWidth = dpToPx(0.5f)
     }
 
-    /** "shadows" de la original: sombras suaves en perfiles y vidrio (marcado por defecto). */
+    /** "shadows": sombras suaves en perfiles y vidrio (marcado por defecto). */
     var showShadows: Boolean = true
         set(value) { field = value; invalidate() }
 
@@ -198,11 +198,11 @@ class WindowPreviewView @JvmOverloads constructor(
         val currentTotalH = if (sectionHeights.isNotEmpty()) sectionHeights.sum() else 1800f
         val currentTotalW = if (sectionWidths.isNotEmpty()) sectionWidths.sum() else 1500f
 
-        val modelo = windowConfig.modeloOriginal
+        val modelo = windowConfig.modeloEstructura
         if (modelo != null) {
-            // Modelos de la original: tamaño y secciones iniciales según su estructura
+            // Modelos: tamaño y secciones iniciales según su estructura
             if (isNewConfig || sectionHeights.size != rows || sectionWidths.size != cols) {
-                val (aw, ah) = com.example.vineuro_pvc.data.ModelosOriginales.seccionesPorDefecto(
+                val (aw, ah) = com.example.vineuro_pvc.data.ModelosVentana.seccionesPorDefecto(
                     modelo, if (isNewConfig) modelo.anchoMm.toFloat() else currentTotalW, if (isNewConfig) modelo.altoMm.toFloat() else currentTotalH,
                 )
                 sectionWidths = aw; sectionHeights = ah
@@ -415,7 +415,7 @@ class WindowPreviewView @JvmOverloads constructor(
     fun cantidadSecciones(esAncho: Boolean): Int = if (esAncho) sectionWidths.size else sectionHeights.size
 
     /**
-     * "¿Igualar dimensiones?" del original: reparte el total en secciones de igual medida
+     * "¿Igualar dimensiones?": reparte el total en secciones de igual medida
      * (en mm enteros; el resto se reparte de a 1 mm para que la suma siga siendo el total).
      */
     fun igualarSecciones(esAncho: Boolean) {
@@ -768,9 +768,9 @@ class WindowPreviewView @JvmOverloads constructor(
     private fun drawDiagonales(canvas: Canvas, rect: RectF, cfg: WindowConfig) {
         // Un marco por base: en las ventanas L / T cada bloque tiene sus propias diagonales
         val marcos = ArrayList<RectF>()
-        val mo = cfg.modeloOriginal
+        val mo = cfg.modeloEstructura
         if (cfg.layoutType == WindowConfig.LayoutType.ARBOL && mo != null) {
-            val pl = com.example.vineuro_pvc.data.ModelosOriginales.plano(mo, anchoTotalMm.toDouble(), altoTotalMm.toDouble(), sectionWidths, sectionHeights)
+            val pl = com.example.vineuro_pvc.data.ModelosVentana.plano(mo, anchoTotalMm.toDouble(), altoTotalMm.toDouble(), sectionWidths, sectionHeights)
             val k = pxPorMm
             pl.bases.forEach { marcos += RectF(rect.left + it.x0.toFloat() * k, rect.top + it.y0.toFloat() * k, rect.left + it.x1.toFloat() * k, rect.top + it.y1.toFloat() * k) }
         }
@@ -1015,11 +1015,11 @@ class WindowPreviewView @JvmOverloads constructor(
     }
 
     /**
-     * Vidrio de una hoja con imposta interior (como la original): 2 o 3 vidrios con la(s) imposta(s) en la posición guardada
+     * Vidrio de una hoja con imposta interior: 2 o 3 vidrios con la(s) imposta(s) en la posición guardada
      * (o repartidos a partes iguales). [imp]: 1 hor. x1, 2 hor. x2, 3 ver. x1, 4 ver. x2; [mask] = bits de sándwich por vidrio.
      */
     private fun dibujarVidriosImposta(canvas: Canvas, glassL: Float, glassT: Float, glassR: Float, glassB: Float, paneIndex: Int, imp: Int, mask: Int) {
-        // Imposta interior de la hoja (como la original): 2 o 3 vidrios repartidos a partes iguales
+        // Imposta interior de la hoja: 2 o 3 vidrios repartidos a partes iguales
         val horizontal = imp <= 2
         val n = if (imp % 2 == 1) 2 else 3
         val bar = dpToPx(3f)
@@ -1056,7 +1056,7 @@ class WindowPreviewView @JvmOverloads constructor(
     }
 
     /**
-     * Apertura de varias hojas (corredizas múltiples/verticales y puerta francesa) con las medidas de la original:
+     * Apertura de varias hojas (corredizas múltiples/verticales y puerta francesa) con las medidas:
      * cada hoja es un contorno con su vidrio, flecha de corrida (o bisagras en la francesa) y manija.
      */
     private fun dibujarMulti(canvas: Canvas, pL: Float, pT: Float, pR: Float, pB: Float, paneIndex: Int, row: Int, col: Int) {
@@ -1425,18 +1425,18 @@ class WindowPreviewView @JvmOverloads constructor(
     }
 
     /**
-     * Modelos de la original: cada paño se dibuja con la estructura exacta decodificada de su fórmula (ver ModelosOriginales).
+     * Modelos: cada paño se dibuja con la estructura exacta decodificada de su fórmula (ver ModelosVentana).
      * Los huecos vacíos (ventanas en L / T) no se dibujan; los lados que dan al vacío o al exterior llevan el marco completo.
      */
     private fun drawArbol(canvas: Canvas, rect: RectF, cfg: WindowConfig, t: Float) {
-        val mo = cfg.modeloOriginal ?: return
+        val mo = cfg.modeloEstructura ?: return
         val w = anchoTotalMm.toFloat().coerceAtLeast(1f)
         val h = altoTotalMm.toFloat().coerceAtLeast(1f)
         val k = minOf(rect.width() / w, rect.height() / h)
         val ox = rect.left + (rect.width() - w * k) / 2f
         val oy = rect.top + (rect.height() - h * k) / 2f
         pxPorMm = k
-        val plano = com.example.vineuro_pvc.data.ModelosOriginales.plano(mo, w.toDouble(), h.toDouble(), sectionWidths, sectionHeights)
+        val plano = com.example.vineuro_pvc.data.ModelosVentana.plano(mo, w.toDouble(), h.toDouble(), sectionWidths, sectionHeights)
         val pad = dpToPx(1f)
         if (showShadows) {
             for (c in plano.celdas) {

@@ -1,10 +1,10 @@
 package com.example.vineuro_pvc.data
 
 /**
- * Aperturas de varias hojas de la original (WinStudio V41.8):
- *  - Corredizas múltiples (OPEN_SLIDE_*): "S:<clave>", p. ej. "S:1R_2L" (pk_e5.b/pk_e5.a).
+ * Aperturas de varias hojas:
+ *  - Corredizas múltiples (OPEN_SLIDE_*): "S:<clave>", p. ej. "S:1R_2L".
  *  - Corredizas verticales (OPEN_SLIDE_1X_2U ...): "V:<clave>".
- *  - Puertas francesas (OPEN_FRENCH_*): "F:<clave>", p. ej. "F:LCF_RC" (pk_b5.a).
+ *  - Puertas francesas (OPEN_FRENCH_*): "F:<clave>", p. ej. "F:LCF_RC".
  *
  * Clave de corrediza = hojas separadas por "_"; cada hoja = capa (1..4) + dirección (L,R,U,D = se mueve, X = fija)
  * + peso opcional ("2d0" = 2.0). Dos hojas consecutivas con la MISMA capa comparten riel (2 perfiles de hoja);
@@ -25,7 +25,7 @@ object AperturasMulti {
     val VERTICALES = listOf("1X_2U", "1D_2U", "1D_2U2d0", "1D2d0_2U")
     val FRANCESAS = listOf("LCF_RC", "LC_RCF", "LT_RCF", "LCF_RT")
 
-    /** Todos los ids de mecanismo de las aperturas múltiples, en el orden de la rejilla de la original. */
+    /** Todos los ids de mecanismo de las aperturas múltiples, en el orden de la rejilla. */
     val TODAS: List<String> = FRANCESAS.map { "F:$it" } + VERTICALES.map { "V:$it" } + CORREDIZAS.map { "S:$it" }
 
     fun grupo(mec: String?): Grupo? = when {
@@ -39,7 +39,7 @@ object AperturasMulti {
     fun esMulti(mec: String?) = grupo(mec) != null
 
     /**
-     * Impostas interiores permitidas según la apertura (pk_r2.z de la original): en las aperturas normales todas;
+     * Impostas interiores permitidas según la apertura: en las aperturas normales todas;
      * en corredizas y puertas francesas solo las horizontales (1 = x1, 2 = x2); en corredizas verticales solo las verticales (3, 4).
      * [imp]: 0 ninguna, 1 hor. x1, 2 hor. x2, 3 ver. x1, 4 ver. x2.
      */
@@ -93,7 +93,7 @@ object AperturasMulti {
         val mismaCapaSig = t.indices.map { i -> i < t.size - 1 && t[i + 1].capa == t[i].capa }
         val total = apilado - ((capaDistintaPrev.count { it } + mismaCapaPrev.count { it } * 2 + 2) * f8)
         val unidad = (total / t.sumOf { it.peso }).coerceAtLeast(0.0)
-        // Manijas (pk_e5.b.d)
+        // Manijas
         val manija = BooleanArray(t.size)
         if (t.first().dir == 'R' || t.first().dir == 'D') manija[0] = true
         if (t.last().dir == 'L' || t.last().dir == 'U') manija[t.size - 1] = true
@@ -143,7 +143,7 @@ object AperturasMulti {
 
     fun manijas(mec: String, hojas: List<Hoja>): Int = if (grupo(mec) == Grupo.FRANCESA) 1 else hojas.count { it.manija }
 
-    /** Imposta francesa: perfil central del largo de la hoja (pk_s3.d.M: V x alto de la primera hoja). */
+    /** Imposta francesa: perfil central del largo de la hoja. */
     fun impostaFrancesaM(mec: String, hojas: List<Hoja>): Double =
         if (grupo(mec) == Grupo.FRANCESA) hojas.firstOrNull()?.altoExterior ?: 0.0 else 0.0
 }

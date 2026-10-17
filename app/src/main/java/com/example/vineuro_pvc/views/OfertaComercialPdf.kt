@@ -50,9 +50,9 @@ object OfertaComercialPdf {
         /** 1 = "Oferta comercial" (tabla compacta). 2 = "Oferta comercial 2" (una ventana por página, dibujo grande). */
         val variante: Int = 1,
         val notaPedido: String = "",
-        /** Página de portada al inicio (como "cover page" de la original). */
+        /** Página de portada al inicio (como "cover page"). */
         val portada: Boolean = false,
-        /** Página de contrato al final, con las condiciones comerciales y espacio de firmas ("contract page" de la original). */
+        /** Página de contrato al final, con las condiciones comerciales y espacio de firmas ("contract page"). */
         val contrato: Boolean = false,
     )
 
@@ -88,7 +88,7 @@ object OfertaComercialPdf {
             pdf.finishPage(pg)
         }
 
-        // ===================== 1) PÁGINAS DE LA OFERTA (formato de la original) =====================
+        // ===================== 1) PÁGINAS DE LA OFERTA (formato) =====================
         // "Oferta comercial" = 2 ventanas por hoja; "Oferta comercial 2" = 1 por hoja. Encabezado con el título solo en la
         // primera hoja; cada celda lleva el dibujo, la lista de propiedades (arriba a la derecha) y la tabla de precios
         // (abajo a la derecha); el pie con los totales de toda la orden y las firmas va solo en la última hoja.
@@ -452,7 +452,7 @@ object OfertaComercialPdf {
         return y + 32f
     }
 
-    /** Descripción de la ventana: las mismas propiedades que lista la original (categoría: valores), más la nota. */
+    /** Descripción de la ventana: las propiedades de la ventana (categoría: valores), más la nota. */
     private fun descripcion(item: OrderItem): String {
         val op = item.opciones
         return buildString {
