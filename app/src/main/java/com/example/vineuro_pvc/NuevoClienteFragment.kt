@@ -11,6 +11,7 @@ import androidx.navigation.fragment.findNavController
 import com.example.vineuro_pvc.data.ClientRepository
 import com.example.vineuro_pvc.data.Cliente
 import com.example.vineuro_pvc.databinding.FragmentNuevoClienteBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 /**
  * Fragmento para el registro manual de un Nuevo Cliente sin búsqueda por API.
@@ -58,6 +59,14 @@ class NuevoClienteFragment : Fragment() {
             binding.tilApellidos.error = null
         }
 
+        // Teléfono opcional, pero si se escribe debe tener exactamente 9 dígitos
+        if (telefono.isNotEmpty() && !Regex("^\\d{9}$").matches(telefono)) {
+            binding.tilTelefono.error = "El teléfono debe tener 9 dígitos"
+            return
+        } else {
+            binding.tilTelefono.error = null
+        }
+
         val clientRepository = ClientRepository(requireContext())
 
         // El cliente se identifica por su id (UUID generado automáticamente)
@@ -66,8 +75,26 @@ class NuevoClienteFragment : Fragment() {
             apellidos = apellidos,
             telefono = telefono,
             email = email,
+            nota = binding.etNotaCliente.text.toString().trim(),
         )
 
+        // Como "such customer is exist": avisa si ya hay un cliente con el mismo nombre
+        val repetido = clientRepository.obtenerClientes().any {
+            it.nombreCompleto.equals(nuevoCliente.nombreCompleto, ignoreCase = true)
+        }
+        if (repetido) {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Cliente repetido")
+                .setMessage("Ya existe un cliente llamado ${nuevoCliente.nombreCompleto}. ¿Crear otro con el mismo nombre?")
+                .setPositiveButton("CREAR") { _, _ -> registrar(clientRepository, nuevoCliente) }
+                .setNegativeButton("CANCELAR", null)
+                .show()
+        } else {
+            registrar(clientRepository, nuevoCliente)
+        }
+    }
+
+    private fun registrar(clientRepository: ClientRepository, nuevoCliente: Cliente) {
         if (clientRepository.guardarCliente(nuevoCliente)) {
             Toast.makeText(requireContext(), "Cliente ${nuevoCliente.nombreCompleto} guardado", Toast.LENGTH_SHORT).show()
 

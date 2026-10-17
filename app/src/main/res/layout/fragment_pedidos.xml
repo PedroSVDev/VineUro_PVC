@@ -45,13 +45,30 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="20dp"
         android:layout_marginTop="8dp"
-        android:layout_marginEnd="20dp"
+        android:layout_marginEnd="8dp"
         android:textColor="#777777"
         android:textSize="12sp"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/tv_ordenar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/card_search"
         tools:text="Sincronizando con la nube…" />
+
+    <TextView
+        android:id="@+id/tv_ordenar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="20dp"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="4dp"
+        android:text="Ordenar: más recientes ▾"
+        android:textColor="#1E3A5F"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/card_search" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_pedidos"
@@ -64,7 +81,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_estado_sync"
+        app:layout_constraintTop_toBottomOf="@id/tv_ordenar"
         tools:listitem="@layout/item_pedido" />
 
     <LinearLayout

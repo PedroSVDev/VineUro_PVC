@@ -20,6 +20,28 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
+        android:id="@+id/btnConvertir"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:backgroundTint="#6D5BD0"
+        android:text="CONVERTIR PRECIOS"
+        android:textColor="@color/white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/btnEjemplo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:backgroundTint="#2E7D32"
+        android:text="CARGAR PRECIOS DE EJEMPLO"
+        android:textColor="@color/white"
+        app:layout_constraintBottom_toTopOf="@id/btnConvertir"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
         android:id="@+id/btnBack"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -34,7 +56,7 @@
         android:id="@+id/scrollViewPrecios"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@id/btnBack"
+        app:layout_constraintBottom_toTopOf="@id/btnEjemplo"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvTitle">
@@ -55,12 +77,41 @@
             <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
                 <TableLayout android:id="@+id/tableMoneda" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@color/white" android:stretchColumns="*">
                     <TableRow android:background="#F0F0F0">
-                        <TextView android:padding="8dp" android:text="precios moneda" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="tarifa" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="resultados moneda" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="precios moneda" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="tarifa" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="resultados moneda" android:gravity="center" android:textStyle="bold" />
                     </TableRow>
                 </TableLayout>
             </HorizontalScrollView>
+
+            <!-- Tipo de cambio oficial BCRP -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnActualizarTipoCambio"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Actualizar T.C. BCRP"
+                    android:textSize="12sp"
+                    app:icon="@android:drawable/ic_popup_sync"
+                    app:iconSize="16dp" />
+
+                <TextView
+                    android:id="@+id/tvInfoTipoCambio"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:text="US$ y € a soles, fuente oficial BCRP"
+                    android:textColor="#666666"
+                    android:textSize="12sp" />
+            </LinearLayout>
             <View android:layout_width="match_parent" android:layout_height="16dp" />
 
             <!-- 2. IMPUESTO -->
@@ -73,8 +124,8 @@
             <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
                 <TableLayout android:id="@+id/tableImpuesto" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@color/white" android:stretchColumns="*">
                     <TableRow android:background="#F0F0F0">
-                        <TextView android:padding="8dp" android:text="nombre del impuesto" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="impuesto%" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="nombre del impuesto" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="impuesto%" android:gravity="center" android:textStyle="bold" />
                     </TableRow>
                 </TableLayout>
             </HorizontalScrollView>
@@ -91,11 +142,11 @@
                 <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
                     <TableLayout android:id="@+id/tablePlanes" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@color/white" android:stretchColumns="*">
                         <TableRow android:background="#F0F0F0">
-                            <TextView android:padding="8dp" android:text="planes de financiación" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="Descuento total %" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="construcción y materiales margen %" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="trabajos margen %" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="planes de financiación" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="Descuento total %" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="construcción y materiales margen %" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="trabajos margen %" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="" />
                         </TableRow>
                     </TableLayout>
                 </HorizontalScrollView>
@@ -113,17 +164,45 @@
                 <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
                     <TableLayout android:id="@+id/tableVentanas" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@color/white" android:stretchColumns="*">
                         <TableRow android:background="#F0F0F0">
-                            <TextView android:padding="8dp" android:text="sistema de ventanas" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="marco perfil € por m" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="impuesto perfil € por m" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="hoja perfil € por m" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="hoja dor perfil € por m" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="emparedado panel € por m2" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="glazing beads € por m" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="caucho sellador € por m" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="glazing bars € per m" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="glazing bars connector € per pc" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="sistema de ventanas" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="marco perfil S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="imposta perfil S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="hoja perfil S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="hoja puerta perfil S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="panel sándwich S/ por m2" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="shtapik (junquillo) S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="caucho sellador S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="glazing bars S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="glazing bars conector S/ por pc" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="refuerzo de marco S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="refuerzo de imposta S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="refuerzo de hoja S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="refuerzo hoja puerta S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="kit oscilobatiente S/ por juego" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="kit oscilante (abatible sup.) S/ por juego" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="kit practicable (giro lateral) S/ por juego" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="kit corredizo horiz. S/ por juego" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="kit corredizo vert. S/ por juego" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="kit francés S/ por juego" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="imposta francesa S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="guías corredizas S/ por juego" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="esquinero de marco S/ por pc" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="esquinero de hoja S/ por pc" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="conector de imposta S/ por pc" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="perfil de asiento S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="dorsill S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="jamba de esquina S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="perfil de junta S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="junta 90° S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="junta 135° S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="perfil de hueco S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="extensor 15 mm S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="extensor 20 mm S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="extensor 40 mm S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="extensor 60 mm S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="extensor 80 mm S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="extensor 100 mm S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="" />
                         </TableRow>
                     </TableLayout>
                 </HorizontalScrollView>
@@ -141,17 +220,17 @@
                 <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
                     <TableLayout android:id="@+id/tableCristal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@color/white" android:stretchColumns="*">
                         <TableRow android:background="#F0F0F0">
-                            <TextView android:padding="8dp" android:text="tipo de cristal" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="vidrio 1 € por m2" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="vidrio 2 € por m2" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="vidrio 3 € por m2" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="película € por m2" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="spaser € por m" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="secadora € por m" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="franja de butilo € por m" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="sellado € por m" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="gas € por m2" android:gravity="center" android:textStyle="bold" />
-                            <TextView android:padding="8dp" android:text="" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="tipo de cristal" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="vidrio 1 S/ por m2" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="vidrio 2 S/ por m2" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="vidrio 3 S/ por m2" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="película S/ por m2" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="spaser S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="secadora S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="franja de butilo S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="sellado S/ por m" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="gas S/ por m2" android:gravity="center" android:textStyle="bold" />
+                            <TextView android:textColor="#212121" android:padding="8dp" android:text="" />
                         </TableRow>
                     </TableLayout>
                 </HorizontalScrollView>
@@ -168,10 +247,11 @@
             <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
                 <TableLayout android:id="@+id/tableUmbralExt" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@color/white" android:stretchColumns="*">
                     <TableRow android:background="#F0F0F0">
-                        <TextView android:padding="8dp" android:text="Tipo de umbral externo" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="el cuerpo exterior del batiente € por m" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="de tapón € por la ps" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="Tipo de umbral externo" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="el cuerpo exterior del batiente S/ por m" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="de tapón S/ por pz" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="piezas a comprar (mm x cantidad, ej. 1500x2 800x1; - = a medida)" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="" />
                     </TableRow>
                 </TableLayout>
             </HorizontalScrollView>
@@ -186,10 +266,11 @@
             <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
                 <TableLayout android:id="@+id/tableUmbralInt" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@color/white" android:stretchColumns="*">
                     <TableRow android:background="#F0F0F0">
-                        <TextView android:padding="8dp" android:text="Tipo de umbral interno" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="cuerpo del peldaño € por m" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="de tapón € por la ps" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="Tipo de umbral interno" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="cuerpo del peldaño S/ por m" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="de tapón S/ por pz" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="piezas a comprar (mm x cantidad, ej. 1500x2 800x1; - = a medida)" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="" />
                     </TableRow>
                 </TableLayout>
             </HorizontalScrollView>
@@ -204,11 +285,11 @@
             <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
                 <TableLayout android:id="@+id/tableMuebles" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@color/white" android:stretchColumns="*">
                     <TableRow android:background="#F0F0F0">
-                        <TextView android:padding="8dp" android:text="marca de muebles" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="manejar regulares € por la ps" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="manejar con cerradura € por la ps" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="manija balcón € por la ps" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="marca de muebles" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="manija regular S/ por pz" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="manija con cerradura S/ por pz" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="manija balcón S/ por pz" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="" />
                     </TableRow>
                 </TableLayout>
             </HorizontalScrollView>
@@ -223,15 +304,15 @@
             <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
                 <TableLayout android:id="@+id/tableExtras" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@color/white" android:stretchColumns="*">
                     <TableRow android:background="#F0F0F0">
-                        <TextView android:padding="8dp" android:text="extras establecen" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="precio € por:" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="pc" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="m2" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="m" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="m" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="m" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="m" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="extras establecen" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="precio S/ por:" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="pc" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="m2" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="m" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="m" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="m" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="m" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="" />
                     </TableRow>
                 </TableLayout>
             </HorizontalScrollView>
@@ -246,15 +327,15 @@
             <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
                 <TableLayout android:id="@+id/tableEmpleos" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@color/white" android:stretchColumns="*">
                     <TableRow android:background="#F0F0F0">
-                        <TextView android:padding="8dp" android:text="Tipo de empleo" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="precio € por:" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="pc" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="m2" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="m" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="m" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="m" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="m" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="Tipo de empleo" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="precio S/ por:" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="pc" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="m2" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="m" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="m" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="m" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="m" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="" />
                     </TableRow>
                 </TableLayout>
             </HorizontalScrollView>
@@ -269,14 +350,14 @@
             <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
                 <TableLayout android:id="@+id/tableMosquitera" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@color/white" android:stretchColumns="*">
                     <TableRow android:background="#F0F0F0">
-                        <TextView android:padding="8dp" android:text="sistema de mosq.net" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="red € por m2" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="perfil del marco € por m" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="sellador de goma € por m" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="esquina € por la ps" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="poseedor € por la ps" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="oído-mango € por la ps" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="sistema de mosq.net" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="red S/ por m2" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="perfil del marco S/ por m" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="sellador de goma S/ por m" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="esquina S/ por pz" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="poseedor S/ por pz" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="oído-mango S/ por pz" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="" />
                     </TableRow>
                 </TableLayout>
             </HorizontalScrollView>
@@ -291,9 +372,9 @@
             <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
                 <TableLayout android:id="@+id/tableLaminacion" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@color/white" android:stretchColumns="*">
                     <TableRow android:background="#F0F0F0">
-                        <TextView android:padding="8dp" android:text="tipo de laminación" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="laminación € por m2" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="tipo de laminación" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="laminación S/ por m2" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="" />
                     </TableRow>
                 </TableLayout>
             </HorizontalScrollView>
@@ -309,9 +390,9 @@
             <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
                 <TableLayout android:id="@+id/tableColors" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@color/white" android:stretchColumns="*">
                     <TableRow android:background="#F0F0F0">
-                        <TextView android:padding="8dp" android:text="color name" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="color" android:gravity="center" android:textStyle="bold" />
-                        <TextView android:padding="8dp" android:text="" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="color name" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="color" android:gravity="center" android:textStyle="bold" />
+                        <TextView android:textColor="#212121" android:padding="8dp" android:text="" />
                     </TableRow>
                 </TableLayout>
             </HorizontalScrollView>

@@ -20,11 +20,19 @@ data class Pedido(
     val estado: String = ESTADO_BORRADOR,
     val fechaCreacion: Long = System.currentTimeMillis(),
     val fechaActualizacion: Long = System.currentTimeMillis(),
+    // --- Datos del pedido (pantalla "pedido nuevo"). Por ahora se guardan SOLO en el teléfono
+    //     (tabla local "configuracion"); NO viajan a Supabase hasta que existan las columnas direccion / id_oferta / nota. ---
+    /** Dirección de la obra o del cliente para este pedido . */
+    val direccion: String = "",
+    /** Identificador de la oferta . Es el N° de cotización por defecto. */
+    val idOferta: String = "",
+    /** Nota general del pedido . */
+    val nota: String = "",
 ) {
     val totalVentanas: Int get() = items.size
 
     val areaTotalM2: Double
-        get() = items.sumOf { (it.altoTotalMm / 1000.0) * (it.anchoTotalMm / 1000.0) }
+        get() = items.sumOf { it.areaM2 }
 
     val fechaActualizacionTexto: String
         get() = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(fechaActualizacion))
@@ -108,6 +116,9 @@ object PedidoJson {
         put("pane_puerta", mapToJson(item.panePuerta))
         put("pane_sandwich", mapToJson(item.paneSandwich))
         put("pane_cols", mapToJson(item.paneCols))
+        put("pane_sandwich_sub", mapToJson(item.paneSandwichSub))
+        put("pane_bars", mapToJson(item.paneBars))
+        put("pane_imp_off", mapToJson(item.paneImpOff))
         put("color_bg_hex", item.colorBgHex)
         put("opciones", item.opciones.toJson())
     }
@@ -131,6 +142,9 @@ object PedidoJson {
         o.optJSONObject("pane_puerta")?.let { m -> m.keys().forEach { k -> item.panePuerta[k.toInt()] = m.getBoolean(k) } }
         o.optJSONObject("pane_sandwich")?.let { m -> m.keys().forEach { k -> item.paneSandwich[k.toInt()] = m.getBoolean(k) } }
         o.optJSONObject("pane_cols")?.let { m -> m.keys().forEach { k -> item.paneCols[k.toInt()] = m.getInt(k) } }
+        o.optJSONObject("pane_sandwich_sub")?.let { m -> m.keys().forEach { k -> item.paneSandwichSub[k.toInt()] = m.getInt(k) } }
+        o.optJSONObject("pane_bars")?.let { m -> m.keys().forEach { k -> item.paneBars[k.toInt()] = m.getString(k) } }
+        o.optJSONObject("pane_imp_off")?.let { m -> m.keys().forEach { k -> item.paneImpOff[k.toInt()] = m.getString(k) } }
         return item
     }
 

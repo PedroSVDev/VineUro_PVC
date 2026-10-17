@@ -24,9 +24,9 @@ class PreciosRepository(context: Context) {
 
     /** Precios guardados en el teléfono (o los valores por defecto si aún no hay nada). */
     fun obtener(): Precios {
-        val json = leerJsonLocal() ?: return Precios.porDefecto()
+        val json = leerJsonLocal() ?: return Precios.porDefecto().also { ColoresPerfil.actualizar(it.colores) }
         return try {
-            PreciosJson.fromJson(JSONObject(json))
+            PreciosJson.fromJson(JSONObject(json)).also { ColoresPerfil.actualizar(it.colores) }
         } catch (e: Exception) {
             e.printStackTrace()
             Precios.porDefecto()
@@ -37,8 +37,12 @@ class PreciosRepository(context: Context) {
     fun guardarLocal(precios: Precios): Precios {
         val conFecha = precios.copy(fechaActualizacion = System.currentTimeMillis())
         escribir(conFecha)
+        ColoresPerfil.actualizar(conFecha.colores)
         return conFecha
     }
+
+    /** Reemplaza lo guardado conservando la fecha de modificación de [precios] (para importar desde un archivo). */
+    fun reemplazar(precios: Precios) = escribir(precios)
 
     private fun escribir(precios: Precios) {
         val cv = ContentValues().apply {

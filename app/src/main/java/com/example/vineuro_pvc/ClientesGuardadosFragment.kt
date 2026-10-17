@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Lista de clientes guardados (teléfono + Supabase). Tocar abre la información del cliente;
- * el tacho de la derecha lo elimina previa confirmación.
+ * mantener presionado lo edita (nombre, teléfono, correo) y el tacho de la derecha lo elimina previa confirmación.
  */
 class ClientesGuardadosFragment : Fragment() {
 
@@ -43,6 +43,7 @@ class ClientesGuardadosFragment : Fragment() {
 
         adapter = ClientesAdapter(
             onEliminarClick = { confirmarEliminar(it) },
+            onEditarClick = { editarCliente(it) },
             onClienteClick = { mostrarDetallesCliente(it) },
         )
         binding.rvClientesGuardados.adapter = adapter
@@ -80,6 +81,53 @@ class ClientesGuardadosFragment : Fragment() {
             }
             .setNegativeButton("NO") { dialog, _ -> dialog.dismiss() }
             .show()
+    }
+
+    /** Edita los datos básicos del cliente (como "customer edit"). */
+    private fun editarCliente(cliente: Cliente) {
+        val ctx = requireContext()
+        val dp = ctx.resources.displayMetrics.density
+        fun campo(hint: String, valor: String, tipo: Int) = android.widget.EditText(ctx).apply {
+            this.hint = hint; setText(valor); inputType = tipo; setSingleLine()
+        }
+        val etNombres = campo("Nombres", cliente.nombres, android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS or android.text.InputType.TYPE_CLASS_TEXT)
+        val etApellidos = campo("Apellidos", cliente.apellidos, android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS or android.text.InputType.TYPE_CLASS_TEXT)
+        val etTelefono = campo("Teléfono (9 dígitos)", cliente.telefono, android.text.InputType.TYPE_CLASS_PHONE)
+        val etEmail = campo("Correo electrónico", cliente.email, android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS)
+        val etNota = campo("Adicional (nota)", cliente.nota, android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES)
+        val caja = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding((20 * dp).toInt(), (8 * dp).toInt(), (20 * dp).toInt(), 0)
+            listOf(etNombres, etApellidos, etTelefono, etEmail, etNota).forEach { addView(it) }
+        }
+        val dialogo = MaterialAlertDialogBuilder(ctx)
+            .setTitle("Editar cliente")
+            .setView(caja)
+            .setPositiveButton("GUARDAR", null)
+            .setNegativeButton("CANCELAR", null)
+            .create()
+        dialogo.setOnShowListener {
+            dialogo.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val nombres = etNombres.text.toString().trim()
+                val apellidos = etApellidos.text.toString().trim()
+                val telefono = etTelefono.text.toString().trim()
+                val email = etEmail.text.toString().trim()
+                when {
+                    nombres.isEmpty() -> etNombres.error = "Ingrese el nombre"
+                    apellidos.isEmpty() -> etApellidos.error = "Ingrese los apellidos"
+                    telefono.isNotEmpty() && !Regex("^\\d{9}$").matches(telefono) -> etTelefono.error = "El teléfono debe tener 9 dígitos"
+                    else -> {
+                        val ok = clientRepository.guardarCliente(
+                            cliente.copy(nombres = nombres, apellidos = apellidos, telefono = telefono, email = email, nota = etNota.text.toString().trim()),
+                        )
+                        Toast.makeText(ctx, if (ok) "Cliente actualizado" else "Error al guardar el cliente", Toast.LENGTH_SHORT).show()
+                        refrescarLista()
+                        dialogo.dismiss()
+                    }
+                }
+            }
+        }
+        dialogo.show()
     }
 
     private fun eliminar(cliente: Cliente) {

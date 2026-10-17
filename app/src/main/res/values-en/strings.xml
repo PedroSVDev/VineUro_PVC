@@ -1,0 +1,72 @@
+<resources>
+    <string name="first_fragment_label">Main menu</string>
+    <string name="second_fragment_label">New order</string>
+    <string name="previous">Back</string>
+    <string name="lorem_ipsum">Details of the selected option.</string>
+
+    <string name="menu_nuevo_orden">NEW ORDER</string>
+    <string name="menu_ultimo_pedido">LAST ORDER</string>
+    <string name="menu_pedidos">ORDERS</string>
+    <string name="menu_penultimo_pedido">PRE-LAST ORDER</string>
+    <string name="menu_precios">PRICES</string>
+    <string name="menu_comments">COMMENTS</string>
+    <string name="menu_compartir_datos">SHARE DATA</string>
+    <string name="menu_app_patron_mode">APP-PATRON MODE</string>
+
+    <string name="subtitle_seleccionar_cliente">SELECT CUSTOMER</string>
+    <string name="menu_nuevo_cliente">NEW CUSTOMER</string>
+    <string name="menu_clientes_guardados">SAVED CUSTOMERS</string>
+
+    <string name="title_nuevo_cliente">New customer</string>
+    <string name="label_nombres">First name</string>
+    <string name="hint_nombres">Customer first name(s)</string>
+    <string name="label_apellidos">Last name</string>
+    <string name="hint_apellidos">Last name(s)</string>
+    <string name="label_telefono">Phone</string>
+    <string name="hint_telefono">Mobile / phone number</string>
+    <string name="label_email">Email</string>
+    <string name="hint_email">example@mail.com</string>
+    <string name="btn_guardar_cliente">SAVE CUSTOMER</string>
+    <string name="cliente_guardado">Customer saved</string>
+
+    <string name="hint_buscar_cliente">Search by name, phone or email</string>
+    <string name="sin_clientes">No customers</string>
+    <string name="empty_clientes_title">No saved customers</string>
+    <string name="empty_clientes_desc">Customers you add from \'New customer\' will appear here.</string>
+    <string name="label_tel_format">Tel: %1$s</string>
+    <string name="label_email_format">Email: %1$s</string>
+
+    <string name="title_detalle_cliente_pedido">Customer information</string>
+    <string name="label_codigo_cliente">CUSTOMER CODE</string>
+    <string name="label_direccion">Address</string>
+    <string name="hint_direccion">Enter the delivery or home address</string>
+    <string name="label_nota">Note / Remark</string>
+    <string name="hint_nota">Add a note about the customer or the order…</string>
+    <string name="btn_continuar_pedido">CONTINUE ORDER</string>
+    <string name="error_direccion_requerida">Please enter the address</string>
+
+    <string name="title_calculo_pedido">Window design and calculation</string>
+    <string name="header_parte">part ▸ detail</string>
+    <string name="header_zona">area</string>
+    <string name="header_marcos">frames</string>
+    <string name="header_impostas">imposts</string>
+    <string name="header_glaz_beads">glaz.beads</string>
+    <string name="header_caucho">rubber</string>
+    <string name="header_hojas">sashes</string>
+    <string name="header_hojas_puerta">door sashes</string>
+    <string name="header_total">Total</string>
+    <string name="row_ventana">window</string>
+    <string name="row_precio">price</string>
+    <string name="row_todas_ventanas">all windows</string>
+    <string name="row_costo">cost</string>
+
+    <string name="title_pedidos">Saved orders</string>
+    <string name="hint_buscar_pedido">Search by customer, address, offer ID or code</string>
+    <string name="empty_pedidos_title">No saved orders</string>
+    <string name="empty_pedidos_desc">Orders are saved when you leave the design screen or with \'Save changes to the cloud\'.</string>
+    <string name="pedidos_sincronizando">Syncing with the cloud…</string>
+    <string name="pedidos_sincronizados">Long-press an order to delete it</string>
+    <string name="app_brand_tagline">European PVC windows · Quoting app</string>
+    <string name="menu_saludo_default">Welcome</string>
+    <string name="menu_section_title">WHAT WOULD YOU LIKE TO DO?</string>
+</resources>

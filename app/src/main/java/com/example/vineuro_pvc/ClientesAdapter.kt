@@ -10,6 +10,7 @@ import com.example.vineuro_pvc.databinding.ItemClienteBinding
 class ClientesAdapter(
     private var listaClientes: List<Cliente> = emptyList(),
     private val onEliminarClick: (Cliente) -> Unit = {},
+    private val onEditarClick: (Cliente) -> Unit = {},
     private val onClienteClick: (Cliente) -> Unit,
 ) : RecyclerView.Adapter<ClientesAdapter.ClienteViewHolder>() {
 
@@ -57,6 +58,7 @@ class ClientesAdapter(
             binding.tvAvatarInitials.text = iniciales
 
             binding.root.setOnClickListener { onClienteClick(cliente) }
+            binding.root.setOnLongClickListener { onEditarClick(cliente); true }
             binding.btnEliminarCliente.setOnClickListener { onEliminarClick(cliente) }
         }
     }

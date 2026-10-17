@@ -3,11 +3,26 @@ package com.example.vineuro_pvc.data
 import com.example.vineuro_pvc.data.WindowConfig.LayoutType
 
 /**
- * Catálogo completo con las 73 configuraciones de ventanas y puertas de PVC.
+ * Catálogo de modelos de ventana.
+ *  - [catalogo]: los 63 modelos del selector, en su orden y con su estructura exacta (los que se ofrecen).
+ *  - [antiguas]: las configuraciones de versiones anteriores de la app; ya no se ofrecen, pero se conservan para poder abrir
+ *    los pedidos guardados con ellas.
+ *  - [obtenerTodas]: ambas (para resolver un pedido guardado por su id).
  */
 object WindowConfigCatalog {
 
-    fun obtenerTodas(): List<WindowConfig> {
+    const val PREFIJO_MODELO = "orig_"
+
+    fun catalogo(): List<WindowConfig> = ModelosVentana.TODOS.map { m ->
+        WindowConfig(
+            id = PREFIJO_MODELO + m.id, nombre = ModelosVentana.nombre(m), categoria = "Modelos",
+            layoutType = WindowConfig.LayoutType.ARBOL, modelo = m.id,
+        )
+    }
+
+    fun obtenerTodas(): List<WindowConfig> = catalogo() + antiguas()
+
+    fun antiguas(): List<WindowConfig> {
         val list = mutableListOf<WindowConfig>()
 
         // IMAGEN 1: Configuraciones Básicas y Puertas L / T (1 a 9)

@@ -80,11 +80,40 @@ class VineuroDatabase private constructor(private val appContext: Context) :
             """.trimIndent(),
         )
 
+        crearTablaConfiguracion(db)
         migrarDesdeSharedPreferences(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // Versión 1: aún no hay migraciones de esquema.
+        // Versión 2: tabla "configuracion" (requisitos del documento, etc.)
+        if (oldVersion < 2) crearTablaConfiguracion(db)
+    }
+
+    private fun crearTablaConfiguracion(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS $T_CONFIGURACION (
+                clave               TEXT PRIMARY KEY NOT NULL,
+                data                TEXT NOT NULL,
+                fecha_actualizacion INTEGER NOT NULL
+            )
+            """.trimIndent(),
+        )
+    }
+
+    // ===================== CONFIGURACIÓN (clave -> JSON) =====================
+
+    fun leerConfiguracion(clave: String): String? =
+        readableDatabase.query(T_CONFIGURACION, arrayOf("data"), "clave = ?", arrayOf(clave), null, null, null)
+            .use { c -> if (c.moveToFirst()) c.getString(0) else null }
+
+    fun guardarConfiguracion(clave: String, json: String, fecha: Long) {
+        val cv = ContentValues().apply {
+            put("clave", clave)
+            put("data", json)
+            put("fecha_actualizacion", fecha)
+        }
+        writableDatabase.insertWithOnConflict(T_CONFIGURACION, null, cv, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
     // ===================== MIGRACIÓN DESDE EL ALMACENAMIENTO ANTERIOR =====================
@@ -179,12 +208,13 @@ class VineuroDatabase private constructor(private val appContext: Context) :
 
     companion object {
         private const val DB_NOMBRE = "vineuro.db"
-        private const val DB_VERSION = 1
+        private const val DB_VERSION = 2
 
         const val T_CLIENTES = "clientes"
         const val T_PEDIDOS = "pedidos"
         const val T_PRECIOS = "precios"
         const val T_PENDIENTES = "pendientes_sync"
+        const val T_CONFIGURACION = "configuracion"
 
         const val PRECIOS_ID = "general"
         const val PEND_CLIENTE_SUBIR = "cliente_subir"

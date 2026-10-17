@@ -65,6 +65,32 @@
         tools:text="Aleksander White : S1" />
 
     <CheckBox
+        android:id="@+id/cb_diagonales"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:layout_marginEnd="4dp"
+        android:checked="false"
+        android:text="diagonales"
+        android:textColor="#333333"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toStartOf="@id/cb_shadows"
+        app:layout_constraintTop_toBottomOf="@id/tv_header_cliente_nombre" />
+
+    <CheckBox
+        android:id="@+id/cb_shadows"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:layout_marginEnd="4dp"
+        android:checked="true"
+        android:text="shadows"
+        android:textColor="#333333"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toStartOf="@id/cb_param_comprobar"
+        app:layout_constraintTop_toBottomOf="@id/tv_header_cliente_nombre" />
+
+    <CheckBox
         android:id="@+id/cb_param_comprobar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -110,6 +136,62 @@
 
     </FrameLayout>
 
+    <!-- "param. comprobar": opciones del compás de la ventana activa (arriba a la derecha, flotando semitransparente sobre el dibujo) -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_parametros"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="4dp"
+        android:clickable="false"
+        android:focusable="false"
+        android:translationZ="4dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="#8CFFFFFF"
+        app:cardCornerRadius="10dp"
+        app:cardElevation="0dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/cb_param_comprobar"
+        app:strokeColor="#9961B813"
+        app:strokeWidth="1dp"
+        tools:visibility="visible">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="10dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="6dp">
+
+            <TextView
+                android:id="@+id/tv_parametros_titulo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxWidth="280dp"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:text="Parámetros"
+                android:textColor="#61B813"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_parametros"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:lineSpacingExtra="1dp"
+                android:maxWidth="280dp"
+                android:maxLines="12"
+                android:textColor="#1F2937"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
     <!-- Bottom Matrix Table Card -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_bottom_matrix"
@@ -129,6 +211,9 @@
             android:scrollbars="horizontal">
 
             <TableLayout
+                android:id="@+id/table_matriz"
+                android:clickable="true"
+                android:focusable="true"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="#E5E5E5"

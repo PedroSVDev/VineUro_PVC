@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="menu_screen_bg">#FF15191F</color>
+    <color name="keypad_bg">#FF2A2F38</color>
+    <color name="table_border">#FF444B57</color>
+    <color name="table_row_even">#FF1E232B</color>
+    <color name="table_row_odd">#FF171B21</color>
+    <color name="menu_penultimo_pedido">#7986CB</color>
+    <color name="menu_tile_bg">#FF1E232B</color>
+    <color name="menu_tile_stroke">#FF2F3640</color>
+    <color name="menu_tile_text">#FFE5E7EB</color>
+</resources>

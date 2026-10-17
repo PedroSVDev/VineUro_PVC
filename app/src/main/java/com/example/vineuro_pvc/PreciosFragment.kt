@@ -14,6 +14,7 @@ import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.widget.PopupMenu
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -21,6 +22,8 @@ import com.example.vineuro_pvc.data.FilaColor
 import com.example.vineuro_pvc.data.FilaSeleccion
 import com.example.vineuro_pvc.data.Precios
 import com.example.vineuro_pvc.data.PreciosRepository
+import com.example.vineuro_pvc.data.TipoCambioService
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.example.vineuro_pvc.databinding.FragmentPreciosBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -73,13 +76,17 @@ class PreciosFragment : Fragment() {
 
     private fun setupListeners() {
         binding.btnBack.setOnClickListener { findNavController().navigateUp() }
+        binding.btnActualizarTipoCambio.setOnClickListener { actualizarTipoCambio() }
+        binding.btnConvertir.setOnClickListener { elegirMonedaParaConvertir() }
+        binding.btnEjemplo.setOnClickListener { cargarPreciosDeEjemplo() }
+        mostrarInfoTipoCambioGuardado()
 
         // Botones de añadir
         binding.btnAddPlanes.setOnClickListener { addRow(binding.tablePlanes, listOf("new_finance", "0", "0", "0"), true, colorType = 3); onDatosCambiados() }
-        binding.btnAddVentanas.setOnClickListener { addRow(binding.tableVentanas, listOf("new_system") + List(9) { "0" }, true, colorType = 4); onDatosCambiados() }
+        binding.btnAddVentanas.setOnClickListener { addRow(binding.tableVentanas, listOf("new_system") + List(Precios.COLUMNAS_SISTEMA) { "0" }, true, colorType = 4); onDatosCambiados() }
         binding.btnAddCristal.setOnClickListener { addRow(binding.tableCristal, listOf("new_glass") + List(9) { "0" }, true, colorType = 5); onDatosCambiados() }
-        binding.btnAddUmbralExt.setOnClickListener { addRow(binding.tableUmbralExt, listOf("new_sill", "0", "0"), true, colorType = 6); onDatosCambiados() }
-        binding.btnAddUmbralInt.setOnClickListener { addRow(binding.tableUmbralInt, listOf("new_sill", "0", "0"), true, colorType = 7); onDatosCambiados() }
+        binding.btnAddUmbralExt.setOnClickListener { addRow(binding.tableUmbralExt, listOf("new_sill", "0", "0", "-"), true, colorType = 6); onDatosCambiados() }
+        binding.btnAddUmbralInt.setOnClickListener { addRow(binding.tableUmbralInt, listOf("new_sill", "0", "0", "-"), true, colorType = 7); onDatosCambiados() }
         binding.btnAddMuebles.setOnClickListener { addRow(binding.tableMuebles, listOf("new_furniture", "0", "0", "0"), true, colorType = 8); onDatosCambiados() }
         binding.btnAddExtras.setOnClickListener { addSelectionRow(binding.tableExtras, "new_extra", "0", 0, true); onDatosCambiados() }
         binding.btnAddEmpleos.setOnClickListener { addSelectionRow(binding.tableEmpleos, "new_job", "0", 0, true); onDatosCambiados() }
@@ -123,12 +130,13 @@ class PreciosFragment : Fragment() {
         val datos = datosDeTablas(p)
         tablas.forEachIndexed { i, (tabla, colorType, conEliminar) ->
             limpiarTabla(tabla)
-            datos[i].forEach { fila -> addRow(tabla, fila, conEliminar, colorType) }
+            datos[i].forEach { fila -> addRow(tabla, if ((i == 5 || i == 6) && fila.size == 3) fila + "-" else fila, conEliminar, colorType) }
         }
         limpiarTabla(binding.tableExtras)
         p.extras.forEach { addSelectionRow(binding.tableExtras, it.nombre, it.precio, it.unidad, true) }
         limpiarTabla(binding.tableEmpleos)
         p.empleos.forEach { addSelectionRow(binding.tableEmpleos, it.nombre, it.precio, it.unidad, true) }
+        actualizarEncabezadosMoneda(p.moneda.firstOrNull()?.getOrNull(0))
         limpiarTabla(binding.tableColors)
         p.colores.forEach {
             val color = runCatching { Color.parseColor(it.colorHex) }.getOrDefault(Color.WHITE)
@@ -232,6 +240,11 @@ class PreciosFragment : Fragment() {
                 setTextColor(Color.BLACK)
                 if (bgColor != Color.TRANSPARENT) setBackgroundColor(bgColor)
                 setOnClickListener {
+                    if (table === _binding?.tableMoneda && (index == 0 || index == 2)) {
+                        // "precios moneda" y "resultados moneda": desplegable Soles / Dólares / Euros
+                        mostrarSelectorMoneda(this, esMonedaDePrecios = index == 0)
+                        return@setOnClickListener
+                    }
                     // La primera columna es el nombre (texto); el resto son números salvo que contengan letras/símbolos
                     val esTexto = index == 0 || this.text.toString().toDoubleOrNull() == null
                     if (esTexto) showTextKeypad(this) else showNumericKeypad(this)
@@ -367,6 +380,181 @@ class PreciosFragment : Fragment() {
         table.addView(row)
     }
 
+    // ===================== MONEDA =====================
+
+    /** Desplegable de moneda (Soles / Dólares / Euros) para las celdas de la tabla "moneda". */
+    private fun mostrarSelectorMoneda(celda: TextView, esMonedaDePrecios: Boolean) {
+        val popup = PopupMenu(requireContext(), celda)
+        MONEDAS.forEachIndexed { i, (simbolo, nombre) -> popup.menu.add(0, i, i, "$simbolo  $nombre") }
+        popup.setOnMenuItemClickListener { item ->
+            val simbolo = MONEDAS[item.itemId].first
+            celda.text = simbolo
+            val fila = celda.parent as? TableRow
+            val valores = fila?.let { celdasConTag(it, TAG_VALOR).map { v -> (v as TextView).text.toString() } }
+            val monedaPrecios = valores?.getOrNull(0) ?: simbolo
+            val monedaResultado = valores?.getOrNull(2) ?: simbolo
+            val celdaTarifa = fila?.let { celdasConTag(it, TAG_VALOR).getOrNull(1) as? TextView }
+
+            if (monedaPrecios == monedaResultado) {
+                // Misma moneda: no hay conversión
+                celdaTarifa?.text = "1.00"
+            } else {
+                // Monedas distintas: traer el tipo de cambio oficial del BCRP
+                actualizarTipoCambio()
+            }
+            if (esMonedaDePrecios) actualizarEncabezadosMoneda(simbolo)
+            onDatosCambiados()
+            true
+        }
+        popup.show()
+    }
+
+    /**
+     * Consulta el tipo de cambio oficial del BCRP y llena la "tarifa" según las monedas elegidas.
+     * Si no hay Internet, usa el último tipo de cambio guardado.
+     */
+    private fun actualizarTipoCambio() {
+        val b = _binding ?: return
+        val fila = b.tableMoneda.getChildAt(1) as? TableRow ?: return
+        val celdas = celdasConTag(fila, TAG_VALOR).map { it as TextView }
+        if (celdas.size < 3) return
+        val desde = celdas[0].text.toString()
+        val hacia = celdas[2].text.toString()
+
+        if (desde == hacia) {
+            celdas[1].text = "1.00"
+            onDatosCambiados()
+            Toast.makeText(requireContext(), "Misma moneda en precios y resultados: tarifa 1.00", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val servicio = TipoCambioService(requireContext())
+        b.btnActualizarTipoCambio.isEnabled = false
+        b.tvInfoTipoCambio.text = "Consultando BCRP…"
+        viewLifecycleOwner.lifecycleScope.launch {
+            val resultado = servicio.obtener(forzar = true)
+            val tc = resultado.getOrNull() ?: servicio.guardado()
+            if (_binding == null) return@launch
+            binding.btnActualizarTipoCambio.isEnabled = true
+
+            if (tc == null) {
+                binding.tvInfoTipoCambio.text = "No se pudo consultar el BCRP"
+                Toast.makeText(requireContext(), resultado.exceptionOrNull()?.message ?: "Error", Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            val tarifa = tc.tarifa(desde, hacia)
+            if (tarifa == null) {
+                binding.tvInfoTipoCambio.text = "Elige S/, US$ o € en la tabla de moneda"
+                return@launch
+            }
+            celdas[1].text = String.format(Locale.US, "%.4f", tarifa)
+            onDatosCambiados()
+
+            val origen = if (resultado.isSuccess) "BCRP" else "último guardado (sin conexión)"
+            binding.tvInfoTipoCambio.text = String.format(
+                Locale.US, "1 %s = %.4f %s · T.C. %s del %s", desde, tarifa, hacia, origen, tc.fechaPara(desde, hacia),
+            )
+        }
+    }
+
+    // ===================== CONVERTIR PRECIOS =====================
+
+    /**
+     * Pasa TODOS los precios escritos a otra moneda con el tipo de cambio del BCRP (p. ej. los precios que estaban
+     * en soles a dólares). Cambiar solo el símbolo de "precios moneda" NO convierte los números.
+     */
+    private fun elegirMonedaParaConvertir() {
+        val popup = PopupMenu(requireContext(), binding.btnConvertir)
+        popup.menu.add(1, 100, 100, "Cargar precios de ejemplo")
+        MONEDAS.forEachIndexed { i, (simbolo, nombre) -> popup.menu.add(0, i, i, "Convertir a $simbolo  $nombre") }
+        popup.setOnMenuItemClickListener { item ->
+            if (item.itemId == 100) { cargarPreciosDeEjemplo(); return@setOnMenuItemClickListener true }
+            convertirPreciosA(MONEDAS[item.itemId].first)
+            true
+        }
+        popup.show()
+    }
+
+    /** Reemplaza las tablas por los precios de ejemplo (en US$). */
+    private fun cargarPreciosDeEjemplo() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("¿Cargar precios de ejemplo?")
+            .setMessage("Se reemplazarán TODAS las tablas por los precios de ejemplo (sistemas, vidrios, umbrales, muebles, extras, trabajos, mosquiteras, laminación y colores), en US$. Tus precios actuales se perderán.")
+            .setPositiveButton("CARGAR") { _, _ ->
+                mostrarPrecios(Precios.porDefecto())
+                onDatosCambiados()
+                Toast.makeText(requireContext(), "Precios de ejemplo cargados", Toast.LENGTH_LONG).show()
+            }
+            .setNegativeButton("CANCELAR", null)
+            .show()
+    }
+
+    private fun convertirPreciosA(destino: String) {
+        val actual = recolectarPrecios()
+        val origen = actual.moneda.firstOrNull()?.getOrNull(0)?.trim().orEmpty()
+        if (origen == destino) {
+            Toast.makeText(requireContext(), "Los precios ya están en $destino", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val servicio = TipoCambioService(requireContext())
+        viewLifecycleOwner.lifecycleScope.launch {
+            val resultado = servicio.obtener(forzar = true)
+            val tc = resultado.getOrNull() ?: servicio.guardado()
+            if (_binding == null) return@launch
+            val factor = tc?.tarifa(origen, destino)
+            if (tc == null || factor == null) {
+                Toast.makeText(requireContext(), "No hay tipo de cambio disponible (BCRP) para convertir", Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            val fecha = tc.fechaPara(origen, destino)
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("¿Convertir los precios a $destino?")
+                .setMessage(
+                    String.format(Locale.US, "Todos los precios de las tablas se multiplicarán por %.4f (1 %s = %.4f %s, T.C. BCRP del %s).\n\n" +
+                        "Los porcentajes (planes, impuesto) no cambian. Esta acción modifica tus precios.", factor, origen, factor, destino, fecha),
+                )
+                .setPositiveButton("CONVERTIR") { _, _ ->
+                    val convertido = actual.convertirPrecios(factor)
+                    val resultados = actual.moneda.firstOrNull()?.getOrNull(2) ?: destino
+                    val tarifa = tc.tarifa(destino, resultados) ?: 1.0
+                    val moneda = listOf(listOf(destino, String.format(Locale.US, "%.4f", tarifa), resultados))
+                    mostrarPrecios(convertido.copy(moneda = moneda))
+                    onDatosCambiados()
+                    Toast.makeText(requireContext(), "Precios convertidos a $destino", Toast.LENGTH_LONG).show()
+                }
+                .setNegativeButton("CANCELAR", null)
+                .show()
+        }
+    }
+
+    /** Al abrir la pantalla, muestra de qué fecha es el último tipo de cambio consultado. */
+    private fun mostrarInfoTipoCambioGuardado() {
+        val tc = TipoCambioService(requireContext()).guardado() ?: return
+        binding.tvInfoTipoCambio.text = String.format(
+            Locale.US, "Último T.C. BCRP: US$ %.3f · € %.3f (%s)", tc.usdPen, tc.eurPen, tc.fechaUsd,
+        )
+    }
+
+    /** Cambia "S/ por m", "US$ por m2", "€ por la ps"... en los encabezados según la moneda de los precios. */
+    private fun actualizarEncabezadosMoneda(simbolo: String?) {
+        val b = _binding ?: return
+        val nuevo = simbolo?.takeIf { it.isNotBlank() } ?: return
+        val patron = Regex("""(S/|US\$|€|\$)(?=\s)""")
+        fun recorrer(v: View) {
+            when (v) {
+                is TextView -> {
+                    val t = v.text.toString()
+                    if (patron.containsMatchIn(t)) v.text = patron.replace(t) { nuevo }
+                }
+                is ViewGroup -> for (i in 0 until v.childCount) recorrer(v.getChildAt(i))
+            }
+        }
+        listOf(
+            b.tableVentanas, b.tableCristal, b.tableUmbralExt, b.tableUmbralInt, b.tableMuebles,
+            b.tableExtras, b.tableEmpleos, b.tableMosquitera, b.tableLaminacion,
+        ).forEach { tabla -> if (tabla.childCount > 0) recorrer(tabla.getChildAt(0)) }
+    }
+
     private fun showNumericKeypad(target: TextView) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_custom_keypad_number, null)
         val dialog = AlertDialog.Builder(requireContext()).setView(dialogView).create()
@@ -462,56 +650,57 @@ class PreciosFragment : Fragment() {
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         
         val grid = dialogView.findViewById<GridLayout>(R.id.gridColors)
+        // Paleta de 49 colores (filas A..G, columnas 01..07), con sus valores exactos
         val colors = listOf(
             Color.parseColor("#f5f5f5"),
             Color.parseColor("#d0d1d5"),
-            Color.parseColor("#afb1b0"),
+            Color.parseColor("#afb1b1"),
             Color.parseColor("#999999"),
-            Color.parseColor("#7d7d7d"),
-            Color.parseColor("#5e5e5c"),
+            Color.parseColor("#7e7d7d"),
+            Color.parseColor("#5e5e5d"),
             Color.parseColor("#3e3e3e"),
-            Color.parseColor("#fff1ca"),
-            Color.parseColor("#feeebd"),
+            Color.parseColor("#fff1c9"),
+            Color.parseColor("#ffeebd"),
             Color.parseColor("#ffe3a4"),
-            Color.parseColor("#fed9af"),
+            Color.parseColor("#fed8ae"),
             Color.parseColor("#fccfae"),
-            Color.parseColor("#dbaf96"),
             Color.parseColor("#ddcd99"),
-            Color.parseColor("#efba8e"),
-            Color.parseColor("#dca680"),
+            Color.parseColor("#daaf96"),
+            Color.parseColor("#eeba8e"),
+            Color.parseColor("#dca780"),
             Color.parseColor("#dca15f"),
-            Color.parseColor("#bc926a"),
+            Color.parseColor("#bb9269"),
             Color.parseColor("#cf7749"),
-            Color.parseColor("#af642a"),
-            Color.parseColor("#785051"),
-            Color.parseColor("#fcf08c"),
-            Color.parseColor("#f6de64"),
-            Color.parseColor("#dfd580"),
-            Color.parseColor("#d0ae6f"),
-            Color.parseColor("#ae8448"),
+            Color.parseColor("#af652a"),
+            Color.parseColor("#785052"),
+            Color.parseColor("#fbf08c"),
+            Color.parseColor("#f6dd63"),
+            Color.parseColor("#dfd581"),
+            Color.parseColor("#cfae70"),
+            Color.parseColor("#af8448"),
             Color.parseColor("#7c5d49"),
-            Color.parseColor("#56513b"),
-            Color.parseColor("#b5cd8f"),
-            Color.parseColor("#acdc62"),
+            Color.parseColor("#55513a"),
+            Color.parseColor("#b5cd8e"),
+            Color.parseColor("#addc62"),
             Color.parseColor("#79d37b"),
-            Color.parseColor("#70a85f"),
-            Color.parseColor("#8a985b"),
-            Color.parseColor("#727b46"),
-            Color.parseColor("#477547"),
-            Color.parseColor("#ec928a"),
-            Color.parseColor("#f28171"),
+            Color.parseColor("#71a860"),
+            Color.parseColor("#8b985c"),
+            Color.parseColor("#727a45"),
+            Color.parseColor("#487548"),
+            Color.parseColor("#ed928a"),
+            Color.parseColor("#f38172"),
             Color.parseColor("#dd7171"),
-            Color.parseColor("#b9799c"),
-            Color.parseColor("#b55f5e"),
-            Color.parseColor("#855974"),
-            Color.parseColor("#a94140"),
-            Color.parseColor("#80c6be"),
-            Color.parseColor("#5eb0aa"),
-            Color.parseColor("#42a2ee"),
-            Color.parseColor("#5c91b0"),
-            Color.parseColor("#338fb4"),
-            Color.parseColor("#487fd2"),
-            Color.parseColor("#446daf")
+            Color.parseColor("#b8799c"),
+            Color.parseColor("#b65f5f"),
+            Color.parseColor("#855874"),
+            Color.parseColor("#aa4141"),
+            Color.parseColor("#81c5bf"),
+            Color.parseColor("#5eb1ab"),
+            Color.parseColor("#42a2ed"),
+            Color.parseColor("#5c92af"),
+            Color.parseColor("#338fb3"),
+            Color.parseColor("#487fd3"),
+            Color.parseColor("#436dae")
         )
         
         var selectedColor = (target.background as? ColorDrawable)?.color ?: Color.WHITE
@@ -568,6 +757,9 @@ class PreciosFragment : Fragment() {
     }
 
     companion object {
+        /** Monedas disponibles en el desplegable: símbolo y nombre. */
+        private val MONEDAS = listOf("S/" to "Soles", "US$" to "Dólares", "€" to "Euros")
+
         private const val TAG_VALOR = "valor"
         private const val TAG_UNIDAD = "unidad"
         private const val TAG_COLOR = "color"

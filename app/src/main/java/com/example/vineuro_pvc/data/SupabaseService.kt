@@ -214,6 +214,51 @@ class SupabaseService {
         }
     }
 
+    // ===================== CONFIGURACIÓN =====================
+    // Tabla "configuracion": una fila por clave (p. ej. "requisitos_documento") con el contenido en la columna jsonb "data".
+
+    /** Inserta o actualiza una configuración. Devuelve null si OK, o un mensaje de error. */
+    suspend fun upsertConfiguracion(clave: String, data: JSONObject, fecha: Long): String? = withContext(Dispatchers.IO) {
+        try {
+            val connection = abrirConexion("configuracion?on_conflict=id", "POST").apply {
+                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("Prefer", "resolution=merge-duplicates,return=minimal")
+                doOutput = true
+            }
+            val payload = JSONObject().apply {
+                put("id", clave)
+                put("data", data)
+                put("fecha_actualizacion", fecha)
+            }
+            connection.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
+            if (connection.responseCode in 200..299) null else leerError(connection)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            "Sin conexión: ${e.message}"
+        }
+    }
+
+    /** Lee una configuración: success(data) si existe, success(null) si no hay fila, failure si no hubo conexión. */
+    suspend fun fetchConfiguracion(clave: String): Result<JSONObject?> = withContext(Dispatchers.IO) {
+        try {
+            val connection = abrirConexion("configuracion?id=eq.$clave&select=*", "GET")
+            if (connection.responseCode !in 200..299) return@withContext Result.failure(Exception(leerError(connection)))
+            val array = JSONArray(connection.inputStream.bufferedReader().use { it.readText() })
+            if (array.length() == 0) return@withContext Result.success(null)
+            val fila = array.getJSONObject(0)
+            val data = when (val raw = fila.opt("data")) {
+                is JSONObject -> raw
+                is String -> JSONObject(raw)
+                else -> return@withContext Result.success(null)
+            }
+            data.put("fecha_actualizacion", fila.optLong("fecha_actualizacion", data.optLong("fecha_actualizacion", 0L)))
+            Result.success(data)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
     companion object {
         private const val PRECIOS_ID = "general"
     }

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="10dp"
+    app:cardBackgroundColor="#FFFFFF"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="1dp"
+    app:strokeColor="#E5E7EB"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="10dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvNumeroClausula"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:background="@drawable/bg_circle_solid"
+                android:backgroundTint="#1E3A5F"
+                android:gravity="center"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/etTituloClausula"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:background="@null"
+                android:hint="TÍTULO (ej. GARANTÍA)"
+                android:inputType="textCapCharacters"
+                android:maxLines="1"
+                android:textColor="#1E3A5F"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <ImageButton
+                android:id="@+id/btnSubirClausula"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Subir"
+                android:rotation="-90"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="#6B7280" />
+
+            <ImageButton
+                android:id="@+id/btnBajarClausula"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Bajar"
+                android:rotation="90"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="#6B7280" />
+
+            <ImageButton
+                android:id="@+id/btnEliminarClausula"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Eliminar"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_trash"
+                app:tint="#CE3B75" />
+        </LinearLayout>
+
+        <EditText
+            android:id="@+id/etTextoClausula"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_input_soft"
+            android:gravity="top"
+            android:hint="Texto de la cláusula…"
+            android:inputType="textCapSentences|textMultiLine"
+            android:minLines="2"
+            android:padding="10dp"
+            android:textColor="#1F2937"
+            android:textSize="13sp" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

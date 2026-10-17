@@ -24,8 +24,12 @@ class PedidoRepository(context: Context) {
 
     fun buscarPedidos(query: String): List<Pedido> {
         if (query.isBlank()) return obtenerPedidos()
-        val q = "%${query.trim()}%"
-        return consultar("codigo LIKE ? OR cliente_nombre LIKE ?", arrayOf(q, q))
+        // Se filtra en memoria porque dirección, ID de oferta y nota aún viven fuera de la tabla "pedidos"
+        val q = query.trim().lowercase()
+        return obtenerPedidos().filter {
+            it.codigo.lowercase().contains(q) || it.clienteNombre.lowercase().contains(q) ||
+                it.direccion.lowercase().contains(q) || it.idOferta.lowercase().contains(q) || it.nota.lowercase().contains(q)
+        }
     }
 
     private fun consultar(where: String?, args: Array<String>?, limite: String? = null): List<Pedido> {
@@ -55,13 +59,35 @@ class PedidoRepository(context: Context) {
             estado = c.getString(c.getColumnIndexOrThrow("estado")),
             fechaCreacion = c.getLong(c.getColumnIndexOrThrow("fecha_creacion")),
             fechaActualizacion = c.getLong(c.getColumnIndexOrThrow("fecha_actualizacion")),
-        )
+        ).conExtras()
+    }
+
+    // ---------- Datos del pedido que aún no tienen columna en la nube (dirección, ID de oferta, nota) ----------
+    // TODO(BD): cuando se agreguen las columnas direccion / id_oferta / nota en SQLite y Supabase, mover esto a
+    //           PedidoJson.pedidoToJson / pedidoFromJson y a VineuroDatabase.pedidoToValues, y borrar este bloque.
+
+    private fun claveExtras(id: String) = "pedido_extra:$id"
+
+    private fun Pedido.conExtras(): Pedido {
+        val json = db.leerConfiguracion(claveExtras(id)) ?: return this
+        return runCatching {
+            val o = org.json.JSONObject(json)
+            copy(direccion = o.optString("direccion"), idOferta = o.optString("id_oferta"), nota = o.optString("nota"))
+        }.getOrDefault(this)
+    }
+
+    private fun guardarExtras(p: Pedido) {
+        val o = org.json.JSONObject().apply {
+            put("direccion", p.direccion); put("id_oferta", p.idOferta); put("nota", p.nota)
+        }
+        db.guardarConfiguracion(claveExtras(p.id), o.toString(), System.currentTimeMillis())
     }
 
     private fun guardarLocal(pedido: Pedido) {
         db.writableDatabase.insertWithOnConflict(
             VineuroDatabase.T_PEDIDOS, null, VineuroDatabase.pedidoToValues(pedido), SQLiteDatabase.CONFLICT_REPLACE,
         )
+        guardarExtras(pedido)
     }
 
     // ---------- Local + Nube ----------
