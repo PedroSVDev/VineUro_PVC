@@ -20,8 +20,7 @@ data class Pedido(
     val estado: String = ESTADO_BORRADOR,
     val fechaCreacion: Long = System.currentTimeMillis(),
     val fechaActualizacion: Long = System.currentTimeMillis(),
-    // --- Datos del pedido (pantalla "pedido nuevo"). Por ahora se guardan SOLO en el teléfono
-    //     (tabla local "configuracion"); NO viajan a Supabase hasta que existan las columnas direccion / id_oferta / nota. ---
+    // --- Datos del pedido (pantalla "pedido nuevo"): columnas direccion / id_oferta / nota en SQLite y Supabase. ---
     /** Dirección de la obra o del cliente para este pedido . */
     val direccion: String = "",
     /** Identificador de la oferta . Es el N° de cotización por defecto. */
@@ -64,7 +63,13 @@ object PedidoJson {
         put("estado", p.estado)
         put("fecha_creacion", p.fechaCreacion)
         put("fecha_actualizacion", p.fechaActualizacion)
+        put("direccion", p.direccion)
+        put("id_oferta", p.idOferta)
+        put("nota", p.nota)
     }
+
+    /** Texto de una columna que en Supabase puede venir null (filas anteriores a las columnas nuevas). */
+    private fun texto(o: JSONObject, clave: String): String = if (o.isNull(clave)) "" else o.optString(clave)
 
     fun pedidoFromJson(o: JSONObject): Pedido {
         // Supabase puede devolver jsonb como array u (en algunos casos) como string
@@ -82,6 +87,9 @@ object PedidoJson {
             estado = o.optString("estado", Pedido.ESTADO_BORRADOR),
             fechaCreacion = o.optLong("fecha_creacion", System.currentTimeMillis()),
             fechaActualizacion = o.optLong("fecha_actualizacion", System.currentTimeMillis()),
+            direccion = texto(o, "direccion"),
+            idOferta = texto(o, "id_oferta"),
+            nota = texto(o, "nota"),
         )
     }
 

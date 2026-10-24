@@ -28,6 +28,12 @@ class TerminosRepository(context: Context) {
         return plantilla()
     }
 
+    /** Sincroniza las cotizaciones de los pedidos indicados y el correlativo (lo usa la sincronización automática). */
+    suspend fun sincronizarTodo(pedidoIds: Collection<String>) {
+        pedidoIds.forEach { sincronizarClave(CotizacionPedido.clave(it)) }
+        sincronizarClave(CLAVE_CORRELATIVO)
+    }
+
     // ===================== COTIZACIÓN DE UN PEDIDO =====================
 
     fun cotizacion(pedidoId: String): CotizacionPedido? =

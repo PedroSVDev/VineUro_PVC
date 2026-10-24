@@ -20,11 +20,14 @@ class PedidoRepository(context: Context) {
 
     fun obtenerPedido(id: String): Pedido? = consultar("id = ?", arrayOf(id)).firstOrNull()
 
+    /** Pedidos de un cliente (el más reciente primero). */
+    fun obtenerPedidosDeCliente(clienteId: String): List<Pedido> = consultar("cliente_id = ?", arrayOf(clienteId))
+
     fun obtenerUltimoPedido(): Pedido? = consultar(null, null, limite = "1").firstOrNull()
 
     fun buscarPedidos(query: String): List<Pedido> {
         if (query.isBlank()) return obtenerPedidos()
-        // Se filtra en memoria porque dirección, ID de oferta y nota aún viven fuera de la tabla "pedidos"
+        // Se filtra en memoria porque los ítems (JSON) y los campos de texto se comparan juntos
         val q = query.trim().lowercase()
         return obtenerPedidos().filter {
             it.codigo.lowercase().contains(q) || it.clienteNombre.lowercase().contains(q) ||
@@ -59,35 +62,16 @@ class PedidoRepository(context: Context) {
             estado = c.getString(c.getColumnIndexOrThrow("estado")),
             fechaCreacion = c.getLong(c.getColumnIndexOrThrow("fecha_creacion")),
             fechaActualizacion = c.getLong(c.getColumnIndexOrThrow("fecha_actualizacion")),
-        ).conExtras()
-    }
-
-    // ---------- Datos del pedido que aún no tienen columna en la nube (dirección, ID de oferta, nota) ----------
-    // TODO(BD): cuando se agreguen las columnas direccion / id_oferta / nota en SQLite y Supabase, mover esto a
-    //           PedidoJson.pedidoToJson / pedidoFromJson y a VineuroDatabase.pedidoToValues, y borrar este bloque.
-
-    private fun claveExtras(id: String) = "pedido_extra:$id"
-
-    private fun Pedido.conExtras(): Pedido {
-        val json = db.leerConfiguracion(claveExtras(id)) ?: return this
-        return runCatching {
-            val o = org.json.JSONObject(json)
-            copy(direccion = o.optString("direccion"), idOferta = o.optString("id_oferta"), nota = o.optString("nota"))
-        }.getOrDefault(this)
-    }
-
-    private fun guardarExtras(p: Pedido) {
-        val o = org.json.JSONObject().apply {
-            put("direccion", p.direccion); put("id_oferta", p.idOferta); put("nota", p.nota)
-        }
-        db.guardarConfiguracion(claveExtras(p.id), o.toString(), System.currentTimeMillis())
+            direccion = c.getString(c.getColumnIndexOrThrow("direccion")) ?: "",
+            idOferta = c.getString(c.getColumnIndexOrThrow("id_oferta")) ?: "",
+            nota = c.getString(c.getColumnIndexOrThrow("nota")) ?: "",
+        )
     }
 
     private fun guardarLocal(pedido: Pedido) {
         db.writableDatabase.insertWithOnConflict(
             VineuroDatabase.T_PEDIDOS, null, VineuroDatabase.pedidoToValues(pedido), SQLiteDatabase.CONFLICT_REPLACE,
         )
-        guardarExtras(pedido)
     }
 
     // ---------- Local + Nube ----------
@@ -104,7 +88,12 @@ class PedidoRepository(context: Context) {
     /** Elimina local y en la nube. Devuelve null si se eliminó correctamente, o el mensaje de error de la nube. */
     suspend fun eliminarPedido(id: String): String? {
         db.writableDatabase.delete(VineuroDatabase.T_PEDIDOS, "id = ?", arrayOf(id))
-        return supabaseService.deletePedido(id)
+        db.borrarConfiguracion(CotizacionPedido.clave(id))
+        // Se anota como pendiente: si no hay Internet, se borrará de la nube al sincronizar (y no reaparece)
+        db.marcarPendiente(VineuroDatabase.PEND_PEDIDO_ELIMINAR, id, true)
+        val error = supabaseService.deletePedido(id)
+        if (error == null) db.marcarPendiente(VineuroDatabase.PEND_PEDIDO_ELIMINAR, id, false)
+        return error
     }
 
     /**
@@ -112,13 +101,21 @@ class PedidoRepository(context: Context) {
      * Los pedidos que solo existen en el teléfono, o son más recientes, se suben a la nube.
      */
     suspend fun sincronizar(): List<Pedido> {
-        val nube = supabaseService.fetchPedidos() ?: return obtenerPedidos()
+        // 1) Reintenta los borrados que quedaron pendientes por falta de Internet
+        db.pendientes(VineuroDatabase.PEND_PEDIDO_ELIMINAR).forEach { id ->
+            if (supabaseService.deletePedido(id) == null) db.marcarPendiente(VineuroDatabase.PEND_PEDIDO_ELIMINAR, id, false)
+        }
+        val eliminados = db.pendientes(VineuroDatabase.PEND_PEDIDO_ELIMINAR)
+
+        val nube = supabaseService.fetchPedidos()?.filter { it.id !in eliminados } ?: return obtenerPedidos()
         val locales = obtenerPedidos().associateBy { it.id }
 
         // Subir lo que el teléfono tiene más reciente (o que la nube no tiene)
         for (local in locales.values) {
             val remoto = nube.find { it.id == local.id }
-            if (remoto == null || local.fechaActualizacion > remoto.fechaActualizacion) {
+            val extrasSinSubir = remoto != null && remoto.direccion.isEmpty() && remoto.idOferta.isEmpty() && remoto.nota.isEmpty() &&
+                (local.direccion.isNotEmpty() || local.idOferta.isNotEmpty() || local.nota.isNotEmpty())
+            if (remoto == null || local.fechaActualizacion > remoto.fechaActualizacion || extrasSinSubir) {
                 supabaseService.upsertPedido(local)
             }
         }

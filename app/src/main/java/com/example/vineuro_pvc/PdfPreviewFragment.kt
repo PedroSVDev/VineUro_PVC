@@ -28,6 +28,16 @@ class PdfPreviewFragment : Fragment() {
     private var _binding: FragmentPdfPreviewBinding? = null
     private val binding get() = _binding!!
 
+    private val selectorLogo = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri ->
+        if (uri == null || _binding == null) return@registerForActivityResult
+        if (com.example.vineuro_pvc.data.LogoEmpresa.guardar(requireContext(), uri)) {
+            mostrarLogoBanner()
+            binding.pdfSheetView.recargarLogo()
+        } else {
+            android.widget.Toast.makeText(requireContext(), "No se pudo leer la imagen", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private var currentPageIndex = 0
     private var totalPages = 1
 
@@ -51,7 +61,14 @@ class PdfPreviewFragment : Fragment() {
         renderCurrentPage()
     }
 
+    private fun mostrarLogoBanner() {
+        binding.imgLogoBanner.setImageBitmap(com.example.vineuro_pvc.data.LogoEmpresa.cargar(requireContext()))
+    }
+
     private fun setupListeners() {
+        mostrarLogoBanner()
+        binding.imgLogoBanner.setOnClickListener { selectorLogo.launch("image/*") }
+
         binding.btnCerca.setOnClickListener {
             findNavController().navigateUp()
         }

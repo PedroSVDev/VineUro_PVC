@@ -162,17 +162,54 @@
                     app:strokeColor="#2196F3"
                     app:strokeWidth="1.5dp" />
 
-                <!-- Continuar Button -->
+                <!-- Estado de la IA (discreto): cambia según clave, Internet y cuota -->
+                <TextView
+                    android:id="@+id/tv_estado_ia"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:textColor="#6B7280"
+                    android:textSize="12sp" />
+
+                <!-- Último pedido del cliente (solo si ya tiene pedidos) -->
+                <TextView
+                    android:id="@+id/tv_ultimo_pedido"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:textColor="#6B7280"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+
+                <!-- Botón principal: NUEVO PEDIDO (cliente sin pedidos) o CONTINUAR ÚLTIMO PEDIDO -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_continuar_pedido"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="8dp"
                     android:backgroundTint="@color/menu_nuevo_orden"
-                    android:text="@string/btn_continuar_pedido"
+                    android:text="@string/btn_nuevo_pedido"
                     android:textColor="@color/white"
                     android:textSize="16sp"
                     android:textStyle="bold"
+                    app:cornerRadius="8dp" />
+
+                <!-- Segundo botón, solo si el cliente ya tiene pedidos -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_nuevo_pedido"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/btn_nuevo_pedido"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:visibility="gone"
                     app:cornerRadius="8dp" />
 
             </LinearLayout>

@@ -11,7 +11,6 @@ import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.EditText
 import android.widget.Toast
-import androidx.appcompat.widget.PopupMenu
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -195,11 +194,6 @@ class CalculoPedidoFragment : Fragment() {
         // 0. Botón azul circular superior izquierdo (Hamburguesa): Abre el menú flotante
         binding.btnTopLeftMenu.setOnClickListener {
             mostrarMenuOpcionesFlotante()
-        }
-
-        // 6. Botón de menú superior derecho con opciones
-        binding.btnHeaderMenu.setOnClickListener { viewAnchor ->
-            mostrarMenuOpcionesSuperiores(viewAnchor)
         }
 
         val pedidoCargado = pedidoActual
@@ -420,58 +414,6 @@ class CalculoPedidoFragment : Fragment() {
         dialog.show()
     }
 
-    private fun mostrarMenuOpcionesSuperiores(anchorView: View) {
-        val popup = PopupMenu(requireContext(), anchorView)
-        popup.menu.apply {
-            add(0, 1, 0, "📄 Ver Detalles del Cliente / Pedido")
-            add(0, 2, 1, "💾 Guardar Cambios en la Nube")
-            add(0, 3, 2, "📐 PDF interno de costos y margen")
-            add(0, 4, 3, "🔄 Reiniciar Orden Completa")
-            add(0, 5, 4, "⚠️ Revisar precios del pedido")
-            add(0, 6, 5, "📑 Duplicar ventana activa")
-        }
-
-        popup.setOnMenuItemClickListener { menuItem ->
-            when (menuItem.itemId) {
-                1 -> {
-                    mostrarDetallesPedido()
-                    true
-                }
-                2 -> {
-                    guardarPedido(mostrarResultado = true)
-                    true
-                }
-                3 -> {
-                    generarPdfDetalles()
-                    true
-                }
-                4 -> {
-                    MaterialAlertDialogBuilder(requireContext())
-                        .setTitle("¿Reiniciar Orden?")
-                        .setMessage("¿Desea eliminar todas las ventanas y vaciar este pedido?")
-                        .setIcon(android.R.drawable.ic_menu_delete)
-                        .setPositiveButton("VACIAR ORDEN") { dialog, _ ->
-                            inicializarOrdenVacia()
-                            dialog.dismiss()
-                        }
-                        .setNegativeButton("CANCELAR") { dialog, _ -> dialog.dismiss() }
-                        .show()
-                    true
-                }
-                5 -> {
-                    mostrarRevisionPrecios()
-                    true
-                }
-                6 -> {
-                    duplicarVentanaActiva()
-                    true
-                }
-                else -> false
-            }
-        }
-        popup.show()
-    }
-
     private fun inicializarConfiguraciones() {
         listaConfiguraciones.clear()
         listaConfiguraciones.addAll(WindowConfigCatalog.catalogo())
@@ -486,32 +428,29 @@ class CalculoPedidoFragment : Fragment() {
     }
 
     /**
-     * Una ventana nueva hereda sistema, vidrio, color y plan de la anterior; si es la primera, toma la primera fila
-     * de Precios. Así no se cotiza todo en 0 por no haber elegido nada (se puede cambiar o poner "no utilice").
+     * Una ventana nueva NO hereda nada de la anterior: parte de la primera fila de Precios (sistema y vidrio), sin color
+     * ni plan, para no cotizar todo en 0 por no haber elegido nada. Cada ventana se configura por separado
+     * (para repetir una ventana existe "duplicar", que sí copia todo).
      */
     private fun aplicarOpcionesPorDefecto(item: OrderItem) {
         val op = item.opciones
-        val previa = itemsOrden.lastOrNull()?.opciones
-        if (op.sistemaVentana == null) op.sistemaVentana = previa?.sistemaVentana ?: precios.nombres(precios.ventanas).firstOrNull()
-        if (op.tipoCristal == null) op.tipoCristal = previa?.tipoCristal ?: precios.nombres(precios.cristal).firstOrNull()
-        if (op.color == null) op.color = previa?.color
-        if (op.planFinanciacion == null) op.planFinanciacion = previa?.planFinanciacion
+        if (op.sistemaVentana == null) op.sistemaVentana = precios.nombres(precios.ventanas).firstOrNull()
+        if (op.tipoCristal == null) op.tipoCristal = precios.nombres(precios.cristal).firstOrNull()
     }
 
     private fun inicializarOrdenSugerida() {
         itemsOrden.clear()
-        // 2 paneles verticales (werAB)
-        val configSugerida = listaConfiguraciones.find { it.modelo == "werAB" } ?: listaConfiguraciones.first()
-
-        val window1 = OrderItem.create(
-            index = 1,
-            config = configSugerida,
-            colorBgHex = "#42A5F5",
-        )
-
-        // Asignar apertura "Desliz. Der." y "Desliz. Izq." a los paneles por defecto como sugerencia
-        window1.paneMechanisms[0] = "1" // Desliz Der
-        window1.paneMechanisms[1] = "3" // Desliz Izq
+        // Propuesta aceptada en el asesor de diseño; si no hay, una ventana de 2 paneles corredizos
+        val propuesta = com.example.vineuro_pvc.data.SugerenciaDiseno.tomar()
+        val window1 = if (propuesta != null) {
+            com.example.vineuro_pvc.data.AsesorDiseno.aOrderItem(propuesta, 1).also { it.colorBgHex = "#42A5F5" }
+        } else {
+            val configSugerida = listaConfiguraciones.find { it.modelo == "werAB" } ?: listaConfiguraciones.first()
+            OrderItem.create(index = 1, config = configSugerida, colorBgHex = "#42A5F5").also {
+                it.paneMechanisms[0] = "1" // Desliz Der
+                it.paneMechanisms[1] = "3" // Desliz Izq
+            }
+        }
 
         aplicarOpcionesPorDefecto(window1)
         itemsOrden.add(window1)
@@ -519,8 +458,9 @@ class CalculoPedidoFragment : Fragment() {
 
         renderizarPestanasInferiores()
         cargarItemActivoEnCanvas()
-        
-        Toast.makeText(requireContext(), "Sugerencia de IA aplicada correctamente ✨", Toast.LENGTH_LONG).show()
+
+        val mensaje = if (propuesta != null) "Diseño del asesor aplicado: puedes modificarlo aquí" else "Diseño sugerido aplicado"
+        Toast.makeText(requireContext(), mensaje, Toast.LENGTH_LONG).show()
     }
 
 
@@ -950,96 +890,6 @@ class CalculoPedidoFragment : Fragment() {
 
     private fun simboloMoneda(): String =
         precios.moneda.firstOrNull()?.getOrNull(2)?.takeIf { it.isNotBlank() } ?: "US$"
-
-    /** "Detalles del pedido": datos editables (dirección, ID de oferta, nota) + resumen de importes. */
-    private fun mostrarDetallesPedido() {
-        val ctx = requireContext()
-        val fmt = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
-        val resultados = itemsOrden.map { CalculadoraPrecios.calcular(it, precios) }
-        val r = CalculadoraPrecios.resumenPedido(resultados)
-        val s = simboloMoneda()
-        val area = itemsOrden.sumOf { it.areaM2 * maxOf(1, it.opciones.cantidad) }
-        val p = pedidoActual
-        val resumen = buildString {
-            append("Cliente: $nombreClienteActual\n")
-            append("Pedido: ${p?.codigo ?: "(aún sin guardar)"}\n")
-            p?.let { append("Creado: ${fmt.format(java.util.Date(it.fechaCreacion))}  ·  Modificado: ${fmt.format(java.util.Date(it.fechaActualizacion))}\n") }
-            append("Ventanas: ${itemsOrden.size}  ·  Unidades: ${itemsOrden.sumOf { maxOf(1, it.opciones.cantidad) }}  ·  ${Unidades.areaM2(area)}\n")
-            append("Neto: ${String.format(java.util.Locale.US, "%.2f", r.neto)} $s  ·  Impuesto (${String.format(java.util.Locale.US, "%.2f", r.impuestoPct)} %): ${String.format(java.util.Locale.US, "%.2f", r.impuesto)} $s\n")
-            append("TOTAL: ${String.format(java.util.Locale.US, "%.2f", r.total)} $s")
-        }
-        val dp = ctx.resources.displayMetrics.density
-        fun campo(titulo: String, valor: String, multilinea: Boolean) = android.widget.EditText(ctx).apply {
-            hint = titulo
-            setText(valor)
-            inputType = if (multilinea) android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
-            else android.text.InputType.TYPE_CLASS_TEXT
-            if (multilinea) minLines = 2
-        }
-        val etDir = campo("Dirección", direccionPedido, true)
-        val etOferta = campo("ID de la oferta", idOfertaPedido, false)
-        val etNota = campo("Nota del pedido", notaPedido, true)
-        val caja = android.widget.LinearLayout(ctx).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            val m = (20 * dp).toInt(); setPadding(m, (8 * dp).toInt(), m, 0)
-            addView(android.widget.TextView(ctx).apply { text = resumen; textSize = 13f })
-            addView(etDir); addView(etOferta); addView(etNota)
-        }
-        MaterialAlertDialogBuilder(ctx).setTitle("Detalles del pedido").setView(android.widget.ScrollView(ctx).apply { addView(caja) })
-            .setPositiveButton("GUARDAR") { _, _ ->
-                direccionPedido = etDir.text.toString().trim()
-                idOfertaPedido = etOferta.text.toString().trim()
-                notaPedido = etNota.text.toString().trim()
-                refrescarEncabezadoCliente()
-                guardarPedido(mostrarResultado = false)
-                Toast.makeText(ctx, "Datos del pedido guardados", Toast.LENGTH_SHORT).show()
-            }
-            .setNegativeButton("CERRAR", null).show()
-    }
-
-    /** Lista los precios que faltan y podrían hacer que el pedido salga más barato de lo real. */
-    private fun mostrarRevisionPrecios() {
-        guardarEstadoItemActivo()
-        val avisos = itemsOrden.flatMap { it -> CalculadoraPrecios.advertencias(it, precios).map { m -> "Ventana ${it.index}: $m" } }
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(if (avisos.isEmpty()) "Precios completos" else "Revisar precios (${avisos.size})")
-            .setMessage(if (avisos.isEmpty()) "No se detectaron precios faltantes para las opciones elegidas." else avisos.joinToString("\n\n• ", prefix = "• "))
-            .setPositiveButton("CERRAR", null).show()
-    }
-
-    private fun duplicarVentanaActiva() {
-        if (itemsOrden.isEmpty()) {
-            Toast.makeText(requireContext(), "No hay ventana para duplicar", Toast.LENGTH_SHORT).show()
-            return
-        }
-        guardarEstadoItemActivo()
-        val copia = itemsOrden[activeItemIndex].copiar(itemsOrden.size + 1)
-        itemsOrden.add(copia)
-        activeItemIndex = itemsOrden.size - 1
-        renderizarPestanasInferiores()
-        cargarItemActivoEnCanvas()
-        Toast.makeText(requireContext(), "Ventana duplicada como N° ${copia.index}", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun generarPdfDetalles() {
-        if (itemsOrden.isEmpty()) {
-            Toast.makeText(requireContext(), "Agrega al menos una ventana al pedido", Toast.LENGTH_SHORT).show()
-            return
-        }
-        guardarEstadoItemActivo()
-        guardarPedido(mostrarResultado = false)
-        val ctx = requireContext()
-        val archivo = try {
-            val fecha = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date())
-            com.example.vineuro_pvc.views.DetallePedidoPdf.crear(
-                ctx, pedidoActual?.codigo ?: "", nombreClienteActual, fecha, itemsOrden.toList(), precios,
-            )
-        } catch (e: Exception) {
-            Toast.makeText(ctx, "No se pudo crear el PDF: ${e.message}", Toast.LENGTH_LONG).show()
-            return
-        }
-        com.example.vineuro_pvc.views.PdfAcciones.mostrarDialogo(ctx, archivo, "Detalle del pedido ${pedidoActual?.codigo ?: ""}")
-    }
 
     private fun limpiarTablaMatriz() {
         _binding?.cardParametros?.visibility = View.GONE

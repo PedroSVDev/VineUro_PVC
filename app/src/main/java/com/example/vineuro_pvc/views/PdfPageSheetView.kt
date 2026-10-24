@@ -53,7 +53,12 @@ class PdfPageSheetView @JvmOverloads constructor(
     private val windowPreviewHelper = WindowPreviewView(context)
 
     /** Logo de la empresa (se carga una sola vez). */
-    private val logoBitmap: android.graphics.Bitmap by lazy { com.example.vineuro_pvc.data.LogoEmpresa.cargar(context) }
+    private var logoCache: android.graphics.Bitmap? = null
+    private val logoBitmap: android.graphics.Bitmap
+        get() = logoCache ?: com.example.vineuro_pvc.data.LogoEmpresa.cargar(context).also { logoCache = it }
+
+    /** Vuelve a leer el logo (por si se cambió) y redibuja la hoja. */
+    fun recargarLogo() { logoCache = null; invalidate() }
     private val logoPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
     private val bgPaint = Paint().apply { color = Color.WHITE; style = Paint.Style.FILL }

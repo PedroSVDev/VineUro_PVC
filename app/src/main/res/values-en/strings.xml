@@ -43,6 +43,9 @@
     <string name="label_nota">Note / Remark</string>
     <string name="hint_nota">Add a note about the customer or the order…</string>
     <string name="btn_continuar_pedido">CONTINUE ORDER</string>
+    <string name="btn_nuevo_pedido">NEW ORDER</string>
+    <string name="btn_continuar_ultimo_pedido">CONTINUE LAST ORDER</string>
+    <string name="label_ultimo_pedido">Last order: %1$s · %2$d windows · %3$s</string>
     <string name="error_direccion_requerida">Please enter the address</string>
 
     <string name="title_calculo_pedido">Window design and calculation</string>

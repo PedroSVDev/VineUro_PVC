@@ -49,6 +49,9 @@
     <string name="label_nota">Nota / Observación</string>
     <string name="hint_nota">Agregar alguna nota sobre el cliente o pedido…</string>
     <string name="btn_continuar_pedido">CONTINUAR PEDIDO</string>
+    <string name="btn_nuevo_pedido">NUEVO PEDIDO</string>
+    <string name="btn_continuar_ultimo_pedido">CONTINUAR ÚLTIMO PEDIDO</string>
+    <string name="label_ultimo_pedido">Último pedido: %1$s · %2$d ventanas · %3$s</string>
     <string name="error_direccion_requerida">Por favor ingrese la dirección</string>
 
     <!-- Cálculo Pedido / Matriz -->
