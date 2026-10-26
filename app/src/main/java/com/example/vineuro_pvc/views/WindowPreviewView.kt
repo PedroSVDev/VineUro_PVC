@@ -86,6 +86,13 @@ class WindowPreviewView @JvmOverloads constructor(
         strokeWidth = dpToPx(0.5f)
     }
 
+    /**
+     * Modo impresión (PDF y su vista previa): las cotas van como texto limpio, sin recuadros (solo el número sobre
+     * un fondo blanco que corta la línea de cota), con la letra de los PDF, y sin elementos del editor
+     * (por ejemplo la manija azul para arrastrar).
+     */
+    var modoImpresion: Boolean = false
+
     /** "shadows": sombras suaves en perfiles y vidrio (marcado por defecto). */
     var showShadows: Boolean = true
         set(value) { field = value; invalidate() }
@@ -549,7 +556,9 @@ class WindowPreviewView @JvmOverloads constructor(
         bounds: RectF,
         item: OrderItem,
         showTechnicalDetails: Boolean = true,
-        isCompactMode: Boolean = false
+        isCompactMode: Boolean = false,
+        /** Color del perfil a usar; null = el color elegido en las opciones de la ventana (o blanco). */
+        colorMarco: Int? = null,
     ) {
         val savedConfig = this.config
         val savedTechMode = this.showTechnicalDetails
@@ -566,7 +575,7 @@ class WindowPreviewView @JvmOverloads constructor(
         val savedFrameColor = framePaint.color
 
         try {
-            framePaint.color = colorOBlanco(com.example.vineuro_pvc.data.ColoresPerfil.hexDe(item.opciones.color))
+            framePaint.color = colorMarco ?: colorOBlanco(com.example.vineuro_pvc.data.ColoresPerfil.hexDe(item.opciones.color))
             this.config = item.config
             this.showTechnicalDetails = showTechnicalDetails
             this.sectionHeights = item.sectionHeights.clone()
@@ -1528,8 +1537,8 @@ class WindowPreviewView @JvmOverloads constructor(
             isCompactMode = isCompactMode
         )
 
-        // Manija azul inferior (solo en modo interactivo del editor)
-        if (!isCompactMode) {
+        // Manija azul inferior (solo en modo interactivo del editor; nunca al imprimir)
+        if (!isCompactMode && !modoImpresion) {
             val handleRadius = dpToPx(6f)
             canvas.drawCircle(lineOuterX, rect.bottom + dpToPx(8f), handleRadius, handlePaint)
             canvas.drawCircle(lineOuterX, rect.bottom + dpToPx(8f), handleRadius, handleStrokePaint)
@@ -1635,6 +1644,11 @@ class WindowPreviewView @JvmOverloads constructor(
         val badgeH = if (isCompactMode) dpToPx(8f) else dpToPx(13f)
         val textSizeDp = if (isCompactMode) 6.8f else 11f
 
+        if (modoImpresion) {
+            dibujarCotaImpresion(canvas, cX, cY, text, textSizeDp)
+            return
+        }
+
         val badgeRect = RectF(cX - badgeW / 2f, cY - badgeH / 2f, cX + badgeW / 2f, cY + badgeH / 2f)
 
         val borderP = if (showTechnicalDetails || isCompactMode) {
@@ -1653,5 +1667,28 @@ class WindowPreviewView @JvmOverloads constructor(
         canvas.drawText(text, cX, cY + dpToPx(if (isCompactMode) 2.5f else 4f), textP)
 
         badgeAreas.add(BadgeArea(badgeRect, type, index, currentValue))
+    }
+
+    private val cotaFondoPaint = Paint().apply { color = Color.WHITE; style = Paint.Style.FILL }
+    private val cotaTextoPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#222222")
+        textAlign = Paint.Align.CENTER
+    }
+
+    /** Cota para imprimir: solo el número, centrado sobre un fondo blanco del tamaño del texto que corta la línea. */
+    private fun dibujarCotaImpresion(canvas: Canvas, cX: Float, cY: Float, text: String, textSizeDp: Float) {
+        cotaTextoPaint.typeface = PdfFuentes.tipo(false)
+        cotaTextoPaint.textSize = dpToPx(textSizeDp)
+        val fm = cotaTextoPaint.fontMetrics
+        val anchoTxt = cotaTextoPaint.measureText(text)
+        val altoTxt = fm.descent - fm.ascent
+        val holgura = dpToPx(1.2f)
+        canvas.drawRect(
+            cX - anchoTxt / 2f - holgura, cY - altoTxt / 2f,
+            cX + anchoTxt / 2f + holgura, cY + altoTxt / 2f,
+            cotaFondoPaint,
+        )
+        // Línea base para que el texto quede centrado verticalmente en la línea de cota
+        canvas.drawText(text, cX, cY - (fm.ascent + fm.descent) / 2f, cotaTextoPaint)
     }
 }
