@@ -56,6 +56,11 @@ class CalculoPedidoFragment : Fragment() {
     private var idOfertaPedido = ""
     private var notaPedido = ""
     private var pedidoActual: Pedido? = null      // null = pedido nuevo aún no guardado
+
+    // Tiempo de trabajo en esta cotización (indicador TPC del tablero BI)
+    private val cronometro = com.example.vineuro_pvc.data.CronometroCotizacion()
+    private var seguimientoIniciado = false
+    private var tiempoDesdeInicio = false
     private var clienteIdActual: String = ""
     private var nombreClienteActual: String = ""
 
@@ -109,6 +114,8 @@ class CalculoPedidoFragment : Fragment() {
         // Si la vista se recrea (p. ej. al volver del PDF) se recarga el pedido ya autoguardado
         val pedidoId = pedidoActual?.id ?: arguments?.getString("pedido_id")
         pedidoActual = pedidoId?.let { pedidoRepository.obtenerPedido(it) } ?: pedidoActual
+        // El tiempo solo se mide completo en los pedidos que nacen con el cronómetro funcionando (pedido nuevo)
+        if (!seguimientoIniciado) { tiempoDesdeInicio = pedidoId == null; seguimientoIniciado = true }
         pedidoActual?.let { direccionPedido = it.direccion; idOfertaPedido = it.idOferta; notaPedido = it.nota }
 
         val clienteId = pedidoActual?.clienteId ?: arguments?.getString("cliente_id") ?: ""
@@ -306,10 +313,27 @@ class CalculoPedidoFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        cronometro.iniciar()
+    }
+
     override fun onPause() {
         super.onPause()
         // Autoguardado al salir de la pantalla para no perder el trabajo
         if (_binding != null) guardarPedido(mostrarResultado = false)
+        registrarTiempoActivo()
+    }
+
+    /** Guarda el tiempo trabajado en este pedido; si el pedido aún no se guardó, queda pendiente en el cronómetro. */
+    private fun registrarTiempoActivo() {
+        cronometro.pausar()
+        val id = pedidoActual?.id ?: return
+        val ms = cronometro.retirar()
+        if (ms <= 0L) return
+        val repo = com.example.vineuro_pvc.data.TerminosRepository(requireContext().applicationContext)
+        val desdeInicio = tiempoDesdeInicio
+        lifecycleScope.launch { repo.sumarTiempoActivo(id, ms, desdeInicio) }
     }
 
     private fun mostrarMenuOpcionesFlotante() {

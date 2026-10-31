@@ -7,6 +7,7 @@
     <string name="menu_nuevo_orden">NEW ORDER</string>
     <string name="menu_ultimo_pedido">LAST ORDER</string>
     <string name="menu_pedidos">ORDERS</string>
+    <string name="menu_bi">MANAGEMENT INDICATORS</string>
     <string name="menu_penultimo_pedido">PRE-LAST ORDER</string>
     <string name="menu_precios">PRICES</string>
     <string name="menu_comments">COMMENTS</string>
@@ -72,4 +73,18 @@
     <string name="app_brand_tagline">European PVC windows · Quoting app</string>
     <string name="menu_saludo_default">Welcome</string>
     <string name="menu_section_title">WHAT WOULD YOU LIKE TO DO?</string>
+
+    <!-- Indicators dashboard (BI) -->
+    <string name="title_bi">Management indicators</string>
+    <string name="bi_periodo">PERIOD</string>
+    <string name="bi_modelo">MODEL</string>
+    <string name="bi_por_modelo">BY MODEL</string>
+    <string name="bi_tpc_titulo">TPC · AVERAGE QUOTING TIME</string>
+    <string name="bi_nec_titulo">NEC · STANDARDIZATION LEVEL</string>
+    <string name="bi_pdm_titulo">PDM · MATERIAL WASTE PERCENTAGE</string>
+    <string name="bi_sincronizando">Syncing with the cloud…</string>
+    <string name="bi_actualizado">Updated at %1$s</string>
+    <string name="bi_lectura">WHAT THE NUMBERS SAY</string>
+    <string name="bi_evolucion">MONTHLY TREND</string>
+    <string name="bi_nota">TPC: minutes of real work on the quotation (order design and offer), pauses not counted; only measured on new quotations. NEC: offers with complete general conditions and Annex A out of the offers evaluated; tap the card to see which ones fail. PDM: bar waste according to the cutting plan (reusable offcuts not counted) and, separately, counting them.</string>
 </resources>

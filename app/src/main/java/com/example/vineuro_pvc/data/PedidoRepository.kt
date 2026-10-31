@@ -89,6 +89,7 @@ class PedidoRepository(context: Context) {
     suspend fun eliminarPedido(id: String): String? {
         db.writableDatabase.delete(VineuroDatabase.T_PEDIDOS, "id = ?", arrayOf(id))
         db.borrarConfiguracion(CotizacionPedido.clave(id))
+        db.borrarConfiguracion(TerminosRepository.claveTiempo(id))
         // Se anota como pendiente: si no hay Internet, se borrará de la nube al sincronizar (y no reaparece)
         db.marcarPendiente(VineuroDatabase.PEND_PEDIDO_ELIMINAR, id, true)
         val error = supabaseService.deletePedido(id)

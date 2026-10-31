@@ -1,6 +1,7 @@
 package com.example.vineuro_pvc
 
 import android.os.Bundle
+import android.view.MotionEvent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -43,6 +44,17 @@ class MainActivity : AppCompatActivity() {
 
         appBarConfiguration = AppBarConfiguration(navController.graph)
         setupActionBarWithNavController(navController, appBarConfiguration)
+    }
+
+    /** Anota cada toque para medir el tiempo que de verdad se trabaja en una cotización. */
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        com.example.vineuro_pvc.data.ActividadUsuario.registrarToque()
+        return super.dispatchTouchEvent(ev)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        com.example.vineuro_pvc.data.ActividadUsuario.registrarFoco(hasFocus)
     }
 
     override fun onSupportNavigateUp(): Boolean {
