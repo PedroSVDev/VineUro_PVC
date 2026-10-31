@@ -57,6 +57,7 @@ class OfertaComercialFragment : Fragment() {
     private lateinit var terminosRepo: TerminosRepository
     private lateinit var editor: EditorClausulas
     private lateinit var pedido: Pedido
+    private val cronometro = com.example.vineuro_pvc.data.CronometroCotizacion()
     private lateinit var precios: Precios
     private lateinit var plantilla: TerminosCondiciones
     private var resultados: List<CalculadoraPrecios.Resultado> = emptyList()
@@ -433,6 +434,11 @@ class OfertaComercialFragment : Fragment() {
         startActivity(Intent.createChooser(intent, "Compartir oferta comercial"))
     }
 
+    override fun onResume() {
+        super.onResume()
+        cronometro.iniciar()
+    }
+
     override fun onPause() {
         super.onPause()
         // Autoguardado de la cotización al salir de la pantalla
@@ -440,6 +446,16 @@ class OfertaComercialFragment : Fragment() {
             val c = leerCotizacion()
             val repo = terminosRepo
             lifecycleScope.launch { repo.guardarCotizacion(c) }
+        }
+        // Tiempo trabajado en la oferta (indicador TPC del tablero BI)
+        cronometro.pausar()
+        if (::pedido.isInitialized) {
+            val ms = cronometro.retirar()
+            if (ms > 0L) {
+                val repo = terminosRepo
+                val id = pedido.id
+                lifecycleScope.launch { repo.sumarTiempoActivo(id, ms, false) }
+            }
         }
     }
 

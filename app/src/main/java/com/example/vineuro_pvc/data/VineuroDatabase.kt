@@ -55,7 +55,10 @@ class VineuroDatabase private constructor(private val appContext: Context) :
                 area_total_m2       REAL NOT NULL DEFAULT 0,
                 estado              TEXT NOT NULL DEFAULT 'borrador',
                 fecha_creacion      INTEGER NOT NULL,
-                fecha_actualizacion INTEGER NOT NULL
+                fecha_actualizacion INTEGER NOT NULL,
+                direccion           TEXT NOT NULL DEFAULT '',
+                id_oferta           TEXT NOT NULL DEFAULT '',
+                nota                TEXT NOT NULL DEFAULT ''
             )
             """.trimIndent(),
         )
@@ -87,6 +90,29 @@ class VineuroDatabase private constructor(private val appContext: Context) :
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         // Versión 2: tabla "configuracion" (requisitos del documento, etc.)
         if (oldVersion < 2) crearTablaConfiguracion(db)
+        // Versión 3: dirección, ID de oferta y nota pasan a columnas de "pedidos" (antes vivían en "configuracion")
+        if (oldVersion < 3) pasarExtrasAColumnas(db)
+    }
+
+    private fun pasarExtrasAColumnas(db: SQLiteDatabase) {
+        for (col in listOf("direccion", "id_oferta", "nota")) {
+            runCatching { db.execSQL("ALTER TABLE $T_PEDIDOS ADD COLUMN $col TEXT NOT NULL DEFAULT ''") }
+        }
+        runCatching {
+            val filas = mutableListOf<Pair<String, String>>()
+            db.query(T_CONFIGURACION, arrayOf("clave", "data"), "clave LIKE ?", arrayOf("pedido_extra:%"), null, null, null)
+                .use { c -> while (c.moveToNext()) filas.add(c.getString(0) to c.getString(1)) }
+            for ((clave, data) in filas) {
+                val o = org.json.JSONObject(data)
+                val cv = ContentValues().apply {
+                    put("direccion", o.optString("direccion"))
+                    put("id_oferta", o.optString("id_oferta"))
+                    put("nota", o.optString("nota"))
+                }
+                db.update(T_PEDIDOS, cv, "id = ?", arrayOf(clave.removePrefix("pedido_extra:")))
+            }
+            db.delete(T_CONFIGURACION, "clave LIKE ?", arrayOf("pedido_extra:%"))
+        }
     }
 
     private fun crearTablaConfiguracion(db: SQLiteDatabase) {
@@ -114,6 +140,10 @@ class VineuroDatabase private constructor(private val appContext: Context) :
             put("fecha_actualizacion", fecha)
         }
         writableDatabase.insertWithOnConflict(T_CONFIGURACION, null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    fun borrarConfiguracion(clave: String) {
+        writableDatabase.delete(T_CONFIGURACION, "clave = ?", arrayOf(clave))
     }
 
     // ===================== MIGRACIÓN DESDE EL ALMACENAMIENTO ANTERIOR =====================
@@ -208,7 +238,7 @@ class VineuroDatabase private constructor(private val appContext: Context) :
 
     companion object {
         private const val DB_NOMBRE = "vineuro.db"
-        private const val DB_VERSION = 2
+        private const val DB_VERSION = 3
 
         const val T_CLIENTES = "clientes"
         const val T_PEDIDOS = "pedidos"
@@ -219,6 +249,7 @@ class VineuroDatabase private constructor(private val appContext: Context) :
         const val PRECIOS_ID = "general"
         const val PEND_CLIENTE_SUBIR = "cliente_subir"
         const val PEND_CLIENTE_ELIMINAR = "cliente_eliminar"
+        const val PEND_PEDIDO_ELIMINAR = "pedido_eliminar"
 
         @Volatile
         private var instancia: VineuroDatabase? = null
@@ -240,6 +271,9 @@ class VineuroDatabase private constructor(private val appContext: Context) :
             put("estado", p.estado)
             put("fecha_creacion", p.fechaCreacion)
             put("fecha_actualizacion", p.fechaActualizacion)
+            put("direccion", p.direccion)
+            put("id_oferta", p.idOferta)
+            put("nota", p.nota)
         }
     }
 }

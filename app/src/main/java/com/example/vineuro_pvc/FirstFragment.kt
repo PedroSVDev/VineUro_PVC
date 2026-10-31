@@ -49,6 +49,10 @@ class FirstFragment : Fragment() {
             findNavController().navigate(R.id.action_FirstFragment_to_PedidosFragment)
         }
 
+        binding.btnBi.setOnClickListener {
+            findNavController().navigate(R.id.action_FirstFragment_to_BiFragment)
+        }
+
         binding.btnPrecios.setOnClickListener {
             findNavController().navigate(R.id.action_FirstFragment_to_PreciosFragment)
         }

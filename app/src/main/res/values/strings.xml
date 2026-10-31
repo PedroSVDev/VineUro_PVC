@@ -10,6 +10,7 @@
     <string name="menu_nuevo_orden">NUEVO ORDEN</string>
     <string name="menu_ultimo_pedido">ÚLTIMO PEDIDO</string>
     <string name="menu_pedidos">PEDIDOS</string>
+    <string name="menu_bi">INDICADORES DE GESTIÓN</string>
     <string name="menu_penultimo_pedido">PENÚLTIMO PEDIDO</string>
     <string name="menu_precios">PRECIOS</string>
     <string name="menu_comments">COMMENTS</string>
@@ -49,6 +50,9 @@
     <string name="label_nota">Nota / Observación</string>
     <string name="hint_nota">Agregar alguna nota sobre el cliente o pedido…</string>
     <string name="btn_continuar_pedido">CONTINUAR PEDIDO</string>
+    <string name="btn_nuevo_pedido">NUEVO PEDIDO</string>
+    <string name="btn_continuar_ultimo_pedido">CONTINUAR ÚLTIMO PEDIDO</string>
+    <string name="label_ultimo_pedido">Último pedido: %1$s · %2$d ventanas · %3$s</string>
     <string name="error_direccion_requerida">Por favor ingrese la dirección</string>
 
     <!-- Cálculo Pedido / Matriz -->
@@ -80,4 +84,18 @@
     <string name="menu_saludo_default">Bienvenido</string>
     <string name="menu_section_title">¿QUÉ DESEAS HACER?</string>
     <string name="menu_footer">VINEURO PVC · Trujillo, Perú · v1.0</string>
+
+    <!-- Tablero de indicadores (BI) -->
+    <string name="title_bi">Indicadores de gestión</string>
+    <string name="bi_periodo">PERIODO</string>
+    <string name="bi_modelo">MODELO</string>
+    <string name="bi_por_modelo">POR MODELO</string>
+    <string name="bi_tpc_titulo">TPC · TIEMPO PROMEDIO DE COTIZACIÓN</string>
+    <string name="bi_nec_titulo">NEC · NIVEL DE ESTANDARIZACIÓN</string>
+    <string name="bi_pdm_titulo">PDM · PORCENTAJE DE DESPERDICIO DE MATERIAL</string>
+    <string name="bi_sincronizando">Sincronizando con la nube…</string>
+    <string name="bi_actualizado">Actualizado a las %1$s</string>
+    <string name="bi_lectura">LECTURA PARA DECIDIR</string>
+    <string name="bi_evolucion">EVOLUCIÓN MENSUAL</string>
+    <string name="bi_nota">TPC: minutos de trabajo real en la cotización (diseño del pedido y oferta), sin contar las pausas; solo se mide en las cotizaciones nuevas. NEC: ofertas con condiciones generales y Anexo A completos entre las ofertas evaluadas; toca la tarjeta para ver cuáles no cumplen. PDM: desperdicio de varillas según el plan de corte (sin contar los retazos reutilizables) y, aparte, contándolos.</string>
 </resources>

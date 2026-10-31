@@ -98,6 +98,7 @@ class SupabaseService {
             readTimeout = 10000
             setRequestProperty("apikey", SupabaseConfig.API_KEY)
             setRequestProperty("Authorization", "Bearer ${SupabaseConfig.API_KEY}")
+            setRequestProperty(SupabaseConfig.APP_KEY_HEADER, SupabaseConfig.APP_KEY)
             setRequestProperty("Accept", "application/json")
         }
 

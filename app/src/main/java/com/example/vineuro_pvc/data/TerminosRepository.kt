@@ -28,6 +28,15 @@ class TerminosRepository(context: Context) {
         return plantilla()
     }
 
+    /** Sincroniza las cotizaciones de los pedidos indicados y el correlativo (lo usa la sincronización automática). */
+    suspend fun sincronizarTodo(pedidoIds: Collection<String>) {
+        pedidoIds.forEach {
+            sincronizarClave(CotizacionPedido.clave(it))
+            sincronizarClave(claveTiempo(it))
+        }
+        sincronizarClave(CLAVE_CORRELATIVO)
+    }
+
     // ===================== COTIZACIÓN DE UN PEDIDO =====================
 
     fun cotizacion(pedidoId: String): CotizacionPedido? =
@@ -60,6 +69,23 @@ class TerminosRepository(context: Context) {
         val n = numero.trim().toIntOrNull() ?: return
         val ultimo = leer(CLAVE_CORRELATIVO)?.optInt("ultimo", 0) ?: 0
         if (n > ultimo) escribir(CLAVE_CORRELATIVO, JSONObject().put("ultimo", n), System.currentTimeMillis())
+    }
+
+    // ===================== TIEMPO DE TRABAJO DE UN PEDIDO =====================
+
+    /** Tiempo activo acumulado en el pedido (diseño + oferta); null si nunca se midió. */
+    fun tiempoActivo(pedidoId: String): TiempoActivoPedido? =
+        leer(claveTiempo(pedidoId))?.let { TiempoActivoPedido(it.optLong("ms", 0L), it.optBoolean("desde_inicio", false)) }
+
+    /** Suma [ms] de trabajo activo al pedido. [desdeInicio] = el cronómetro corría desde que se creó el pedido. */
+    suspend fun sumarTiempoActivo(pedidoId: String, ms: Long, desdeInicio: Boolean): String? {
+        if (ms <= 0L) return null
+        val actual = tiempoActivo(pedidoId)
+        val dato = JSONObject()
+            .put("pedido_id", pedidoId)
+            .put("ms", (actual?.ms ?: 0L) + ms)
+            .put("desde_inicio", desdeInicio || actual?.desdeInicio == true)
+        return escribir(claveTiempo(pedidoId), dato, System.currentTimeMillis())
     }
 
     // ===================== AYUDANTES =====================
@@ -95,5 +121,7 @@ class TerminosRepository(context: Context) {
 
     companion object {
         private const val CLAVE_CORRELATIVO = "correlativo_cotizacion"
+
+        fun claveTiempo(pedidoId: String) = "tiempo_$pedidoId"
     }
 }

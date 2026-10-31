@@ -6,9 +6,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import androidx.navigation.fragment.findNavController
 import com.example.vineuro_pvc.data.ClientRepository
 import com.example.vineuro_pvc.data.Cliente
+import com.example.vineuro_pvc.data.PedidoRepository
 import com.example.vineuro_pvc.databinding.FragmentDetallePedidoClienteBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
@@ -56,11 +61,16 @@ class DetallePedidoClienteFragment : Fragment() {
         // Botón: Sugerir con IA
         binding.btnSugerirIa.setOnClickListener { mostrarSugerenciaIA() }
 
-        // Botón: Continuar al Cálculo
-        binding.btnContinuarPedido.setOnClickListener {
-            guardarDireccionYNota()
-            irACalculo(usarSugerenciaIa = false)
+        // Estado de la IA bajo el botón: se actualiza solo (clave, Internet, cuota) y al tocarlo abre la configuración
+        binding.tvEstadoIa.setOnClickListener { DialogGemini(this) { actualizarEstadoIa() }.mostrar() }
+        viewLifecycleOwner.lifecycleScope.launch {
+            while (isActive) {
+                actualizarEstadoIa()
+                delay(3000)
+            }
         }
+
+        configurarBotonesPedido()
     }
 
     /** Guarda en el cliente la dirección y la nota escritas (local + Supabase) si cambiaron. */
@@ -75,26 +85,70 @@ class DetallePedidoClienteFragment : Fragment() {
         }
     }
 
-    private fun irACalculo(usarSugerenciaIa: Boolean) {
+    /**
+     * Sin pedidos anteriores del cliente: un solo botón, NUEVO PEDIDO.
+     * Con pedidos anteriores: CONTINUAR ÚLTIMO PEDIDO y, debajo, NUEVO PEDIDO.
+     */
+    private fun configurarBotonesPedido() {
+        val b = _binding ?: return
+        val ultimo = PedidoRepository(requireContext()).obtenerPedidosDeCliente(clienteId).firstOrNull { it.items.isNotEmpty() }
+        if (ultimo == null) {
+            b.tvUltimoPedido.visibility = View.GONE
+            b.btnNuevoPedido.visibility = View.GONE
+            b.btnContinuarPedido.setText(R.string.btn_nuevo_pedido)
+            b.btnContinuarPedido.setOnClickListener {
+                guardarDireccionYNota()
+                irACalculo(usarSugerenciaIa = false)
+            }
+        } else {
+            b.tvUltimoPedido.text = getString(R.string.label_ultimo_pedido, ultimo.codigo, ultimo.totalVentanas, ultimo.fechaActualizacionTexto)
+            b.tvUltimoPedido.visibility = View.VISIBLE
+            b.btnNuevoPedido.visibility = View.VISIBLE
+            b.btnContinuarPedido.setText(R.string.btn_continuar_ultimo_pedido)
+            b.btnContinuarPedido.setOnClickListener {
+                guardarDireccionYNota()
+                irACalculo(usarSugerenciaIa = false, pedidoId = ultimo.id)
+            }
+            b.btnNuevoPedido.setOnClickListener {
+                guardarDireccionYNota()
+                irACalculo(usarSugerenciaIa = false)
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Al volver de otra pantalla puede haber un pedido nuevo del cliente
+        if (clienteId.isNotEmpty()) configurarBotonesPedido()
+    }
+
+    private fun irACalculo(usarSugerenciaIa: Boolean, pedidoId: String? = null) {
         val bundle = Bundle().apply {
             putString("cliente_id", clienteId)
             putString("nombre_cliente", cliente?.nombreCompleto)
+            if (pedidoId != null) putString("pedido_id", pedidoId)
             if (usarSugerenciaIa) putBoolean("usar_sugerencia_ia", true)
         }
         findNavController().navigate(R.id.CalculoPedidoFragment, bundle)
     }
 
+    private fun actualizarEstadoIa() {
+        val b = _binding ?: return
+        val e = com.example.vineuro_pvc.data.GeminiClient.estado(requireContext())
+        val color = when (e.nivel) {
+            com.example.vineuro_pvc.data.EstadoIA.Nivel.LISTA -> "#15803D"
+            com.example.vineuro_pvc.data.EstadoIA.Nivel.PAUSA -> "#B45309"
+            com.example.vineuro_pvc.data.EstadoIA.Nivel.AVISO -> "#6B7280"
+        }
+        b.tvEstadoIa.setTextColor(android.graphics.Color.parseColor(color))
+        b.tvEstadoIa.text = "● ${e.texto}"
+    }
+
     private fun mostrarSugerenciaIA() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Sugerencia de IA ✨")
-            .setMessage("Basado en tendencias actuales y espacios residenciales, te sugerimos iniciar con un diseño de: \n\n• Ventana Corrediza de 2 Paneles (Estándar)\n• Altura: 1800 mm\n• Ancho: 1500 mm\n\n¿Deseas aplicar esta sugerencia a la nueva orden?")
-            .setPositiveButton("SÍ, APLICAR") { dialog, _ ->
-                guardarDireccionYNota()
-                irACalculo(usarSugerenciaIa = true)
-                dialog.dismiss()
-            }
-            .setNegativeButton("CANCELAR") { dialog, _ -> dialog.dismiss() }
-            .show()
+        DialogAsesorDiseno(this) {
+            guardarDireccionYNota()
+            irACalculo(usarSugerenciaIa = true)
+        }.mostrar()
     }
 
     override fun onDestroyView() {

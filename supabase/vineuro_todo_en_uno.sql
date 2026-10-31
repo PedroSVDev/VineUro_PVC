@@ -40,7 +40,10 @@ create table if not exists public.pedidos (
     area_total_m2       numeric,
     estado              text,
     fecha_creacion      int8,
-    fecha_actualizacion int8
+    fecha_actualizacion int8,
+    direccion           text,
+    id_oferta           text,
+    nota                text
 );
 alter table public.pedidos add column if not exists codigo              text;
 alter table public.pedidos add column if not exists cliente_id          text;
@@ -51,6 +54,9 @@ alter table public.pedidos add column if not exists area_total_m2       numeric;
 alter table public.pedidos add column if not exists estado              text;
 alter table public.pedidos add column if not exists fecha_creacion      int8;
 alter table public.pedidos add column if not exists fecha_actualizacion int8;
+alter table public.pedidos add column if not exists direccion           text;
+alter table public.pedidos add column if not exists id_oferta           text;
+alter table public.pedidos add column if not exists nota                text;
 
 -- Pedidos antiguos que usaban el DNI: pasarlos al id del cliente y quitar el DNI
 do $$

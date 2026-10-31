@@ -1,6 +1,13 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
 }
+
+// Clave de acceso de la app a Supabase: se lee de local.properties (que no se sube al repositorio).
+val supabaseAppKey: String = Properties().also { props ->
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { props.load(it) }
+}.getProperty("supabase.appKey", "")
 
 android {
     namespace = "com.example.vineuro_pvc"
@@ -14,6 +21,8 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
+
+        buildConfigField("String", "SUPABASE_APP_KEY", "\"$supabaseAppKey\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -31,6 +40,7 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 }
 

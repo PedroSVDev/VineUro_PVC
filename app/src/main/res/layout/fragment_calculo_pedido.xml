@@ -34,23 +34,6 @@
 
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Top Right Menu Icon Button -->
-    <ImageView
-        android:id="@+id/btn_header_menu"
-        android:layout_width="38dp"
-        android:layout_height="38dp"
-        android:layout_marginTop="4dp"
-        android:layout_marginEnd="6dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:clickable="true"
-        android:contentDescription="Opciones del pedido"
-        android:focusable="true"
-        android:padding="6dp"
-        android:src="@drawable/ic_more_vert"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:tint="#333333" />
-
     <!-- Top Right: Client Name Header & param. comprobar Checkbox -->
     <TextView
         android:id="@+id/tv_header_cliente_nombre"
@@ -60,7 +43,7 @@
         android:layout_marginEnd="8dp"
         android:textColor="#333333"
         android:textSize="13sp"
-        app:layout_constraintEnd_toStartOf="@id/btn_header_menu"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:text="Aleksander White : S1" />
 
@@ -100,7 +83,7 @@
         android:text="param. comprobar"
         android:textColor="#333333"
         android:textSize="13sp"
-        app:layout_constraintEnd_toStartOf="@id/btn_header_menu"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_header_cliente_nombre" />
 
     <!-- Center Drawing Canvas Area with WindowPreviewView -->

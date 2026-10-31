@@ -29,7 +29,6 @@ object GuiaCortePdf {
     private val GRIS = Color.parseColor("#6B7280")
     private val BORDE = Color.parseColor("#9CA3AF")
     private val ROJO = Color.parseColor("#C00000")
-    private val COLORES = intArrayOf(Color.parseColor("#9FC5E8"), Color.parseColor("#B6D7A8"), Color.parseColor("#F9CB9C"), Color.parseColor("#D5A6BD"))
 
     fun crear(
         context: Context, codigo: String, cliente: String, fecha: String,
@@ -147,9 +146,9 @@ object GuiaCortePdf {
                 val top = yy + 11f
                 val esc = anchoBarra / v.largoMm
                 var x = M
-                v.piezas.forEachIndexed { i, pz ->
+                v.piezas.forEach { pz ->
                     val w = pz.largoMm * esc
-                    rect(x, top, x + w, top + 16f, COLORES[i % COLORES.size])
+                    rect(x, top, x + w, top + 16f, BarraVarillaView.colorVentana(pz.ventana))
                     c.drawRect(RectF(x, top, x + w, top + 16f), contorno())
                     if (w > 26f) texto("${pz.largoMm}", x + 2f, top + 7f, 6.4f, Color.BLACK, true, w - 3f)
                     if (w > 20f) texto("V${pz.ventana}", x + 2f, top + 14f, 5.8f, GRIS, false, w - 3f)

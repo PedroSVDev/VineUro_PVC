@@ -26,6 +26,10 @@
         <action
             android:id="@+id/action_FirstFragment_to_PedidosFragment"
             app:destination="@id/PedidosFragment" />
+
+        <action
+            android:id="@+id/action_FirstFragment_to_BiFragment"
+            app:destination="@id/BiFragment" />
     </fragment>
 
     <fragment
@@ -39,6 +43,12 @@
         android:name="com.example.vineuro_pvc.PedidosFragment"
         android:label="@string/title_pedidos"
         tools:layout="@layout/fragment_pedidos" />
+
+    <fragment
+        android:id="@+id/BiFragment"
+        android:name="com.example.vineuro_pvc.BiFragment"
+        android:label="@string/title_bi"
+        tools:layout="@layout/fragment_bi" />
 
     <fragment
         android:id="@+id/PreciosFragment"

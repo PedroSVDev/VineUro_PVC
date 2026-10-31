@@ -1,224 +1,132 @@
 package com.example.vineuro_pvc
 
-import android.content.Intent
-import android.graphics.pdf.PdfDocument
-import android.net.Uri
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Environment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
-import androidx.navigation.fragment.findNavController
+import com.example.vineuro_pvc.data.CalculadoraPrecios
 import com.example.vineuro_pvc.data.ClientRepository
+import com.example.vineuro_pvc.data.LogoEmpresa
 import com.example.vineuro_pvc.data.OrderItemHolder
-import com.example.vineuro_pvc.data.RequisitosDocumento
+import com.example.vineuro_pvc.data.PreciosRepository
 import com.example.vineuro_pvc.data.RequisitosRepository
 import com.example.vineuro_pvc.databinding.FragmentPdfPreviewBinding
-import com.example.vineuro_pvc.views.PdfPageSheetView
+import com.example.vineuro_pvc.views.PdfAcciones
+import com.example.vineuro_pvc.views.ProyectosPdf
 import java.io.File
-import java.io.FileOutputStream
-import java.util.Locale
-import kotlin.math.ceil
 
+/**
+ * Vista previa del "PDF solo proyectos" / "PDF con detalles". Dibuja cada hoja con la misma función que el archivo
+ * (ProyectosPdf.dibujarPagina), escalada al ancho de la pantalla. Flechas ‹ › para cambiar de hoja y
+ * GUARDAR PDF para crear el archivo y abrir el menú de compartir.
+ */
 class PdfPreviewFragment : Fragment() {
 
     private var _binding: FragmentPdfPreviewBinding? = null
     private val binding get() = _binding!!
 
-    private var currentPageIndex = 0
-    private var totalPages = 1
+    private lateinit var modo: ProyectosPdf.Modo
+    private lateinit var datos: ProyectosPdf.Datos
+    private var paginas: List<List<ProyectosPdf.Elemento>> = emptyList()
+    private var pagina = 0
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentPdfPreviewBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        modo = if (OrderItemHolder.conDetalles) ProyectosPdf.Modo.CON_DETALLES else ProyectosPdf.Modo.SOLO_PROYECTOS
+        datos = armarDatos()
+        paginas = ProyectosPdf.paginar(datos, modo)
+        pagina = (savedInstanceState?.getInt(KEY_PAGINA) ?: 0).coerceIn(0, paginas.lastIndex.coerceAtLeast(0))
 
-        val items = OrderItemHolder.items
-        val count = items.size.coerceAtLeast(1)
-        totalPages = ceil(count / 6.0).toInt().coerceAtLeast(1)
-
-        setupListeners()
-        renderCurrentPage()
+        binding.btnPrevPage.setOnClickListener { cambiarPagina(-1) }
+        binding.btnNextPage.setOnClickListener { cambiarPagina(+1) }
+        binding.btnGuardarPdf.setOnClickListener { guardarYCompartir() }
+        mostrarPagina()
     }
 
-    private fun setupListeners() {
-        binding.btnCerca.setOnClickListener {
-            findNavController().navigateUp()
-        }
-
-        binding.btnPrevPage.setOnClickListener {
-            if (currentPageIndex > 0) {
-                currentPageIndex--
-                renderCurrentPage()
-            }
-        }
-
-        binding.btnNextPage.setOnClickListener {
-            if (currentPageIndex < totalPages - 1) {
-                currentPageIndex++
-                renderCurrentPage()
-            }
-        }
-
-        binding.btnGuardarPdf.setOnClickListener {
-            guardarYCompartirPdf()
-        }
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(KEY_PAGINA, pagina)
     }
 
-    private fun renderCurrentPage() {
-        val items = OrderItemHolder.items
-
-        val startIdx = currentPageIndex * 6
-        val endIdx = minOf(startIdx + 6, items.size)
-        val pageSublist = if (startIdx in items.indices) items.subList(startIdx, endIdx) else emptyList()
-
-        var totalArea = 0.0
-        var totalCount = 0
-        for (item in items) {
-            val cant = item.opciones.cantidad.coerceAtLeast(1)
-            totalArea += item.areaM2 * cant
-            totalCount += cant
-        }
-
-        val datos = datosDocumento()
-
-        binding.pdfSheetView.bindData(
-            pageIndex = currentPageIndex,
-            totalPages = totalPages,
-            pageItems = pageSublist,
-            clientName = datos.clienteNombre,
-            clientAddress = datos.clienteDireccion,
-            clientPhone = datos.clienteTelefono,
-            clientEmail = datos.clienteCorreo,
-            offerId = datos.codigo,
-            totalOrderCount = totalCount,
-            totalOrderAreaM2 = totalArea,
-            requisitos = datos.requisitos,
-            conDetalles = OrderItemHolder.conDetalles,
-        )
-
-        binding.tvPageIndicator.text = "Página ${currentPageIndex + 1} de $totalPages"
-
-        binding.btnPrevPage.visibility = if (currentPageIndex > 0) View.VISIBLE else View.GONE
-        binding.btnNextPage.visibility = if (currentPageIndex < totalPages - 1) View.VISIBLE else View.GONE
+    private fun cambiarPagina(delta: Int) {
+        val nueva = (pagina + delta).coerceIn(0, paginas.lastIndex.coerceAtLeast(0))
+        if (nueva == pagina) return
+        pagina = nueva
+        mostrarPagina()
+        binding.scrollPdfContainer.scrollTo(0, 0)
     }
 
-    private fun guardarYCompartirPdf() {
+    private fun mostrarPagina() {
+        val ctx = requireContext().applicationContext
+        val n = pagina
+        binding.pdfSheetView.mostrar { c -> ProyectosPdf.dibujarPagina(ctx, c, datos, modo, paginas, n) }
+        binding.tvPageIndicator.text = "Página ${pagina + 1} de ${paginas.size}"
+        binding.btnPrevPage.visibility = if (pagina > 0) View.VISIBLE else View.GONE
+        binding.btnNextPage.visibility = if (pagina < paginas.lastIndex) View.VISIBLE else View.GONE
+    }
+
+    /** Crea el PDF (exactamente lo que se ve en la vista previa) y abre el menú de compartir. */
+    private fun guardarYCompartir() {
+        val ctx = requireContext()
         try {
-            val items = OrderItemHolder.items
-            val datos = datosDocumento()
-
-            var totalArea = 0.0
-            var totalCount = 0
-            for (item in items) {
-                val cant = item.opciones.cantidad.coerceAtLeast(1)
-                totalArea += item.areaM2 * cant
-                totalCount += cant
-            }
-
-            val pdfDocument = PdfDocument()
-
-            // Dimensiones hoja A4 en puntos (595 x 842 pt @ 72 dpi)
-            val a4Width = 595
-            val a4Height = 842
-
-            for (p in 0 until totalPages) {
-                val pageInfo = PdfDocument.PageInfo.Builder(a4Width, a4Height, p + 1).create()
-                val page = pdfDocument.startPage(pageInfo)
-                val canvas = page.canvas
-
-                val startIdx = p * 6
-                val endIdx = minOf(startIdx + 6, items.size)
-                val pageSublist = if (startIdx in items.indices) items.subList(startIdx, endIdx) else emptyList()
-
-                // La hoja dibuja sus medidas en dp (se multiplican por la densidad de la pantalla).
-                // Se dibuja en un lienzo "virtual" del tamaño que tiene en la vista previa (~400 dp de ancho)
-                // y luego se reduce a la hoja A4 (595 x 842 pt). Así el PDF queda igual que la vista previa.
-                val densidad = resources.displayMetrics.density
-                val anchoVirtual = (400f * densidad).toInt()
-                val altoVirtual = (anchoVirtual * a4Height.toFloat() / a4Width).toInt()
-                val escala = a4Width.toFloat() / anchoVirtual
-
-                val sheetView = PdfPageSheetView(requireContext())
-                sheetView.layout(0, 0, anchoVirtual, altoVirtual)
-                sheetView.bindData(
-                    pageIndex = p,
-                    totalPages = totalPages,
-                    pageItems = pageSublist,
-                    clientName = datos.clienteNombre,
-                    clientAddress = datos.clienteDireccion,
-                    clientPhone = datos.clienteTelefono,
-                    clientEmail = datos.clienteCorreo,
-                    offerId = datos.codigo,
-                    totalOrderCount = totalCount,
-                    totalOrderAreaM2 = totalArea,
-                    requisitos = datos.requisitos,
-                    conDetalles = OrderItemHolder.conDetalles,
-                )
-                canvas.save()
-                canvas.scale(escala, escala)
-                sheetView.draw(canvas)
-                canvas.restore()
-
-                pdfDocument.finishPage(page)
-            }
-
-            val docsDir = requireContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
-            val pdfFile = File(docsDir, "${if (OrderItemHolder.conDetalles) "Proyectos_Detalles" else "Proyectos"}_${System.currentTimeMillis()}.pdf")
-
-            FileOutputStream(pdfFile).use { out ->
-                pdfDocument.writeTo(out)
-            }
-            pdfDocument.close()
-
-            Toast.makeText(requireContext(), "PDF guardado exitosamente: ${pdfFile.name}", Toast.LENGTH_LONG).show()
-
-            // Enviar o abrir el PDF (diálogo como el)
-            com.example.vineuro_pvc.views.PdfAcciones.mostrarDialogo(requireContext(), pdfFile, "PDF de Oferta")
-
+            val carpeta = ctx.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) ?: ctx.filesDir
+            val base = if (modo == ProyectosPdf.Modo.CON_DETALLES) "Proyectos_Detalles" else "Proyectos"
+            val codigo = datos.idOferta.takeIf { it.isNotBlank() && it != SIN_DATO }
+                ?.replace(Regex("[^A-Za-z0-9_-]"), "_")?.let { "_$it" }.orEmpty()
+            val archivo = File(carpeta, "${base}${codigo}_${System.currentTimeMillis()}.pdf")
+            ProyectosPdf.crearArchivo(ctx, datos, modo, archivo)
+            Toast.makeText(ctx, "PDF guardado: ${archivo.name}", Toast.LENGTH_SHORT).show()
+            PdfAcciones.enviar(ctx, archivo, if (modo == ProyectosPdf.Modo.CON_DETALLES) "Cotización con detalles" else "Cotización")
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(requireContext(), "Error al guardar el PDF: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            Toast.makeText(ctx, "Error al guardar el PDF: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
         }
     }
 
-    /** Datos del encabezado: requisitos de la empresa (editables) + datos reales del cliente. */
-    private data class DatosDocumento(
-        val requisitos: RequisitosDocumento,
-        val clienteNombre: String,
-        val clienteDireccion: String,
-        val clienteTelefono: String,
-        val clienteCorreo: String,
-        val codigo: String,
-    )
-
-    private fun datosDocumento(): DatosDocumento {
+    /** Datos del documento: empresa (Datos de la empresa), cliente, ventanas y sus precios calculados. */
+    private fun armarDatos(): ProyectosPdf.Datos {
         val ctx = requireContext()
+        val items = OrderItemHolder.items
+        val precios = PreciosRepository(ctx).obtener()
+        val resultados = items.map { runCatching { CalculadoraPrecios.calcular(it, precios) }.getOrNull() }
         val cliente = OrderItemHolder.clienteId.takeIf { it.isNotBlank() }
             ?.let { ClientRepository(ctx).obtenerClientePorId(it) }
-        fun v(s: String?) = s?.takeIf { it.isNotBlank() } ?: "......"
-        return DatosDocumento(
+        fun v(s: String?) = s?.trim()?.takeIf { it.isNotBlank() } ?: SIN_DATO
+        val colores = precios.colores.mapNotNull { f ->
+            runCatching { f.nombre.trim() to Color.parseColor(f.colorHex.trim()) }.getOrNull()
+        }.toMap()
+        return ProyectosPdf.Datos(
             requisitos = RequisitosRepository(ctx).obtener(),
-            clienteNombre = cliente?.nombreCompleto ?: OrderItemHolder.clientName.ifBlank { "......" },
-            clienteDireccion = v(OrderItemHolder.direccionPedido.ifBlank { cliente?.direccion }),
+            clienteNombre = v(cliente?.nombreCompleto ?: OrderItemHolder.clientName),
+            clienteDireccion = v(OrderItemHolder.direccionPedido.ifBlank { cliente?.direccion.orEmpty() }),
             clienteTelefono = v(cliente?.telefono),
             clienteCorreo = v(cliente?.email),
-            codigo = OrderItemHolder.idOfertaPedido.ifBlank { OrderItemHolder.codigoPedido },
+            // "ID de oferta" = N° del pedido
+            idOferta = v(OrderItemHolder.codigoPedido.ifBlank { OrderItemHolder.idOfertaPedido }),
+            items = items,
+            resultados = resultados,
+            colores = colores,
+            logo = runCatching { LogoEmpresa.cargar(ctx) }.getOrNull(),
+            impuestoNombre = precios.impuesto.firstOrNull()?.getOrNull(0)?.trim()?.takeIf { it.isNotBlank() } ?: "IGV",
         )
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    companion object {
+        private const val KEY_PAGINA = "pagina_pdf"
+        private const val SIN_DATO = "......"
     }
 }
