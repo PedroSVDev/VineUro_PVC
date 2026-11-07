@@ -87,4 +87,9 @@
     <string name="bi_lectura">WHAT THE NUMBERS SAY</string>
     <string name="bi_evolucion">MONTHLY TREND</string>
     <string name="bi_nota">TPC: minutes of real work on the quotation (order design and offer), pauses not counted; only measured on new quotations. NEC: offers with complete general conditions and Annex A out of the offers evaluated; tap the card to see which ones fail. PDM: bar waste according to the cutting plan (reusable offcuts not counted) and, separately, counting them.</string>
+    <string name="app_name">VINEURO PVC</string>
+    <string name="action_settings">Settings</string>
+    <string name="next">Next</string>
+    <string name="app_brand">VINEURO PVC</string>
+    <string name="menu_footer">VINEURO PVC · Trujillo, Peru · v1.0</string>
 </resources>
