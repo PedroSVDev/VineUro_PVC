@@ -110,7 +110,7 @@ class DialogAsesorDiseno(
         actualizarHabituales()
         b.chipsAmbiente.setOnCheckedStateChangeListener { _, _ -> actualizarHabituales() }
 
-        val dialog = crearDialogoApp(fragment, b.root, altoCompleto = false)
+        val dialog = crearDialogoApp(fragment, b.root, altoCompleto = true)
         b.btnCerrarAsesor.setOnClickListener { dialog.dismiss() }
         b.btnCancelarAsesor.setOnClickListener { dialog.dismiss() }
         b.btnProponer.setOnClickListener {
