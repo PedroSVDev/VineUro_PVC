@@ -15,6 +15,8 @@ data class Cliente(
     val direccion: String = "",
     val nota: String = "",
     val fechaRegistro: Long = System.currentTimeMillis(),
+    /** Fecha (milisegundos) en que se confirmó el aviso de privacidad y el consentimiento del cliente; 0 si no se registró (clientes anteriores). */
+    val consentimientoFecha: Long = 0L,
 ) {
     val nombreCompleto: String
         get() = "$nombres $apellidos".trim()

@@ -72,7 +72,7 @@ object IntercambioDatos {
             clientes.filter { it.id in usados }.forEach {
                 put(JSONObject().apply {
                     put("id", it.id); put("nombres", it.nombres); put("apellidos", it.apellidos); put("telefono", it.telefono)
-                    put("email", it.email); put("direccion", it.direccion); put("nota", it.nota); put("fecha_registro", it.fechaRegistro)
+                    put("email", it.email); put("direccion", it.direccion); put("nota", it.nota); put("fecha_registro", it.fechaRegistro); put("consentimiento_fecha", it.consentimientoFecha)
                 })
             }
         })
@@ -158,6 +158,7 @@ object IntercambioDatos {
                 id = c.optString("id"), nombres = c.optString("nombres"), apellidos = c.optString("apellidos"),
                 telefono = c.optString("telefono"), email = c.optString("email"), direccion = c.optString("direccion"),
                 nota = c.optString("nota"), fechaRegistro = c.optLong("fecha_registro", System.currentTimeMillis()),
+                consentimientoFecha = c.optLong("consentimiento_fecha", 0L),
             )
             if (nuevo.id.isBlank()) continue
             val local = cliRepo.obtenerClientePorId(nuevo.id)

@@ -31,6 +31,7 @@ class SupabaseService {
                 put("direccion", cliente.direccion)
                 put("nota", cliente.nota)
                 put("fecha_registro", cliente.fechaRegistro)
+                put("consentimiento_fecha", cliente.consentimientoFecha)
             }
             connection.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
             val ok = connection.responseCode in 200..299
@@ -64,6 +65,7 @@ class SupabaseService {
                     direccion = textoONada(obj, "direccion"),
                     nota = textoONada(obj, "nota"),
                     fechaRegistro = obj.optLong("fecha_registro", System.currentTimeMillis()),
+                    consentimientoFecha = obj.optLong("consentimiento_fecha", 0L),
                 )
             }
         } catch (e: Exception) {

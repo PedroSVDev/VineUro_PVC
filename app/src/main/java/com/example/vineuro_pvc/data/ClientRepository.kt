@@ -54,6 +54,7 @@ class ClientRepository(context: Context) {
         direccion = c.getString(c.getColumnIndexOrThrow("direccion")),
         nota = c.getString(c.getColumnIndexOrThrow("nota")),
         fechaRegistro = c.getLong(c.getColumnIndexOrThrow("fecha_registro")),
+        consentimientoFecha = c.getLong(c.getColumnIndexOrThrow("consentimiento_fecha")),
     )
 
     private fun valores(cliente: Cliente) = ContentValues().apply {
@@ -65,6 +66,7 @@ class ClientRepository(context: Context) {
         put("direccion", cliente.direccion)
         put("nota", cliente.nota)
         put("fecha_registro", cliente.fechaRegistro)
+        put("consentimiento_fecha", cliente.consentimientoFecha)
     }
 
     private fun guardarLocal(cliente: Cliente): Boolean =

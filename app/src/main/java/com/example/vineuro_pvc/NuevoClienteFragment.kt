@@ -67,6 +67,13 @@ class NuevoClienteFragment : Fragment() {
             binding.tilTelefono.error = null
         }
 
+        // Aviso de privacidad (Ley N.° 29733): sin consentimiento no se registra al cliente
+        if (!binding.cbConsentimiento.isChecked) {
+            Toast.makeText(requireContext(), R.string.consentimiento_requerido, Toast.LENGTH_LONG).show()
+            binding.cbConsentimiento.requestFocus()
+            return
+        }
+
         val clientRepository = ClientRepository(requireContext())
 
         // El cliente se identifica por su id (UUID generado automáticamente)
@@ -76,6 +83,7 @@ class NuevoClienteFragment : Fragment() {
             telefono = telefono,
             email = email,
             nota = binding.etNotaCliente.text.toString().trim(),
+            consentimientoFecha = System.currentTimeMillis(),
         )
 
         // Como "such customer is exist": avisa si ya hay un cliente con el mismo nombre

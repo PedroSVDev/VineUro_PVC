@@ -98,4 +98,7 @@
     <string name="bi_lectura">LECTURA PARA DECIDIR</string>
     <string name="bi_evolucion">EVOLUCIÓN MENSUAL</string>
     <string name="bi_nota">TPC: minutos de trabajo real en la cotización (diseño del pedido y oferta), sin contar las pausas; solo se mide en las cotizaciones nuevas. NEC: ofertas con condiciones generales y Anexo A completos entre las ofertas evaluadas; toca la tarjeta para ver cuáles no cumplen. PDM: desperdicio de varillas según el plan de corte (sin contar los retazos reutilizables) y, aparte, contándolos.</string>
+    <string name="consentimiento_aviso">Aviso de privacidad: VINEURO PVC usa los datos de este cliente (nombre, teléfono, correo y nota) solo para cotizar y coordinar la entrega de sus pedidos. Se guardan en este teléfono y en la nube de la empresa y no se usan para otros fines. El cliente puede pedir que se corrijan o se eliminen cuando quiera (Ley N.° 29733).</string>
+    <string name="consentimiento_casilla">El cliente fue informado y acepta el tratamiento de sus datos</string>
+    <string name="consentimiento_requerido">Confirme el consentimiento del cliente para guardarlo</string>
 </resources>
