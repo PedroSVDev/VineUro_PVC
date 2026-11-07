@@ -122,8 +122,15 @@ class TipoCambioService(context: Context) {
             }
             Result.success(tc)
         } catch (e: Exception) {
-            e.printStackTrace()
-            Result.failure(Exception("Sin conexión con el BCRP"))
+            android.util.Log.e("TipoCambio", "No se pudo consultar el BCRP", e)
+            // Se indica la causa real para poder diagnosticar fallos de red o de certificado en cada teléfono.
+            val causa = when (e) {
+                is java.net.UnknownHostException -> "no se encontró el servidor (DNS o sin Internet)"
+                is java.net.SocketTimeoutException -> "tiempo de espera agotado"
+                is javax.net.ssl.SSLException -> "falló la conexión segura (${e.message ?: e.javaClass.simpleName})"
+                else -> "${e.javaClass.simpleName}: ${e.message ?: "sin detalle"}"
+            }
+            Result.failure(Exception("Sin conexión con el BCRP: $causa"))
         }
     }
 

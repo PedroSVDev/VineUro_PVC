@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- A3 (Plan de Seguridad Integral): solo se comparten los PDF y archivos de intercambio de la carpeta Documents de la app; ya no se expone todo el almacenamiento externo. -->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <external-files-path name="external_files" path="." />
-    <external-path name="external_docs" path="." />
+    <external-files-path name="documentos" path="Documents/" />
 </paths>

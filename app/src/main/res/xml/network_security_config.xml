@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Solo para el BCRP: además de los certificados del sistema, se confía en la CA intermedia
+     "GlobalSign GCC R46 OV TLS CA 2025" (publica, oficial de GlobalSign). Algunos telefonos no
+     la traen ni reciben la cadena completa, y la conexion segura fallaba. El resto de dominios
+     (Supabase, Gemini, etc.) sigue usando solo los certificados del sistema. -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">estadisticas.bcrp.gob.pe</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="@raw/globalsign_gcc_r46_ov_tls_ca_2025" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>
