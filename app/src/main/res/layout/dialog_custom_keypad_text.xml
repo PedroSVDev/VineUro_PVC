@@ -1,57 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_keypad"
-    android:elevation="8dp"
-    android:orientation="vertical"
-    android:padding="2dp">
-
-    <EditText
-        android:id="@+id/etKeypadValue"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/white"
-        android:gravity="center"
-        android:padding="16dp"
-        android:text="new_item"
-        android:textColor="@color/black"
-        android:textSize="24sp"
-        android:inputType="text" />
+    android:fillViewport="false">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:background="@drawable/bg_keypad"
+        android:elevation="8dp"
+        android:orientation="vertical"
+        android:padding="2dp">
 
-        <ImageButton
-            android:id="@+id/btnKeypadClose"
-            style="@style/KeypadActionItem"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:src="@drawable/ic_keypad_close" />
+        <EditText
+            android:id="@+id/etKeypadValue"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/white"
+            android:gravity="center"
+            android:padding="16dp"
+            android:text="new_item"
+            android:textColor="@color/black"
+            android:textSize="24sp"
+            android:inputType="text" />
 
-        <ImageButton
-            android:id="@+id/btnKeypadDelete"
-            style="@style/KeypadActionItem"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:src="@drawable/ic_keypad_arrow_left" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
-        <ImageButton
-            android:id="@+id/btnKeypadClear"
-            style="@style/KeypadActionItem"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:src="@drawable/ic_keypad_double_arrow_left" />
+            <ImageButton
+                android:id="@+id/btnKeypadClose"
+                style="@style/KeypadActionItem"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:src="@drawable/ic_keypad_close" />
 
-        <ImageButton
-            android:id="@+id/btnKeypadDone"
-            style="@style/KeypadActionItem"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:backgroundTint="#757575"
-            android:src="@drawable/ic_keypad_done" />
+            <ImageButton
+                android:id="@+id/btnKeypadDelete"
+                style="@style/KeypadActionItem"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:src="@drawable/ic_keypad_arrow_left" />
 
+            <ImageButton
+                android:id="@+id/btnKeypadClear"
+                style="@style/KeypadActionItem"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:src="@drawable/ic_keypad_double_arrow_left" />
+
+            <ImageButton
+                android:id="@+id/btnKeypadDone"
+                style="@style/KeypadActionItem"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:backgroundTint="#757575"
+                android:src="@drawable/ic_keypad_done" />
+
+        </LinearLayout>
     </LinearLayout>
-</LinearLayout>
+
+</ScrollView>

@@ -421,11 +421,12 @@ class PreciosFragment : Fragment() {
         val desde = celdas[0].text.toString()
         val hacia = celdas[2].text.toString()
 
-        if (desde == hacia) {
+        // Misma moneda en precios y resultados: la tarifa es 1.00, pero igual se consulta el BCRP para refrescar
+        // el tipo de cambio guardado (lo usan "Convertir precios" y los documentos).
+        val mismaMoneda = desde == hacia
+        if (mismaMoneda) {
             celdas[1].text = "1.00"
             onDatosCambiados()
-            Toast.makeText(requireContext(), "Misma moneda en precios y resultados: tarifa 1.00", Toast.LENGTH_SHORT).show()
-            return
         }
 
         val servicio = TipoCambioService(requireContext())
@@ -440,6 +441,14 @@ class PreciosFragment : Fragment() {
             if (tc == null) {
                 binding.tvInfoTipoCambio.text = "No se pudo consultar el BCRP"
                 Toast.makeText(requireContext(), resultado.exceptionOrNull()?.message ?: "Error", Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            if (mismaMoneda) {
+                val origen = if (resultado.isSuccess) "actualizado del BCRP" else "último guardado (sin conexión)"
+                binding.tvInfoTipoCambio.text = String.format(
+                    Locale.US, "T.C. %s: US$ %.3f · € %.3f (%s). Tarifa 1.00 (misma moneda)", origen, tc.usdPen, tc.eurPen, tc.fechaUsd,
+                )
+                if (!resultado.isSuccess) Toast.makeText(requireContext(), resultado.exceptionOrNull()?.message ?: "Sin conexión", Toast.LENGTH_LONG).show()
                 return@launch
             }
             val tarifa = tc.tarifa(desde, hacia)
@@ -705,10 +714,13 @@ class PreciosFragment : Fragment() {
         
         var selectedColor = (target.background as? ColorDrawable)?.color ?: Color.WHITE
 
+        // El tamaño de cada color se ajusta al ancho de la pantalla (8 columnas): máximo 40 dp, y menos en teléfonos estrechos
+        val anchoDisponible = resources.displayMetrics.widthPixels * 0.86f - dpToPx(24)
+        val lado = minOf(dpToPx(40).toFloat(), anchoDisponible / 8f - 8f).toInt().coerceAtLeast(dpToPx(24))
         colors.forEach { color ->
             val v = View(requireContext()).apply {
                 layoutParams = GridLayout.LayoutParams().apply {
-                    width = dpToPx(40); height = dpToPx(40); setMargins(4, 4, 4, 4)
+                    width = lado; height = lado; setMargins(4, 4, 4, 4)
                 }
                 setBackgroundColor(color)
                 setOnClickListener { selectedColor = color }
