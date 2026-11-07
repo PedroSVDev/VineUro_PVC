@@ -22,18 +22,28 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <!-- Center Card Container -->
-    <LinearLayout
-        android:id="@+id/container_center"
+    <!-- Con scroll: en pantallas bajas (horizontal, teléfonos pequeños) las tarjetas no quedan cortadas -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_center"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_marginStart="24dp"
+        android:layout_marginTop="8dp"
         android:layout_marginEnd="24dp"
-        android:orientation="vertical"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginBottom="8dp"
+        android:fillViewport="true"
+        app:layout_constraintBottom_toTopOf="@id/btn_volver"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_title_app"
         app:layout_constraintWidth_max="420dp">
+
+    <LinearLayout
+        android:id="@+id/container_center"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="vertical">
 
         <!-- Title Row: Bluetooth Intercambio de datos -->
         <LinearLayout
@@ -217,6 +227,7 @@
         </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
     <!-- Bottom Right CERCA / VOLVER Button -->
     <com.google.android.material.card.MaterialCardView
