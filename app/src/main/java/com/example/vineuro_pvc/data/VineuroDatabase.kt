@@ -39,7 +39,8 @@ class VineuroDatabase private constructor(private val appContext: Context) :
                 email          TEXT NOT NULL DEFAULT '',
                 direccion      TEXT NOT NULL DEFAULT '',
                 nota           TEXT NOT NULL DEFAULT '',
-                fecha_registro INTEGER NOT NULL
+                fecha_registro INTEGER NOT NULL,
+                consentimiento_fecha INTEGER NOT NULL DEFAULT 0
             )
             """.trimIndent(),
         )
@@ -92,6 +93,8 @@ class VineuroDatabase private constructor(private val appContext: Context) :
         if (oldVersion < 2) crearTablaConfiguracion(db)
         // Versión 3: dirección, ID de oferta y nota pasan a columnas de "pedidos" (antes vivían en "configuracion")
         if (oldVersion < 3) pasarExtrasAColumnas(db)
+        // Versión 4: fecha del consentimiento del cliente (aviso de privacidad, Ley N.° 29733; A8 del Plan de Seguridad)
+        if (oldVersion < 4) runCatching { db.execSQL("ALTER TABLE $T_CLIENTES ADD COLUMN consentimiento_fecha INTEGER NOT NULL DEFAULT 0") }
     }
 
     private fun pasarExtrasAColumnas(db: SQLiteDatabase) {
@@ -238,7 +241,7 @@ class VineuroDatabase private constructor(private val appContext: Context) :
 
     companion object {
         private const val DB_NOMBRE = "vineuro.db"
-        private const val DB_VERSION = 3
+        private const val DB_VERSION = 4
 
         const val T_CLIENTES = "clientes"
         const val T_PEDIDOS = "pedidos"

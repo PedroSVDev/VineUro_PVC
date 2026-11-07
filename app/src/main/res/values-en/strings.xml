@@ -92,4 +92,7 @@
     <string name="next">Next</string>
     <string name="app_brand">VINEURO PVC</string>
     <string name="menu_footer">VINEURO PVC · Trujillo, Peru · v1.0</string>
+    <string name="consentimiento_aviso">Privacy notice: VINEURO PVC uses this customer\'s data (name, phone, email and note) only to quote and arrange the delivery of their orders. It is stored on this phone and in the company\'s cloud and is not used for any other purpose. The customer may ask for it to be corrected or deleted at any time (Law No. 29733).</string>
+    <string name="consentimiento_casilla">The customer was informed and agrees to the processing of their data</string>
+    <string name="consentimiento_requerido">Confirm the customer\'s consent to save</string>
 </resources>

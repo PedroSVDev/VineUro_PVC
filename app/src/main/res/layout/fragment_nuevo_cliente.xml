@@ -148,6 +148,23 @@
                         android:textSize="16sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <!-- Aviso de privacidad y consentimiento (Ley N.° 29733; A8 del Plan de Seguridad) -->
+                <TextView
+                    android:id="@+id/tv_aviso_privacidad"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:text="@string/consentimiento_aviso"
+                    android:textSize="13sp" />
+
+                <CheckBox
+                    android:id="@+id/cb_consentimiento"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/consentimiento_casilla"
+                    android:textSize="14sp" />
+
                 <!-- Save Button -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_guardar_cliente"
