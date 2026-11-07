@@ -95,4 +95,14 @@
     <string name="consentimiento_aviso">Privacy notice: VINEURO PVC uses this customer\'s data (name, phone, email and note) only to quote and arrange the delivery of their orders. It is stored on this phone and in the company\'s cloud and is not used for any other purpose. The customer may ask for it to be corrected or deleted at any time (Law No. 29733).</string>
     <string name="consentimiento_casilla">The customer was informed and agrees to the processing of their data</string>
     <string name="consentimiento_requerido">Confirm the customer\'s consent to save</string>
+    <string name="bloqueo_titulo">APP LOCK</string>
+    <string name="bloqueo_activado">On</string>
+    <string name="bloqueo_desactivado">Off</string>
+    <string name="bloqueo_activar">TURN ON</string>
+    <string name="bloqueo_desactivar">TURN OFF</string>
+    <string name="bloqueo_dialogo_titulo">App lock</string>
+    <string name="bloqueo_dialogo_msg">Asks for the phone\'s PIN, pattern or fingerprint when the app opens and when you return to it after 1 minute. The app does not store that PIN.</string>
+    <string name="bloqueo_sin_pantalla">First set up a screen lock (PIN, pattern or fingerprint) in the phone settings</string>
+    <string name="bloqueo_pedir_titulo">Unlock VINEURO PVC</string>
+    <string name="bloqueo_pedir_desc">Confirm with your phone\'s PIN, pattern or fingerprint</string>
 </resources>

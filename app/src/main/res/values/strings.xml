@@ -101,4 +101,14 @@
     <string name="consentimiento_aviso">Aviso de privacidad: VINEURO PVC usa los datos de este cliente (nombre, teléfono, correo y nota) solo para cotizar y coordinar la entrega de sus pedidos. Se guardan en este teléfono y en la nube de la empresa y no se usan para otros fines. El cliente puede pedir que se corrijan o se eliminen cuando quiera (Ley N.° 29733).</string>
     <string name="consentimiento_casilla">El cliente fue informado y acepta el tratamiento de sus datos</string>
     <string name="consentimiento_requerido">Confirme el consentimiento del cliente para guardarlo</string>
+    <string name="bloqueo_titulo">BLOQUEO DE LA APP</string>
+    <string name="bloqueo_activado">Activado</string>
+    <string name="bloqueo_desactivado">Desactivado</string>
+    <string name="bloqueo_activar">ACTIVAR</string>
+    <string name="bloqueo_desactivar">DESACTIVAR</string>
+    <string name="bloqueo_dialogo_titulo">Bloqueo de la aplicación</string>
+    <string name="bloqueo_dialogo_msg">Pide el PIN, patrón o huella del teléfono al abrir la app y al volver a ella después de 1 minuto. La app no guarda ese PIN.</string>
+    <string name="bloqueo_sin_pantalla">Primero configura un bloqueo de pantalla (PIN, patrón o huella) en los ajustes del teléfono</string>
+    <string name="bloqueo_pedir_titulo">Desbloquear VINEURO PVC</string>
+    <string name="bloqueo_pedir_desc">Confirma con el PIN, patrón o huella de tu teléfono</string>
 </resources>

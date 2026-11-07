@@ -1,6 +1,8 @@
 package com.example.vineuro_pvc
 
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
+import com.example.vineuro_pvc.data.BloqueoApp
 import android.view.MotionEvent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -17,6 +19,17 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
+    private var pidiendoDesbloqueo = false
+
+    private val desbloqueo = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
+        pidiendoDesbloqueo = false
+        if (r.resultCode == RESULT_OK) {
+            BloqueoApp.marcarDesbloqueado()
+            binding.root.visibility = android.view.View.VISIBLE
+        } else {
+            finishAffinity()   // sin identificarse no se muestra nada de la app
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         com.example.vineuro_pvc.data.Ajustes.aplicarTema(this)
@@ -46,6 +59,28 @@ class MainActivity : AppCompatActivity() {
 
         appBarConfiguration = AppBarConfiguration(navController.graph)
         setupActionBarWithNavController(navController, appBarConfiguration)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // A5 (Plan de Seguridad): bloqueo opcional con el PIN, patrón o huella del teléfono
+        if (BloqueoApp.debePedir(this)) {
+            binding.root.visibility = android.view.View.INVISIBLE
+            if (!pidiendoDesbloqueo) {
+                val intent = BloqueoApp.intentoDesbloqueo(this, getString(R.string.bloqueo_pedir_titulo), getString(R.string.bloqueo_pedir_desc))
+                if (intent != null) {
+                    pidiendoDesbloqueo = true
+                    desbloqueo.launch(intent)
+                }
+            }
+        } else if (!pidiendoDesbloqueo) {
+            binding.root.visibility = android.view.View.VISIBLE
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations && !pidiendoDesbloqueo) BloqueoApp.marcarSalida()
     }
 
     /** Anota cada toque para medir el tiempo que de verdad se trabaja en una cotización. */
