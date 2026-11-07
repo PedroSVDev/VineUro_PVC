@@ -53,6 +53,8 @@ dependencies {
     implementation(libs.androidx.navigation.ui.ktx)
     implementation(libs.material)
     testImplementation(libs.junit)
+    // org.json real para las pruebas unitarias (en el JVM, android.jar solo trae métodos simulados)
+    testImplementation("org.json:json:20240303")
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
 }
