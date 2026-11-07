@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.vineuro_pvc.data.Ajustes
+import com.example.vineuro_pvc.data.BloqueoApp
 import com.example.vineuro_pvc.data.ClientRepository
 import com.example.vineuro_pvc.data.Pedido
 import com.example.vineuro_pvc.data.PedidoRepository
@@ -65,6 +66,7 @@ class FirstFragment : Fragment() {
         binding.btnTema.setOnClickListener { elegirTema() }
         binding.btnIdioma.setOnClickListener { elegirIdioma() }
         binding.btnUnidades.setOnClickListener { elegirUnidades() }
+        binding.btnBloqueo.setOnClickListener { elegirBloqueo() }
     }
 
     override fun onResume() {
@@ -120,6 +122,7 @@ class FirstFragment : Fragment() {
         binding.tvValorTema.text = when (Ajustes.tema(ctx)) { 1 -> "Claro"; 2 -> "Oscuro"; else -> "Sistema" }
         binding.tvValorIdioma.text = when (Ajustes.idioma()) { "es" -> "Español"; "en" -> "English"; else -> "Sistema" }
         binding.tvValorUnidades.text = if (Unidades.imperial) "in, ft, sq.ft" else "mm, m, m2"
+        binding.tvValorBloqueo.text = getString(if (BloqueoApp.activo(ctx)) R.string.bloqueo_activado else R.string.bloqueo_desactivado)
     }
 
     private fun abrirUltimoPedido() {
@@ -173,6 +176,25 @@ class FirstFragment : Fragment() {
                 d.dismiss()
             }
             .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    /** A5 (Plan de Seguridad): activa o desactiva el bloqueo de la app con el PIN, patrón o huella del teléfono. */
+    private fun elegirBloqueo() {
+        val ctx = requireContext()
+        val activo = BloqueoApp.activo(ctx)
+        if (!activo && !BloqueoApp.telefonoProtegido(ctx)) {
+            Toast.makeText(ctx, R.string.bloqueo_sin_pantalla, Toast.LENGTH_LONG).show()
+            return
+        }
+        androidx.appcompat.app.AlertDialog.Builder(ctx)
+            .setTitle(R.string.bloqueo_dialogo_titulo)
+            .setMessage(R.string.bloqueo_dialogo_msg)
+            .setPositiveButton(if (activo) R.string.bloqueo_desactivar else R.string.bloqueo_activar) { _, _ ->
+                BloqueoApp.guardar(ctx, !activo)
+                actualizarValoresAjustes()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
