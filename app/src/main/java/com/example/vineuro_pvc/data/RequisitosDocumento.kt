@@ -17,7 +17,7 @@ data class RequisitosDocumento(
     val telefono: String = "952613977",
     val telefonoFijo: String = "044-713940",
     val correo: String = "vineuro.pvc@gmail.com",
-    val paginaWeb: String = "",
+    val paginaWeb: String = "www.vineuropvc.com",
     val facebook: String = "trujicoinsa",
     // Lemas que van debajo del encabezado del PDF
     val lema1: String = "VENTANAS ANTIRUIDO Y TERMOACÚSTICAS DE PVC",
