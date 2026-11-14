@@ -129,4 +129,39 @@ class OptimizadorCorteTest {
         assertEquals(1404, l.vidrios[0].anchoMm)
         assertEquals(1704, l.vidrios[0].altoMm)
     }
+
+    // ---------------- Ángulo de corte ----------------
+
+    @Test fun angulos_segunElPerfil() {
+        assertEquals(45, OptimizadorCorte.anguloDe("Marco"))
+        assertEquals(45, OptimizadorCorte.anguloDe("Hoja"))
+        assertEquals(45, OptimizadorCorte.anguloDe("Hoja puerta"))
+        assertEquals(45, OptimizadorCorte.anguloDe("Junquillo"))
+        assertEquals(90, OptimizadorCorte.anguloDe("Imposta"))
+        assertEquals(90, OptimizadorCorte.anguloDe("Barra de vidrio"))
+        assertEquals(90, OptimizadorCorte.anguloDe("Marco", cortes45 = false))   // modo "todo a 90°"
+    }
+
+    @Test fun plan_ventanaConImposta_tieneCortesA45yA90() {
+        val v = item(1500, 1800, cols = 2)
+        val plan = OptimizadorCorte.planificar(listOf(v))
+        val piezas = CalculadoraPrecios.piezasCorte(v)
+        // cada pieza tiene dos extremos: marco y junquillo a 45°; la imposta (1) a 90°
+        assertEquals(piezas.count { it.perfil == "Marco" || it.perfil == "Junquillo" } * 2, plan.cortes45)
+        assertEquals(piezas.count { it.perfil == "Imposta" } * 2, plan.cortes90)
+        assertEquals(2, plan.cortes90)
+        assertEquals(true, plan.cortes45 >= 8 * 2)
+        assertEquals(90, plan.grupos.first { it.perfil == "Imposta" }.angulo)
+        assertEquals(45, plan.grupos.first { it.perfil == "Marco" }.angulo)
+    }
+
+    @Test fun plan_todoA90_noTieneCortesA45() {
+        val plan = OptimizadorCorte.planificar(listOf(item(1500, 1800, cols = 2)), Parametros(cortes45 = false))
+        assertEquals(0, plan.cortes45)
+    }
+
+    @Test fun parametros_json_conservaElAnguloYAsumeEstandarSiFalta() {
+        assertEquals(false, Parametros.fromJson(Parametros(cortes45 = false).toJson()).cortes45)
+        assertEquals(true, Parametros.fromJson(org.json.JSONObject("{\"largo_varilla_mm\":6000}")).cortes45)
+    }
 }

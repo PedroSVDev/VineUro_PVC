@@ -86,6 +86,10 @@ class GuiaCorteFragment : Fragment() {
         val eCorte = campo("Material que se pierde por corte (mm)", p.separacionMm)
         val eSold = campo("Compensación de soldadura, marco y hoja (mm)", p.soldaduraMm)
         val eRetazo = campo("Retazo reutilizable desde (mm)", p.retazoUtilMm)
+        val chk45 = android.widget.CheckBox(ctx).apply {
+            text = "Cortes a 45° en marco, hoja y junquillo (soldados / inglete). Impostas y barras de vidrio siempre a 90°."
+            textSize = 13f; isChecked = p.cortes45
+        }
         val caja = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             val m = (20 * dp).toInt(); setPadding(m, (8 * dp).toInt(), m, 0)
@@ -93,7 +97,7 @@ class GuiaCorteFragment : Fragment() {
                 text = "Confirma estos valores con tu taller: cambian la cantidad de varillas y el largo de cada pieza soldada."
                 textSize = 12f
             })
-            addView(eLargo); addView(eCorte); addView(eSold); addView(eRetazo)
+            addView(eLargo); addView(eCorte); addView(eSold); addView(eRetazo); addView(chk45)
         }
         MaterialAlertDialogBuilder(ctx).setTitle("Parámetros de corte").setView(ScrollView(ctx).apply { addView(caja) })
             .setPositiveButton("GUARDAR") { _, _ ->
@@ -103,6 +107,7 @@ class GuiaCorteFragment : Fragment() {
                     separacionMm = n(eCorte, p.separacionMm),
                     soldaduraMm = n(eSold, p.soldaduraMm),
                     retazoUtilMm = n(eRetazo, p.retazoUtilMm),
+                    cortes45 = chk45.isChecked,
                 )
                 VineuroDatabase.get(ctx).guardarConfiguracion(CLAVE, nuevo.toJson().toString(), System.currentTimeMillis())
                 calcularYMostrar()
@@ -157,6 +162,7 @@ class GuiaCorteFragment : Fragment() {
         val resumen = tarjeta()
         resumen.addView(texto("${plan.varillasTotal} varillas a comprar", 22f, azul, negrita = true))
         resumen.addView(texto("de ${p.largoVarillaMm} mm · aprovechamiento ${f(plan.aprovechamientoPct)} % · desperdicio ${f(plan.desperdicioPct)} %", 12f, gris))
+        resumen.addView(texto("Cortes: ${plan.cortes45} a 45° · ${plan.cortes90} a 90°", 12f, gris))
         plan.grupos.filter { it.sinCabida.isNotEmpty() }.forEach { g ->
             resumen.addView(texto("⚠ ${g.clave}: ${g.sinCabida.size} pieza(s) más largas que la varilla (hasta ${g.sinCabida.maxOf { it.largoMm }} mm). Revisa las medidas.",
                 12f, Color.parseColor("#C00000"), negrita = true).apply { setPadding(0, (6 * dp).toInt(), 0, 0) })
@@ -167,7 +173,7 @@ class GuiaCorteFragment : Fragment() {
         val compra = tarjeta()
         for (g in plan.grupos) {
             val fila = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL; setPadding(0, (3 * dp).toInt(), 0, (3 * dp).toInt()) }
-            fila.addView(texto(g.clave, 12f).apply { layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) })
+            fila.addView(texto("${g.clave} · ${g.angulo}°", 12f).apply { layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) })
             fila.addView(texto("${g.varillas.size}", 14f, azul, negrita = true))
             compra.addView(fila)
         }
@@ -193,6 +199,9 @@ class GuiaCorteFragment : Fragment() {
             val cab = texto("▸  ${g.perfil} · ${g.sistema} · ${g.color}", 14f, azul, negrita = true)
             card.addView(cab)
             card.addView(texto("${g.varillas.size} varillas · ${g.piezasTotal} piezas · aprovecha ${f(g.aprovechamientoPct)} %", 12f, gris))
+            card.addView(texto(
+                if (g.angulo == 45) "Corte a 45° en los dos extremos (inglete para soldar o juntar); la medida es la de la punta larga."
+                else "Corte a 90° (a escuadra, la pieza llega a tope).", 11f, gris))
             card.setOnClickListener {
                 val abrir = cuerpo.visibility != View.VISIBLE
                 cuerpo.visibility = if (abrir) View.VISIBLE else View.GONE
@@ -206,7 +215,7 @@ class GuiaCorteFragment : Fragment() {
                     mostrar(v)
                     layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
                 })
-                cuerpo.addView(texto(v.piezas.joinToString("  +  ") { "${it.largoMm} (V${it.ventana}${if (it.copia > 1) "·${it.copia}" else ""} ${it.etiqueta})" }, 10f, gris)
+                cuerpo.addView(texto(v.piezas.joinToString("  +  ") { "${it.largoMm}${if (it.angulo == 45) " ∠45°" else ""} (V${it.ventana}${if (it.copia > 1) "·${it.copia}" else ""} ${it.etiqueta})" }, 10f, gris)
                     .apply { setPadding(0, (3 * dp).toInt(), 0, 0) })
             }
             card.addView(cuerpo)

@@ -24,10 +24,17 @@ object OptimizadorCorte {
         val soldaduraMm: Int = 0,
         /** Un sobrante igual o mayor a esto se considera retazo reutilizable y no cuenta como desperdicio. */
         val retazoUtilMm: Int = 500,
+        /**
+         * true = cada perfil se corta con el ángulo que le corresponde (ver [anguloDe]): 45° en las piezas que se sueldan o
+         * van en inglete (marco, hoja, hoja de puerta y junquillo) y 90° en las que llegan a tope (impostas y barras de vidrio).
+         * false = todo a 90° (como se mostraba antes).
+         */
+        val cortes45: Boolean = true,
     ) {
         fun toJson() = JSONObject().apply {
             put("largo_varilla_mm", largoVarillaMm); put("separacion_mm", separacionMm)
             put("soldadura_mm", soldaduraMm); put("retazo_util_mm", retazoUtilMm)
+            put("cortes_45", cortes45)
         }
 
         companion object {
@@ -39,13 +46,26 @@ object OptimizadorCorte {
                     separacionMm = o.optInt("separacion_mm", d.separacionMm).coerceAtLeast(0),
                     soldaduraMm = o.optInt("soldadura_mm", d.soldaduraMm).coerceAtLeast(0),
                     retazoUtilMm = o.optInt("retazo_util_mm", d.retazoUtilMm).coerceAtLeast(0),
+                    cortes45 = o.optBoolean("cortes_45", d.cortes45),
                 )
             }
         }
     }
 
     /** [ventana] = N° de la ventana en el pedido; [copia] = 1..cantidad cuando la ventana se repite. */
-    data class PiezaAsignada(val ventana: Int, val copia: Int, val etiqueta: String, val largoMm: Int)
+    data class PiezaAsignada(val ventana: Int, val copia: Int, val etiqueta: String, val largoMm: Int, val angulo: Int = 90)
+
+    /**
+     * Ángulo de corte de los dos extremos de una pieza, según el perfil (lo que realmente se hace en el taller):
+     *  - Marco, Hoja y Hoja puerta: 45°, porque las cuatro piezas se sueldan en las esquinas.
+     *  - Junquillo: 45°, porque en la esquina del vidrio las piezas se juntan en inglete.
+     *  - Imposta y Barra de vidrio: 90°, porque llegan a tope contra el marco, la hoja o la otra barra (unión en T).
+     * La medida de una pieza a 45° es la de su punta larga. Con [cortes45] en false todo se muestra a 90°.
+     */
+    fun anguloDe(perfil: String, cortes45: Boolean = true): Int =
+        if (cortes45 && perfil in PERFILES_A_45) 45 else 90
+
+    private val PERFILES_A_45 = setOf("Marco", "Hoja", "Hoja puerta", "Junquillo")
 
     data class Varilla(val piezas: List<PiezaAsignada>, val largoMm: Int, val separacionMm: Int) {
         /** Material consumido: piezas + un corte entre cada par. */
@@ -66,6 +86,8 @@ object OptimizadorCorte {
         val minimoTeorico: Int,
     ) {
         val clave: String get() = "$perfil · $sistema · $color"
+        /** Ángulo de corte de las piezas de este perfil (el perfil no mezcla ángulos: 45° o 90°). */
+        val angulo: Int get() = (varillas.firstOrNull()?.piezas?.firstOrNull() ?: sinCabida.firstOrNull())?.angulo ?: 90
         val piezasTotal: Int get() = varillas.sumOf { it.piezas.size }
         val largoPiezasMm: Long get() = varillas.sumOf { v -> v.piezas.sumOf { it.largoMm }.toLong() }
         val largoCompradoMm: Long get() = varillas.size.toLong() * largoVarillaMm
@@ -88,6 +110,9 @@ object OptimizadorCorte {
             return if (comprado == 0L) 0.0 else grupos.sumOf { it.largoPiezasMm } * 100.0 / comprado
         }
         val hayErrores: Boolean get() = grupos.any { it.sinCabida.isNotEmpty() }
+        /** Cortes a 45° y a 90° del pedido (cada pieza tiene dos extremos). */
+        val cortes45: Int get() = grupos.sumOf { g -> g.varillas.sumOf { v -> v.piezas.count { it.angulo == 45 } } } * 2
+        val cortes90: Int get() = grupos.sumOf { g -> g.varillas.sumOf { v -> v.piezas.count { it.angulo != 45 } } } * 2
     }
 
     /** Plan de corte de un pedido. [colorDe] devuelve el color de una ventana (vacío = sin color elegido). */
@@ -102,7 +127,7 @@ object OptimizadorCorte {
             val cant = maxOf(1, item.opciones.cantidad)
             for (copia in 1..cant) for (p in piezas) {
                 porGrupo.getOrPut(Triple(p.perfil, sistema, color)) { mutableListOf() }
-                    .add(PiezaAsignada(item.index, copia, p.etiqueta, p.largoMm))
+                    .add(PiezaAsignada(item.index, copia, p.etiqueta, p.largoMm, anguloDe(p.perfil, params.cortes45)))
             }
         }
         val grupos = porGrupo.entries

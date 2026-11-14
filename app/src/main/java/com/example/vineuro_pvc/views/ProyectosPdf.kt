@@ -53,6 +53,9 @@ object ProyectosPdf {
         val logo: Bitmap? = null,
         val impuestoNombre: String = "IGV",
         val fecha: Date = Date(),
+        /** S/ por 1 US$ y S/ por 1 €: con ellos los importes del PDF se muestran siempre en dólares (0 = sin dato). */
+        val tipoCambio: Double = 0.0,
+        val eurPen: Double = 0.0,
     )
 
     /** Rectángulo en puntos de la hoja (sin dependencias de Android, para poder probar la paginación con JUnit). */
@@ -264,7 +267,24 @@ object ProyectosPdf {
         val conDescuento: Double get() = unitarioDesc * cantidad
     }
 
-    private fun importes(item: OrderItem, res: CalculadoraPrecios.Resultado?): Importes {
+    /** Factor para pasar un importe de la moneda [simbolo] a dólares; null si no hay tipo de cambio (se deja la moneda original). */
+    private fun factorUsd(simbolo: String, d: Datos): Double? = when (simbolo.trim()) {
+        "US$", "$" -> 1.0
+        "€" -> if (d.tipoCambio > 0 && d.eurPen > 0) d.eurPen / d.tipoCambio else null
+        else -> if (d.tipoCambio > 0) 1.0 / d.tipoCambio else null   // soles
+    }
+
+    /** Importes de la ventana siempre en dólares (si hay tipo de cambio). */
+    private fun importes(item: OrderItem, res: CalculadoraPrecios.Resultado?, d: Datos): Importes {
+        val base = importesOriginal(item, res)
+        val f = factorUsd(base.simbolo, d) ?: return base
+        return base.copy(
+            unitario = base.unitario * f, unitarioDesc = base.unitarioDesc * f,
+            totalConImpuesto = base.totalConImpuesto * f, simbolo = "US$",
+        )
+    }
+
+    private fun importesOriginal(item: OrderItem, res: CalculadoraPrecios.Resultado?): Importes {
         val area = item.areaM2
         val cantidad = (res?.cantidad ?: item.opciones.cantidad).coerceAtLeast(1)
         if (res == null) return Importes(area, cantidad, 0.0, 0.0, 0.0, 0.0, 0.0, "S/")
@@ -307,7 +327,7 @@ object ProyectosPdf {
 
     private fun bloque(context: Context, c: Canvas, d: Datos, modo: Modo, dib: WindowPreviewView, e: Elemento.Bloque) {
         val item = d.items.getOrNull(e.indice) ?: return
-        val imp = importes(item, d.resultados.getOrNull(e.indice))
+        val imp = importes(item, d.resultados.getOrNull(e.indice), d)
         val r = e.caja
         val comp = e.compacto
         val detalles = modo == Modo.CON_DETALLES
@@ -393,7 +413,7 @@ object ProyectosPdf {
         val area = Caja(r.l + 4f, r.t + (if (comp) 16f else 21f), pl - 4f, r.b - 4f)
         if (area.ancho <= 4f || area.alto <= 4f) return
         val k = context.resources.displayMetrics.density * (if (comp) 1.25f else 1.0f)
-        val color = if (detalles) colorPerfil(item, d) else BLANCO
+        val color = colorPerfil(item, d)   // el dibujo lleva el color elegido también en el PDF de solo dibujos
         c.save()
         c.clipRect(area.rect())
         c.scale(1f / k, 1f / k)
@@ -407,7 +427,7 @@ object ProyectosPdf {
     // ===================== PIE: TODA LA ORDEN + FIRMAS =====================
 
     private fun pie(c: Canvas, d: Datos, r: Caja) {
-        val lista = d.items.mapIndexed { i, it -> importes(it, d.resultados.getOrNull(i)) }
+        val lista = d.items.mapIndexed { i, it -> importes(it, d.resultados.getOrNull(i), d) }
         val cantidad = lista.sumOf { it.cantidad }
         val area = lista.sumOf { it.area * it.cantidad }
         val costo = lista.sumOf { it.costo }

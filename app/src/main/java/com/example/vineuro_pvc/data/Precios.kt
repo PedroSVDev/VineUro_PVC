@@ -37,10 +37,33 @@ data class Precios(
         fun normalizarSistema(f: List<String>): List<String> =
             if (f.size >= COLUMNAS_SISTEMA + 1) f else f + List(COLUMNAS_SISTEMA + 1 - f.size) { "0.00" }
 
+        /** Los 6 colores con los que trabaja el gerente, en su orden, con el tono tomado de su tabla de Precios. */
+        val COLORES_GERENTE = listOf(
+            FilaColor("Antracita", "#5E5E5C"),
+            FilaColor("Blanco", "#F5F5F5"),
+            FilaColor("Negro", "#3E3E3E"),
+            FilaColor("Nogal", "#7C5D49"),
+            FilaColor("Roble Dorado", "#AF642A"),
+            FilaColor("Silver", "#D0D1D5"),
+        )
+
+        /**
+         * Pone [COLORES_GERENTE] al inicio y en su orden; los demás colores se conservan detrás, sin cambios.
+         * Si un color del gerente ya existía (mismo nombre), se respeta el tono que ya tenía.
+         */
+        fun conColoresDelGerente(colores: List<FilaColor>): List<FilaColor> {
+            val nombresGerente = COLORES_GERENTE.map { it.nombre.lowercase() }.toSet()
+            val primeros = COLORES_GERENTE.map { g -> colores.firstOrNull { it.nombre.trim().equals(g.nombre, ignoreCase = true) }?.let { FilaColor(g.nombre, it.colorHex) } ?: g }
+            return primeros + colores.filter { it.nombre.trim().lowercase() !in nombresGerente }
+        }
+
         private fun ceros(n: Int) = List(n) { "0.00" }
         private fun fila(nombre: String, columnasNumericas: Int) = listOf(nombre) + ceros(columnasNumericas)
 
-        /** Valores iniciales cuando todavía no hay nada guardado (ni en el teléfono ni en la nube). */
+        /** Precios del gerente en US$ (ver [PreciosGerente]); son los valores iniciales de la app. */
+        fun delGerente(): Precios = PreciosGerente.precios()
+
+        /** Precios de ejemplo (los usan las pruebas y la opción "Cargar precios de ejemplo"). */
         fun porDefecto(): Precios = Precios(
             // Moneda base = dólar (RN01). Para ver otra moneda se cambia "resultados" y el tipo de cambio sale del BCRP.
             moneda = listOf(listOf("US$", "1.00", "US$")),
@@ -103,7 +126,7 @@ data class Precios(
                 listOf("oak light", "75.00"),
             ),
             // Los 18 colores de la tabla (códigos de su paleta B05, C01, ...) + los propios de VINEURO
-            colores = listOf(
+            colores = conColoresDelGerente(listOf(
                 FilaColor("alder", "#fccfae"),
                 FilaColor("ash", "#eeba8e"),
                 FilaColor("azul oscuro", "#2F4F86"),
@@ -124,7 +147,7 @@ data class Precios(
                 FilaColor("red", "#dd7171"),
                 FilaColor("walnut", "#dca780"),
                 FilaColor("yellow", "#f6dd63"),
-            ),
+            )),
         )
     }
 

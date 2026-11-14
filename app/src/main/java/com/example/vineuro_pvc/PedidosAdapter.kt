@@ -29,11 +29,16 @@ class PedidosAdapter(
 
     /** Miniaturas de la primera ventana de cada pedido (se dibujan una vez y se guardan). */
     private val miniaturas = LruCache<String, Bitmap>(60)
+
+    private companion object {
+        /** Subir este número cuando cambie el dibujo de las ventanas, para no mostrar miniaturas guardadas con el diseño anterior. */
+        const val VERSION_DIBUJO = 3
+    }
     private var dibujante: com.example.vineuro_pvc.views.WindowPreviewView? = null
 
     private fun miniatura(ctx: android.content.Context, p: Pedido): Bitmap? {
         val item = p.items.firstOrNull() ?: return null
-        val clave = "${p.id}:${p.fechaActualizacion}"
+        val clave = "${p.id}:${p.fechaActualizacion}:$VERSION_DIBUJO"
         miniaturas.get(clave)?.let { return it }
         return runCatching {
             val lado = (64 * ctx.resources.displayMetrics.density).toInt().coerceAtLeast(64)
