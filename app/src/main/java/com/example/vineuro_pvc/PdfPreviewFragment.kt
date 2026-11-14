@@ -104,6 +104,12 @@ class PdfPreviewFragment : Fragment() {
         val colores = precios.colores.mapNotNull { f ->
             runCatching { f.nombre.trim() to Color.parseColor(f.colorHex.trim()) }.getOrNull()
         }.toMap()
+        val tc = runCatching { com.example.vineuro_pvc.data.TipoCambioService(ctx).guardado() }.getOrNull()
+        // El tipo de cambio de la cotización del pedido (el que puso el gerente) manda sobre el del BCRP guardado
+        val tcCotizacion = runCatching {
+            OrderItemHolder.pedidoId.takeIf { it.isNotBlank() }
+                ?.let { com.example.vineuro_pvc.data.TerminosRepository(ctx).cotizacion(it)?.tipoCambio }
+        }.getOrNull()?.takeIf { it > 0 }
         return ProyectosPdf.Datos(
             requisitos = RequisitosRepository(ctx).obtener(),
             clienteNombre = v(cliente?.nombreCompleto ?: OrderItemHolder.clientName),
@@ -116,6 +122,8 @@ class PdfPreviewFragment : Fragment() {
             resultados = resultados,
             colores = colores,
             logo = runCatching { LogoEmpresa.cargar(ctx) }.getOrNull(),
+            tipoCambio = tcCotizacion ?: tc?.usdPen ?: 0.0,
+            eurPen = tc?.eurPen ?: 0.0,
             impuestoNombre = precios.impuesto.firstOrNull()?.getOrNull(0)?.trim()?.takeIf { it.isNotBlank() } ?: "IGV",
         )
     }

@@ -43,12 +43,19 @@ class BarraVarillaView(context: Context) : View(context) {
         val alto = height - 2 * pad
         val esc = ancho / v.largoMm
         var x = pad
-        for (pz in v.piezas) {
+        for ((i, pz) in v.piezas.withIndex()) {
             val w = pz.largoMm * esc
             val r = RectF(x, pad, x + w, pad + alto)
             relleno.color = colorVentana(pz.ventana)
-            canvas.drawRoundRect(r, 3f * dp, 3f * dp, relleno)
-            canvas.drawRoundRect(r, 3f * dp, 3f * dp, borde)
+            if (pz.angulo == 45) {
+                // Inglete: trapecio. Todas las piezas llevan la punta larga hacia el mismo lado (arriba), para que el corte se haga siempre en la misma dirección.
+                val s = minOf(alto * 0.5f, w * 0.3f)
+                val p = trapecio45(r, s, arribaLarga = true)
+                canvas.drawPath(p, relleno); canvas.drawPath(p, borde)
+            } else {
+                canvas.drawRoundRect(r, 3f * dp, 3f * dp, relleno)
+                canvas.drawRoundRect(r, 3f * dp, 3f * dp, borde)
+            }
             etiqueta(canvas, "${pz.largoMm}", "V${pz.ventana}${if (pz.copia > 1) "·${pz.copia}" else ""}", r)
             x += w + v.separacionMm * esc
         }
@@ -60,6 +67,12 @@ class BarraVarillaView(context: Context) : View(context) {
             canvas.drawRoundRect(r, 3f * dp, 3f * dp, borde)
             etiqueta(canvas, "sobra ${v.sobranteMm}", null, r)
         }
+    }
+
+    private fun trapecio45(r: RectF, s: Float, arribaLarga: Boolean): android.graphics.Path = android.graphics.Path().apply {
+        if (arribaLarga) { moveTo(r.left, r.top); lineTo(r.right, r.top); lineTo(r.right - s, r.bottom); lineTo(r.left + s, r.bottom) }
+        else { moveTo(r.left + s, r.top); lineTo(r.right - s, r.top); lineTo(r.right, r.bottom); lineTo(r.left, r.bottom) }
+        close()
     }
 
     private fun etiqueta(canvas: Canvas, arriba: String, abajo: String?, r: RectF) {

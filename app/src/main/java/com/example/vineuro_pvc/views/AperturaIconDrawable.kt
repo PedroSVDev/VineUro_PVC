@@ -33,8 +33,8 @@ class AperturaIconDrawable(private val mec: String) : Drawable() {
             val cx = (gl + gr) / 2f; val cy = (gt + gb) / 2f
             when {
                 AperturasMulti.grupo(mec) == AperturasMulti.Grupo.FRANCESA -> {
-                    if (h.dir == 'R') { canvas.drawLine(gr, gt, gl, cy, trazo); canvas.drawLine(gr, gb, gl, cy, trazo) }
-                    else { canvas.drawLine(gl, gt, gr, cy, trazo); canvas.drawLine(gl, gb, gr, cy, trazo) }
+                    if (h.dir == 'R') { canvas.drawLine(gl, gt, gr, cy, trazo); canvas.drawLine(gl, gb, gr, cy, trazo) }
+                    else { canvas.drawLine(gr, gt, gl, cy, trazo); canvas.drawLine(gr, gb, gl, cy, trazo) }
                 }
                 h.movil -> {
                     val (dx, dy) = when (h.dir) { 'L' -> -1f to 0f; 'R' -> 1f to 0f; 'U' -> 0f to -1f; else -> 0f to 1f }

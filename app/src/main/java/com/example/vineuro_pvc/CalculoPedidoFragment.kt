@@ -355,6 +355,7 @@ class CalculoPedidoFragment : Fragment() {
             // Guardar antes de generar el PDF para tener el código del pedido
             guardarPedido(mostrarResultado = false)
             OrderItemHolder.codigoPedido = pedidoActual?.codigo ?: ""
+            OrderItemHolder.pedidoId = pedidoActual?.id ?: ""
             OrderItemHolder.direccionPedido = direccionPedido
             OrderItemHolder.idOfertaPedido = idOfertaPedido
             OrderItemHolder.conDetalles = false
@@ -374,6 +375,7 @@ class CalculoPedidoFragment : Fragment() {
             OrderItemHolder.clienteId = clienteIdActual
             guardarPedido(mostrarResultado = false)
             OrderItemHolder.codigoPedido = pedidoActual?.codigo ?: ""
+            OrderItemHolder.pedidoId = pedidoActual?.id ?: ""
             OrderItemHolder.direccionPedido = direccionPedido
             OrderItemHolder.idOfertaPedido = idOfertaPedido
             OrderItemHolder.conDetalles = true

@@ -74,7 +74,13 @@ object GuiaCortePdf {
         val p = plan.parametros
         texto("Varilla de ${p.largoVarillaMm} mm  ·  corte ${p.separacionMm} mm  ·  soldadura +${p.soldaduraMm} mm  ·  retazo útil ≥ ${p.retazoUtilMm} mm",
             M, y + 8f, 8f, GRIS)
-        y += 20f
+        y += 11f
+        texto(
+            if (p.cortes45) "Cortes: marco, hoja y junquillo a 45° (medida en la punta larga); impostas y barras de vidrio a 90°.  Total: ${plan.cortes45} cortes a 45° · ${plan.cortes90} a 90°"
+            else "Cortes: todo a 90° (${plan.cortes90} cortes).",
+            M, y + 8f, 7.4f, GRIS, false, W - 2 * M,
+        )
+        y += 14f
         rect(M, y, W - M, y + 14f, CELESTE)
         texto("PERFILES (varillas a comprar)", M + 4f, y + 10.5f, 8.6f, AZUL, true)
         y += 18f
@@ -84,7 +90,7 @@ object GuiaCortePdf {
         }
         y += 12f
         for (g in plan.grupos) {
-            texto(g.clave, xs[0] + 2f, y + 8f, 7.4f, Color.BLACK, false, xs[1] - xs[0] - 3f)
+            texto("${g.clave} · ${g.angulo}°", xs[0] + 2f, y + 8f, 7.4f, Color.BLACK, false, xs[1] - xs[0] - 3f)
             texto("${g.varillas.size}", xs[1] + 2f, y + 8f, 7.6f, Color.BLACK, true)
             texto("${g.piezasTotal}", xs[2] + 2f, y + 8f, 7.6f, Color.BLACK)
             texto("${g.minimoTeorico}", xs[3] + 2f, y + 8f, 7.6f, Color.BLACK)
@@ -131,37 +137,82 @@ object GuiaCortePdf {
         }
         y += 4f
         texto("Vidrio: ${Unidades.areaM2(listado.vidrioM2)}   ·   Paneles sándwich: ${Unidades.areaM2(listado.sandwichM2)}", M, y + 8f, 8f, Color.BLACK, true)
-        cerrar()
 
-        // ---------------- Varillas ----------------
+        // ---------------- Cortes: todos los perfiles seguidos, sin una hoja por perfil ----------------
         val anchoBarra = W - 2 * M
+        val altoBarra = 18f
+        val pasoBarra = 38f
+        val altoEncabezado = 16f
+        y += 14f
+        // Si en esta hoja no entra ni el título con un perfil y su primera varilla, sigue en la hoja siguiente
+        if (y + 20f + altoEncabezado + pasoBarra > H - 40f) { cerrar(); y = nueva("CORTES POR PERFIL") }
+        else {
+            rect(M, y, W - M, y + 18f, AZUL)
+            texto("CORTES POR PERFIL", M + 8f, y + 12.5f, 10f, Color.WHITE, true)
+            y += 22f
+        }
+        texto(
+            if (p.cortes45) "∠45° = inglete en los dos extremos, medida en la punta larga (todas con la punta larga hacia arriba, mismo sentido de corte). Sin ángulo = corte a 90°."
+            else "Todas las piezas se cortan a 90°.",
+            M, y + 7f, 6.8f, GRIS, false, anchoBarra,
+        )
+        y += 12f
+        val ventanasUsadas = plan.grupos.flatMap { g -> g.varillas.flatMap { v -> v.piezas.map { it.ventana } } }.distinct().sorted()
+        var xl = M
+        texto("Color = ventana:", xl, y + 7f, 6.8f, GRIS); xl += 52f
+        for (nv in ventanasUsadas) {
+            if (xl + 24f > W - M) break
+            rect(xl, y, xl + 22f, y + 9f, BarraVarillaView.colorVentana(nv))
+            texto("V$nv", xl + 3f, y + 7f, 6.4f, Color.BLACK)
+            xl += 26f
+        }
+        y += 16f
+
         for (g in plan.grupos) {
-            var yy = nueva("CORTES · ${g.perfil.uppercase(Locale("es", "PE"))}")
-            texto("${g.sistema}  ·  ${g.color}  ·  ${g.varillas.size} varillas de ${g.largoVarillaMm} mm", M, yy + 8f, 8.4f, AZUL, true)
-            yy += 18f
+            if (y + altoEncabezado + pasoBarra > H - 40f) { cerrar(); y = nueva("CORTES POR PERFIL (cont.)") }
+            rect(M, y, W - M, y + altoEncabezado - 2f, CELESTE)
+            texto("${g.perfil.uppercase(Locale("es", "PE"))}  ·  ${g.sistema}  ·  ${g.color}", M + 4f, y + 9f, 7.6f, AZUL, true, anchoBarra * 0.62f)
+            val resumenG = "${g.varillas.size} varilla${if (g.varillas.size == 1) "" else "s"} de ${g.largoVarillaMm} mm  ·  corte a ${g.angulo}°"
+            val pr = pintura(7f, AZUL, false)
+            c.drawText(resumenG, W - M - 4f - pr.measureText(resumenG), y + 9f, pr)
+            y += altoEncabezado + 2f
             g.varillas.forEachIndexed { idx, v ->
-                if (yy + 44f > H - 40f) { cerrar(); yy = nueva("CORTES · ${g.perfil.uppercase(Locale("es", "PE"))} (cont.)") }
-                texto("Varilla ${idx + 1}   ·   usado ${v.usadoMm} mm   ·   sobrante ${v.sobranteMm} mm" + if (v.sobranteMm >= g.retazoUtilMm) "  (retazo útil)" else "",
-                    M, yy + 8f, 7.6f, Color.BLACK, true)
-                val top = yy + 11f
+                if (y + pasoBarra > H - 40f) {
+                    cerrar(); y = nueva("CORTES POR PERFIL (cont.)")
+                    texto("${g.perfil.uppercase(Locale("es", "PE"))}  ·  ${g.sistema}  ·  ${g.color}  (cont.)", M, y + 7f, 7.2f, AZUL, true)
+                    y += 11f
+                }
+                texto("Varilla ${idx + 1}  ·  usado ${v.usadoMm} mm  ·  sobrante ${v.sobranteMm} mm" + if (v.sobranteMm >= g.retazoUtilMm) "  (retazo útil)" else "",
+                    M, y + 7f, 7f, Color.BLACK, true)
+                val top = y + 10f
                 val esc = anchoBarra / v.largoMm
                 var x = M
-                v.piezas.forEach { pz ->
+                v.piezas.forEachIndexed { i, pz ->
                     val w = pz.largoMm * esc
-                    rect(x, top, x + w, top + 16f, BarraVarillaView.colorVentana(pz.ventana))
-                    c.drawRect(RectF(x, top, x + w, top + 16f), contorno())
-                    if (w > 26f) texto("${pz.largoMm}", x + 2f, top + 7f, 6.4f, Color.BLACK, true, w - 3f)
-                    if (w > 20f) texto("V${pz.ventana}", x + 2f, top + 14f, 5.8f, GRIS, false, w - 3f)
+                    val rel = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = BarraVarillaView.colorVentana(pz.ventana); style = Paint.Style.FILL }
+                    if (pz.angulo == 45) {
+                        val sl = minOf(altoBarra * 0.5f, w * 0.3f)
+                        val tr = android.graphics.Path().apply {
+                            if (true) { moveTo(x, top); lineTo(x + w, top); lineTo(x + w - sl, top + altoBarra); lineTo(x + sl, top + altoBarra) }
+                            else { moveTo(x + sl, top); lineTo(x + w - sl, top); lineTo(x + w, top + altoBarra); lineTo(x, top + altoBarra) }
+                            close()
+                        }
+                        c.drawPath(tr, rel); c.drawPath(tr, contorno())
+                    } else {
+                        c.drawRect(x, top, x + w, top + altoBarra, rel); c.drawRect(RectF(x, top, x + w, top + altoBarra), contorno())
+                    }
+                    if (w > 24f) texto("${pz.largoMm}", x + 3f, top + 8f, 6.8f, Color.BLACK, true, w - 5f)
+                    if (w > 18f) texto("V${pz.ventana}", x + 3f, top + 15.5f, 5.8f, GRIS, false, w - 5f)
                     x += w + p.separacionMm * esc
                 }
-                c.drawRect(RectF(M, top, M + anchoBarra, top + 16f), contorno())
-                // lista legible debajo
-                val lista = v.piezas.joinToString("  +  ") { "${it.largoMm} (V${it.ventana}${if (it.copia > 1) "·${it.copia}" else ""})" }
-                texto(lista, M, top + 25f, 6.6f, GRIS, false, anchoBarra)
-                yy += 46f
+                c.drawRect(RectF(M, top, M + anchoBarra, top + altoBarra), contorno())
+                val lista = v.piezas.joinToString("  +  ") { "${it.largoMm}${if (it.angulo == 45) " ∠45°" else ""} (V${it.ventana}${if (it.copia > 1) "·${it.copia}" else ""})" }
+                texto(lista, M, top + altoBarra + 8f, 6.6f, GRIS, false, anchoBarra)
+                y += pasoBarra
             }
-            cerrar()
+            y += 4f
         }
+        cerrar()
 
         val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
         val archivo = File(dir, "GuiaCorte_${codigo.ifBlank { "SN" }}_${System.currentTimeMillis()}.pdf")

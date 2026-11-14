@@ -4,8 +4,10 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RectF
+import android.graphics.Shader
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
@@ -53,6 +55,16 @@ class WindowPreviewView @JvmOverloads constructor(
         style = Paint.Style.FILL
     }
 
+    private val marcoPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+
+    /** Pintura del marco exterior: el mismo color del perfil un poco más oscuro que el de las hojas, para dar profundidad. */
+    private fun marcoPintura(): Paint {
+        val c = framePaint.color
+        val f = 0.915f
+        marcoPaint.color = Color.argb(Color.alpha(c), (Color.red(c) * f).toInt(), (Color.green(c) * f).toInt(), (Color.blue(c) * f).toInt())
+        return marcoPaint
+    }
+
     /** Color del perfil (#RRGGBB) elegido en las opciones de la ventana; null = blanco. Pinta marco, imposta y hojas. */
     var perfilColorHex: String? = null
         set(value) {
@@ -96,6 +108,9 @@ class WindowPreviewView @JvmOverloads constructor(
     /** "shadows": sombras suaves en perfiles y vidrio (marcado por defecto). */
     var showShadows: Boolean = true
         set(value) { field = value; invalidate() }
+
+    private val junquilloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#B9B9B9"); style = Paint.Style.FILL }
+    private val junquilloFilete = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#DDDDDD"); style = Paint.Style.FILL }
 
     private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.argb(46, 0, 0, 0)
@@ -154,9 +169,10 @@ class WindowPreviewView @JvmOverloads constructor(
     }
 
     private val crosshairPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#333333")
+        color = Color.parseColor("#1A1A1A")
         style = Paint.Style.STROKE
-        strokeWidth = dpToPx(1.8f)
+        // trazo fino: los símbolos de apertura no deben confundirse con travesaños o perfiles de la ventana
+        strokeWidth = dpToPx(0.9f)
         strokeCap = Paint.Cap.ROUND
     }
 
@@ -189,6 +205,9 @@ class WindowPreviewView @JvmOverloads constructor(
     val paneSandwichSub = mutableMapOf<Int, Int>()
     /** Barras de vidrio por paño: "HxV HxV HxV" (horizontales x verticales de cada vidrio). */
     val paneBars = mutableMapOf<Int, String>()
+
+    /** Hojas (índices temporales de las puertas francesas) que no llevan manija: la hoja pasiva. */
+    private val hojasSinManija = mutableSetOf<Int>()
     val paneImpOff = mutableMapOf<Int, String>()
 
     var onDimensionClickListener: ((type: DimensionType, index: Int, currentValue: Int) -> Unit)? = null
@@ -797,13 +816,63 @@ class WindowPreviewView @JvmOverloads constructor(
         }
     }
 
+    /**
+     * Remate de la separación entre dos hojas (visto en el original): en el hueco de ~25 mm que queda entre hojas vecinas
+     * se marca una raya a 12.5 mm del borde de las hojas, arriba y abajo, que es donde empieza y termina la sombra de la hoja.
+     * [x0]..[x1] es el hueco en horizontal y [yAlto]/[yBajo] las alturas de las rayas (o, para huecos horizontales, el reverso).
+     */
+    private fun rematesSeparacion(canvas: Canvas, huecoVertical: Boolean, a0: Float, a1: Float, b0: Float, b1: Float) {
+        if (a1 - a0 < dpToPx(2f)) return
+        if (huecoVertical) {
+            canvas.drawLine(a0, b0, a1, b0, frameBorderPaint)
+            canvas.drawLine(a0, b1, a1, b1, frameBorderPaint)
+        } else {
+            canvas.drawLine(b0, a0, b0, a1, frameBorderPaint)
+            canvas.drawLine(b1, a0, b1, a1, frameBorderPaint)
+        }
+    }
+
+    /** Mitad de la separación entre dos paños vecinos: 12.5 mm por lado (25 mm entre hojas, como en el original). */
+    private fun mitadSeparacion(): Float = (12.5f * pxPorMm).coerceIn(dpToPx(1f), dpToPx(8f))
+
+    /**
+     * Sombra proyectada (abajo/derecha) como en el original: el rectángulo desplazado [off], pero con chaflán diagonal
+     * en las esquinas superior derecha e inferior izquierda, en un solo trazado para no doblar la transparencia.
+     */
+    private fun sombraProyectada(canvas: Canvas, l: Float, t: Float, r: Float, b: Float, off: Float) {
+        val p = android.graphics.Path()
+        p.moveTo(r, t); p.lineTo(r + off, t + off); p.lineTo(r + off, b + off)
+        p.lineTo(l + off, b + off); p.lineTo(l, b); p.lineTo(r, b); p.close()
+        canvas.drawPath(p, shadowPaint)
+    }
+
     /** Píxeles por milímetro de la ventana dibujada (para dibujar las hojas de las aperturas múltiples a escala). */
     private var pxPorMm = 1f
 
+    /**
+     * Ajusta junquillo, manija y bordes al color del perfil, como hace el original: en un perfil oscuro el junquillo y los
+     * bordes son aún más oscuros y la manija es del mismo tono del perfil (no blanca). Con blanco/crema queda como siempre.
+     */
+    private fun ajustarTonosAlPerfil() {
+        val c = framePaint.color
+        val lum = 0.299f * Color.red(c) + 0.587f * Color.green(c) + 0.114f * Color.blue(c)
+        fun esc(f: Float) = Color.rgb((Color.red(c) * f).toInt().coerceIn(0, 255), (Color.green(c) * f).toInt().coerceIn(0, 255), (Color.blue(c) * f).toInt().coerceIn(0, 255))
+        if (lum > 200f) {
+            junquilloPaint.color = Color.parseColor("#B9B9B9"); junquilloFilete.color = Color.parseColor("#DDDDDD")
+            frameBorderPaint.color = Color.parseColor("#333333")
+            handlePlatePaint.color = Color.WHITE; metalBordePaint.color = Color.parseColor("#4A4A4A")
+        } else {
+            junquilloPaint.color = esc(0.72f); junquilloFilete.color = esc(0.87f)
+            frameBorderPaint.color = Color.rgb(minOf(51, (Color.red(c) * 0.6f).toInt()), minOf(51, (Color.green(c) * 0.6f).toInt()), minOf(51, (Color.blue(c) * 0.6f).toInt()))
+            handlePlatePaint.color = esc(1.18f); metalBordePaint.color = esc(0.5f)
+        }
+    }
+
     private fun drawWindowConfig(canvas: Canvas, rect: RectF, cfg: WindowConfig) {
+        ajustarTonosAlPerfil()
         pxPorMm = rect.width() / anchoTotalMm.toFloat().coerceAtLeast(1f)
         if (showShadows && cfg.layoutType != WindowConfig.LayoutType.ARBOL) {
-            canvas.drawRect(rect.left + dpToPx(2.5f), rect.top + dpToPx(2.5f), rect.right + dpToPx(2.5f), rect.bottom + dpToPx(2.5f), shadowPaint)
+            sombraProyectada(canvas, rect.left, rect.top, rect.right, rect.bottom, dpToPx(2.5f))
         }
         val frameThickness = if (showTechnicalDetails) dpToPx(7f) else dpToPx(3f)
 
@@ -875,6 +944,7 @@ class WindowPreviewView @JvmOverloads constructor(
         var glassT = pT
         var glassR = pR
         var glassB = pB
+        var beadW = 0f   // junquillo (marco gris) alrededor del vidrio
 
         // Hoja: toda apertura distinta de "sin apertura" (y toda puerta) lleva perfil de hoja alrededor del vidrio y manija.
         val mecanismo = paneMechanisms[paneIndex] ?: "5"
@@ -882,22 +952,37 @@ class WindowPreviewView @JvmOverloads constructor(
         var grosorManija = -1f
         if (tieneHoja) {
             val ladoMin = Math.min(pR - pL, pB - pT)
-            val sashThickness = (ladoMin * (if (isPuerta) 0.11f else 0.075f))
-                .coerceIn(dpToPx(2f), dpToPx(if (isPuerta) 9f else 7f))
+            // Perfil de la hoja a escala (62 mm; 94 mm en puertas), sin pasar del 20 % del lado menor
+            val sashThickness = ((if (isPuerta) 94f else 62f) * pxPorMm)
+                .coerceIn(dpToPx(2f), maxOf(dpToPx(2f), ladoMin * 0.2f))
+            beadW = (16f * pxPorMm).coerceIn(dpToPx(1.5f), sashThickness * 0.6f)
 
             if (showShadows) {
                 // sombra de la hoja sobre el marco (abajo/derecha)
-                canvas.drawRect(pL + dpToPx(1.2f), pT + dpToPx(1.2f), pR + dpToPx(1.2f), pB + dpToPx(1.2f), shadowPaint)
+                val off = (12f * pxPorMm).coerceIn(dpToPx(1.2f), dpToPx(6f))
+                sombraProyectada(canvas, pL, pT, pR, pB, off)
             }
             canvas.drawRect(pL, pT, pR, pB, framePaint)
             canvas.drawRect(pL, pT, pR, pB, frameBorderPaint)
 
-            glassL = pL + sashThickness
-            glassT = pT + sashThickness
-            glassR = pR - sashThickness
-            glassB = pB - sashThickness
+            // Junquillo: franja gris alrededor del vidrio con un filete más claro por dentro
+            val jl = pL + sashThickness; val jt = pT + sashThickness; val jr = pR - sashThickness; val jb = pB - sashThickness
+            if (jr - jl > 2 * beadW + dpToPx(2f) && jb - jt > 2 * beadW + dpToPx(2f)) {
+                canvas.drawRect(jl, jt, jr, jb, junquilloFilete)          // abajo y derecha: claro
+                val oscuro = android.graphics.Path().apply {              // arriba e izquierda: oscuro, con inglete, en una sola pieza
+                    moveTo(jl, jt); lineTo(jr, jt); lineTo(jr - beadW, jt + beadW); lineTo(jl + beadW, jt + beadW)
+                    lineTo(jl + beadW, jb - beadW); lineTo(jl, jb); close()
+                }
+                canvas.drawPath(oscuro, junquilloPaint)
+                canvas.drawRect(jl, jt, jr, jb, frameBorderPaint)
+            } else beadW = 0f
 
-            if (mecanismo != "10" && (pR - pL) > dpToPx(28f) && (pB - pT) > dpToPx(28f)) grosorManija = sashThickness
+            glassL = pL + sashThickness + beadW
+            glassT = pT + sashThickness + beadW
+            glassR = pR - sashThickness - beadW
+            glassB = pB - sashThickness - beadW
+
+            if (mecanismo != "10" && paneIndex !in hojasSinManija && (pR - pL) > dpToPx(28f) && (pB - pT) > dpToPx(28f)) grosorManija = sashThickness
         }
 
         val imp = (paneCols[paneIndex] ?: 0).let { if (it in 11..14) it - 10 else 0 }
@@ -911,8 +996,9 @@ class WindowPreviewView @JvmOverloads constructor(
 
         if (showShadows && glassR - glassL > dpToPx(6f) && glassB - glassT > dpToPx(6f)) {
             // sombra interior del perfil sobre el vidrio (arriba e izquierda)
-            canvas.drawRect(glassL, glassT, glassR, glassT + dpToPx(2.5f), shadowPaint)
-            canvas.drawRect(glassL, glassT, glassL + dpToPx(1.8f), glassB, shadowPaint)
+            val franja = (26f * pxPorMm).coerceAtLeast(dpToPx(2.5f))
+            canvas.drawRect(glassL, glassT, glassR, glassT + minOf(franja, (glassB - glassT) * 0.3f), shadowPaint)
+            canvas.drawRect(glassL, glassT, glassL + minOf(franja, (glassR - glassL) * 0.3f), glassB, shadowPaint)
         }
 
         if (isMosqNet) {
@@ -927,7 +1013,9 @@ class WindowPreviewView @JvmOverloads constructor(
             }
         }
 
-        if (grosorManija >= 0f) dibujarManija(canvas, mecanismo, glassL, glassT, glassR, glassB, grosorManija)
+        if (grosorManija >= 0f) {
+            dibujarManija(canvas, mecanismo, glassL - beadW, glassT - beadW, glassR + beadW, glassB + beadW, grosorManija, isPuerta)
+        }
 
         val paneRect = RectF(pL, pT, pR, pB)
         if (showTechnicalDetails) {
@@ -978,27 +1066,31 @@ class WindowPreviewView @JvmOverloads constructor(
             }
 
             "4" -> {
-                canvas.drawLine(glassL + padding, glassT + padding, glassR - padding, cY, crosshairPaint)
-                canvas.drawLine(glassL + padding, glassB - padding, glassR - padding, cY, crosshairPaint)
+                // Vértice hacia la manija (izquierda)
+                canvas.drawLine(glassR - padding, glassT + padding, glassL + padding, cY, crosshairPaint)
+                canvas.drawLine(glassR - padding, glassB - padding, glassL + padding, cY, crosshairPaint)
             }
 
             "6" -> {
-                canvas.drawLine(glassR - padding, glassT + padding, glassL + padding, cY, crosshairPaint)
-                canvas.drawLine(glassR - padding, glassB - padding, glassL + padding, cY, crosshairPaint)
+                // Vértice hacia la manija (derecha)
+                canvas.drawLine(glassL + padding, glassT + padding, glassR - padding, cY, crosshairPaint)
+                canvas.drawLine(glassL + padding, glassB - padding, glassR - padding, cY, crosshairPaint)
             }
 
             "7" -> {
-                canvas.drawLine(glassL + padding, glassT + padding, glassR - padding, cY, crosshairPaint)
-                canvas.drawLine(glassL + padding, glassB - padding, glassR - padding, cY, crosshairPaint)
-                canvas.drawLine(glassL + padding, glassT + padding, cX, glassB - padding, crosshairPaint)
-                canvas.drawLine(glassR - padding, glassT + padding, cX, glassB - padding, crosshairPaint)
+                // Giro con vértice hacia la manija (izquierda) + abatible superior (vértice arriba), como en el selector
+                canvas.drawLine(glassR - padding, glassT + padding, glassL + padding, cY, crosshairPaint)
+                canvas.drawLine(glassR - padding, glassB - padding, glassL + padding, cY, crosshairPaint)
+                canvas.drawLine(glassL + padding, glassB - padding, cX, glassT + padding, crosshairPaint)
+                canvas.drawLine(glassR - padding, glassB - padding, cX, glassT + padding, crosshairPaint)
             }
 
             "8" -> {
-                canvas.drawLine(glassR - padding, glassT + padding, glassL + padding, cY, crosshairPaint)
-                canvas.drawLine(glassR - padding, glassB - padding, glassL + padding, cY, crosshairPaint)
-                canvas.drawLine(glassL + padding, glassT + padding, cX, glassB - padding, crosshairPaint)
-                canvas.drawLine(glassR - padding, glassT + padding, cX, glassB - padding, crosshairPaint)
+                // Giro con vértice hacia la manija (derecha) + abatible superior (vértice arriba), como en el selector
+                canvas.drawLine(glassL + padding, glassT + padding, glassR - padding, cY, crosshairPaint)
+                canvas.drawLine(glassL + padding, glassB - padding, glassR - padding, cY, crosshairPaint)
+                canvas.drawLine(glassL + padding, glassB - padding, cX, glassT + padding, crosshairPaint)
+                canvas.drawLine(glassR - padding, glassB - padding, cX, glassT + padding, crosshairPaint)
             }
 
             else -> {
@@ -1078,8 +1170,9 @@ class WindowPreviewView @JvmOverloads constructor(
         val hM = (pB - pT) / pxM.toDouble()
         val hojas = AperturasMulti.hojas(mec, wM, hM, isPuerta)
         val impMulti = (paneCols[paneIndex] ?: 0).let { if (it in 11..14) it - 10 else 0 }.takeIf { AperturasMulti.impostaPermitida(mec, it) } ?: 0
-        if (showShadows) canvas.drawRect(pL + dpToPx(1.2f), pT + dpToPx(1.2f), pR + dpToPx(1.2f), pB + dpToPx(1.2f), shadowPaint)
-        canvas.drawRect(pL, pT, pR, pB, frameBorderPaint)
+        val sinContornoPano = AperturasMulti.grupo(mec) == AperturasMulti.Grupo.FRANCESA
+        if (showShadows && !sinContornoPano) sombraProyectada(canvas, pL, pT, pR, pB, dpToPx(1.2f))
+        if (!sinContornoPano) canvas.drawRect(pL, pT, pR, pB, frameBorderPaint)
         val esFrancesa = AperturasMulti.grupo(mec) == AperturasMulti.Grupo.FRANCESA
         val basc = if (esFrancesa) AperturasMulti.francesaBasculante(AperturasMulti.clave(mec)) else null
         val vertical = AperturasMulti.grupo(mec) == AperturasMulti.Grupo.CORREDIZA_VERT
@@ -1088,6 +1181,13 @@ class WindowPreviewView @JvmOverloads constructor(
             val gr = gl + (h.ancho * pxM).toFloat(); val gb = gt + (h.alto * pxM).toFloat()
             val pf = (h.perfil * pxM).toFloat()
             val ol = Math.max(pL, gl - pf); val ot = Math.max(pT, gt - pf); val orr = Math.min(pR, gr + pf); val ob = Math.min(pB, gb + pf)
+            if (esFrancesa) {
+                // Dos hojas iguales que se reparten el paño, con ~26 mm de separación (como dos paños practicables)
+                val mitad = (pL + pR) / 2f
+                val separacion = 26f * pxPorMm
+                if (gr > gl && gb > gt) dibujarHojaFrancesa(canvas, if (i == 0) pL else mitad + separacion / 2f, pT, if (i == 0) mitad - separacion / 2f else pR, pB, paneIndex, i, h.manija, basc, row, col)
+                continue
+            }
             canvas.drawRect(ol, ot, orr, ob, framePaint)
             canvas.drawRect(ol, ot, orr, ob, frameBorderPaint)
             if (gr <= gl || gb <= gt) continue
@@ -1114,14 +1214,14 @@ class WindowPreviewView @JvmOverloads constructor(
                 if (esFrancesa) {
                     val izq = i == 0
                     val pad = dpToPx(2f)
-                    // bisagra en el lado exterior: el vértice del símbolo apunta a ella
+                    // manijas al centro: el vértice del símbolo apunta hacia ellas
                     if (izq) {
-                        canvas.drawLine(gr - pad, gt + pad, gl + pad, cy, crosshairPaint); canvas.drawLine(gr - pad, gb - pad, gl + pad, cy, crosshairPaint)
-                    } else {
                         canvas.drawLine(gl + pad, gt + pad, gr - pad, cy, crosshairPaint); canvas.drawLine(gl + pad, gb - pad, gr - pad, cy, crosshairPaint)
+                    } else {
+                        canvas.drawLine(gr - pad, gt + pad, gl + pad, cy, crosshairPaint); canvas.drawLine(gr - pad, gb - pad, gl + pad, cy, crosshairPaint)
                     }
                     if ((izq && basc == 'L') || (!izq && basc == 'R')) {
-                        canvas.drawLine(gl + pad, gt + pad, cx, gb - pad, crosshairPaint); canvas.drawLine(gr - pad, gt + pad, cx, gb - pad, crosshairPaint)
+                        canvas.drawLine(gl + pad, gb - pad, cx, gt + pad, crosshairPaint); canvas.drawLine(gr - pad, gb - pad, cx, gt + pad, crosshairPaint)
                     }
                 } else if (h.movil) {
                     val (dx, dy) = when (h.dir) { 'L' -> -1f to 0f; 'R' -> 1f to 0f; 'U' -> 0f to -1f; else -> 0f to 1f }
@@ -1134,44 +1234,213 @@ class WindowPreviewView @JvmOverloads constructor(
                     vertical -> if (h.dir == 'U') "9" else "2"
                     else -> if (h.dir == 'L') "3" else "1"
                 }
-                dibujarManija(canvas, m, gl, gt, gr, gb, pf.coerceIn(dpToPx(2f), dpToPx(8f)))
+                dibujarManija(canvas, m, gl, gt, gr, gb, pf.coerceIn(dpToPx(2f), dpToPx(8f)), esFrancesa)
             }
         }
         if (showTechnicalDetails) paneAreas.add(PaneArea(RectF(pL, pT, pR, pB), paneIndex, row, col))
     }
 
     /**
-     * Manija de la hoja, en el lado contrario a la bisagra (el vértice del símbolo de apertura apunta a la bisagra):
-     * "4"/"7" bisagra a la derecha => manija a la izquierda; "6"/"8" al revés; "2" bisagra abajo => manija arriba; "9" al revés;
-     * corredizas: manija del lado hacia el que corren ("1" derecha, "3" izquierda).
+     * Una hoja de la puerta francesa se dibuja con el mismo estilo de un paño normal (perfil con sombra, vidrio con
+     * marco, símbolo de apertura y manija): se le asigna un paño temporal con el equivalente de la hoja
+     * ("6"/"8" la izquierda, con la manija hacia el centro; "4"/"7" la derecha) y se dibuja con [drawSinglePane].
      */
-    private fun dibujarManija(canvas: Canvas, mec: String, gL: Float, gT: Float, gR: Float, gB: Float, grosorHoja: Float) {
+    private fun dibujarHojaFrancesa(canvas: Canvas, l: Float, t: Float, r: Float, b: Float, paneIndex: Int, i: Int, manija: Boolean, basc: Char?, row: Int, col: Int) {
+        val tmp = 100000 + paneIndex * 10 + i
+        paneMechanisms[tmp] = if (i == 0) (if (basc == 'L') "8" else "6") else (if (basc == 'R') "7" else "4")
+        panePuerta[tmp] = false
+        val sandwichHoja = paneSandwichSub[paneIndex]?.let { ((it shr i) and 1) == 1 } ?: (paneSandwich[paneIndex] == true)
+        paneSandwich[tmp] = sandwichHoja
+        paneMosqNet[tmp] = paneMosqNet[paneIndex] == true
+        paneCols[paneIndex]?.let { paneCols[tmp] = it }
+        paneSandwichSub[paneIndex]?.let { paneSandwichSub[tmp] = it }
+        paneBars[paneIndex]?.trim()?.split(" ")?.filter { it.isNotBlank() }?.getOrNull(i)?.let { paneBars[tmp] = it }
+        if (!manija) hojasSinManija.add(tmp)
+        val areas = paneAreas.size
+        drawSinglePane(canvas, l, t, r, b, tmp, row, col)
+        while (paneAreas.size > areas) paneAreas.removeAt(paneAreas.size - 1)
+        hojasSinManija.remove(tmp)
+        paneMechanisms.remove(tmp); panePuerta.remove(tmp); paneSandwich.remove(tmp); paneMosqNet.remove(tmp)
+        paneCols.remove(tmp); paneSandwichSub.remove(tmp); paneBars.remove(tmp)
+    }
+
+    // ---------- herrajes: manijas y bisagras con detalle ----------
+    private val metalPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+    private val metalBordePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#4A4A4A"); style = Paint.Style.STROKE; strokeWidth = dpToPx(0.7f)
+    }
+    private val manijaSombraPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(50, 0, 0, 0); style = Paint.Style.FILL }
+    private val herrajeSombraPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(70, 0, 0, 0); style = Paint.Style.FILL }
+    private val herrajeDetallePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#5E5E5E"); style = Paint.Style.FILL }
+    private val herrajeBrilloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(210, 255, 255, 255); style = Paint.Style.STROKE; strokeWidth = dpToPx(0.7f); strokeCap = Paint.Cap.ROUND
+    }
+
+    /** Relleno metálico con degradado (claro, brillo, sombra) a lo ancho de [r] o, si [alAncho] es false, a lo alto. */
+    private fun metalizar(r: RectF, alAncho: Boolean, oscuro: Boolean = false): Paint {
+        val c = if (oscuro) intArrayOf(0xFF8E8E8E.toInt(), 0xFFE2E2E2.toInt(), 0xFF7C7C7C.toInt())
+        else intArrayOf(0xFFCFCFCF.toInt(), 0xFFFFFFFF.toInt(), 0xFFB0B0B0.toInt())
+        val pos = floatArrayOf(0f, 0.42f, 1f)
+        metalPaint.shader = if (alAncho) LinearGradient(r.left, 0f, r.right, 0f, c, pos, Shader.TileMode.CLAMP)
+        else LinearGradient(0f, r.top, 0f, r.bottom, c, pos, Shader.TileMode.CLAMP)
+        return metalPaint
+    }
+
+    private fun pieza(canvas: Canvas, r: RectF, radio: Float, alAncho: Boolean = true, oscuro: Boolean = false, sombra: Boolean = true) {
+        if (sombra) {
+            val o = dpToPx(0.8f)
+            canvas.drawRoundRect(RectF(r.left + o, r.top + o, r.right + o, r.bottom + o), radio, radio, herrajeSombraPaint)
+        }
+        canvas.drawRoundRect(r, radio, radio, metalizar(r, alAncho, oscuro))
+        canvas.drawRoundRect(r, radio, radio, metalBordePaint)
+    }
+
+    /** Lado de la hoja donde van las bisagras (el contrario a la manija en las hojas que giran); null si no lleva. */
+    private fun ladoBisagra(mec: String, puerta: Boolean): Char? = when (mec) {
+        "4", "7" -> 'R'
+        "6", "8" -> 'L'
+        "2" -> 'B'
+        "9" -> 'T'
+        "1", "3", "10" -> null
+        else -> if (puerta) 'L' else null
+    }
+
+    /** Bisagras (2 o 3 charnelas) sobre el perfil de la hoja, en el [lado] indicado ('L', 'R', 'T' o 'B'). */
+    private fun dibujarBisagras(canvas: Canvas, lado: Char, gL: Float, gT: Float, gR: Float, gB: Float, grosor: Float, cantidad: Int) {
+        val horizontal = lado == 'T' || lado == 'B'
+        val largoLado = if (horizontal) gR - gL else gB - gT
+        if (largoLado < dpToPx(36f)) return
+        val g = grosor.coerceIn(dpToPx(3f), dpToPx(8f))
+        val w = g * 0.8f
+        val l = maxOf(g * 2.2f, dpToPx(6f))
+        val fracs = if (cantidad >= 3) floatArrayOf(0.12f, 0.5f, 0.88f) else floatArrayOf(0.14f, 0.86f)
+        for (f in fracs) {
+            val r = when (lado) {
+                'L' -> { val x = gL - grosor / 2f; val y = gT + largoLado * f; RectF(x - w / 2f, y - l / 2f, x + w / 2f, y + l / 2f) }
+                'R' -> { val x = gR + grosor / 2f; val y = gT + largoLado * f; RectF(x - w / 2f, y - l / 2f, x + w / 2f, y + l / 2f) }
+                'T' -> { val y = gT - grosor / 2f; val x = gL + largoLado * f; RectF(x - l / 2f, y - w / 2f, x + l / 2f, y + w / 2f) }
+                else -> { val y = gB + grosor / 2f; val x = gL + largoLado * f; RectF(x - l / 2f, y - w / 2f, x + l / 2f, y + w / 2f) }
+            }
+            pieza(canvas, r, dpToPx(0.8f), alAncho = !horizontal, oscuro = true)
+            // charnela: la línea del eje y los dos tornillos
+            if (horizontal) canvas.drawLine(r.centerX(), r.top, r.centerX(), r.bottom, metalBordePaint)
+            else canvas.drawLine(r.left, r.centerY(), r.right, r.centerY(), metalBordePaint)
+            val t = w * 0.12f
+            if (horizontal) { canvas.drawCircle(r.left + l * 0.18f, r.centerY(), t, herrajeDetallePaint); canvas.drawCircle(r.right - l * 0.18f, r.centerY(), t, herrajeDetallePaint) }
+            else { canvas.drawCircle(r.centerX(), r.top + l * 0.18f, t, herrajeDetallePaint); canvas.drawCircle(r.centerX(), r.bottom - l * 0.18f, t, herrajeDetallePaint) }
+        }
+    }
+
+    /**
+     * Manija sencilla de la hoja (la que se usa): placa blanca con borde fino y palanca que cuelga del eje, con su sombra.
+     * Va en el lado contrario a la bisagra: "4"/"7"/"3" izquierda, "6"/"8"/"1" derecha, "2" arriba y "9" abajo (palanca de lado).
+     *
+     * Medidas reales (mm, tomadas de las capturas del original): placa 37 x 80, palanca de 25 de ancho que arranca a 27 del
+     * borde de la placa y llega a 160 en total (90 en corredizas; igual en puertas). Se dibuja a la escala de la ventana
+     * ([pxPorMm]) pero se acota para que siempre sea coherente con la hoja: no pasa del 30 % del lado donde va, la placa
+     * cabe dentro del perfil y, si quedaría demasiado pequeña para verse, no se dibuja.
+     */
+    private fun dibujarManija(canvas: Canvas, mec: String, gL: Float, gT: Float, gR: Float, gB: Float, grosorHoja: Float, puerta: Boolean = false) {
         val cx = (gL + gR) / 2f
         val cy = (gT + gB) / 2f
-        val placaL = dpToPx(11f)
-        val placaG = Math.max(grosorHoja * 0.7f, dpToPx(2f))
-        val vertical = when (mec) { "2", "9" -> false; else -> true }
+        val lado = when (mec) { "4", "7", "3" -> 'L'; "2" -> 'T'; "9" -> 'B'; else -> 'R' }
+        val horizontal = lado == 'T' || lado == 'B'
+        val largoLado = if (horizontal) gR - gL else gB - gT
+        val deslizante = (mec == "1" || mec == "3") && !puerta
+        val totalMm = if (deslizante) 90f else 160f
+        var k = pxPorMm
+        k = minOf(k, largoLado * 0.30f / totalMm)      // como máximo el 30 % del lado de la hoja
+        k = minOf(k, grosorHoja * 0.8f / 37f)          // la placa cabe en el perfil
+        if (totalMm * k < dpToPx(6f)) return           // demasiado pequeña para verse
         val mx: Float
         val my: Float
-        when (mec) {
-            "4", "7", "3" -> { mx = gL - grosorHoja / 2f; my = cy }
-            "2" -> { mx = cx; my = gT - grosorHoja / 2f }
-            "9" -> { mx = cx; my = gB + grosorHoja / 2f }
-            else -> { mx = gR + grosorHoja / 2f; my = cy } // "6", "8", "1" y puertas
+        when (lado) {
+            'L' -> { mx = gL - grosorHoja / 2f; my = cy }
+            'T' -> { mx = cx; my = gT - grosorHoja / 2f }
+            'B' -> { mx = cx; my = gB + grosorHoja / 2f }
+            else -> { mx = gR + grosorHoja / 2f; my = cy }
         }
-        val plate = if (vertical) RectF(mx - placaG / 2f, my - placaL / 2f, mx + placaG / 2f, my + placaL / 2f)
-        else RectF(mx - placaL / 2f, my - placaG / 2f, mx + placaL / 2f, my + placaG / 2f)
-        canvas.drawRoundRect(plate, dpToPx(1.2f), dpToPx(1.2f), handlePlatePaint)
-        canvas.drawRoundRect(plate, dpToPx(1.2f), dpToPx(1.2f), frameBorderPaint)
-        // palanca hacia el interior de la hoja
-        val palanca = if (vertical) {
-            val dir = if (mx < cx) 1f else -1f
-            RectF(Math.min(mx, mx + dir * dpToPx(6f)), my - dpToPx(1.3f), Math.max(mx, mx + dir * dpToPx(6f)), my + dpToPx(1.3f))
+        val placa = RectF(-18.5f * k, -40f * k, 18.5f * k, 40f * k)
+        val palanca = RectF(-12.5f * k, -13f * k, 12.5f * k, (totalMm - 40f) * k)
+        canvas.save()
+        canvas.translate(mx, my)
+        if (horizontal) canvas.rotate(-90f)
+        if (showShadows) {
+            // Silueta de la sombra medida del original (u = 1/54 del ancho de la placa): la placa casi no se despega de la hoja
+            // y la palanca, que sobresale, proyecta un bloque desplazado abajo-derecha unido a la placa con una diagonal.
+            val u = placa.width() / 54f
+            val sombra = android.graphics.Path()
+            sombra.moveTo(placa.right, placa.top + 2 * u)
+            sombra.lineTo(placa.right + 11 * u, placa.top + 13 * u)
+            sombra.lineTo(placa.right + 11 * u, placa.top + 62 * u)
+            sombra.lineTo(palanca.right + 49 * u, placa.top + 91 * u)
+            sombra.lineTo(palanca.right + 49 * u, palanca.bottom + 49 * u)
+            sombra.lineTo(palanca.right + 15 * u, palanca.bottom + 49 * u)
+            sombra.lineTo(palanca.right + 15 * u, placa.bottom)
+            sombra.lineTo(placa.right, placa.bottom)
+            sombra.close()
+            canvas.drawPath(sombra, manijaSombraPaint)
+        }
+        canvas.drawRect(placa, handlePlatePaint); canvas.drawRect(placa, metalBordePaint)
+        canvas.drawRect(palanca, handlePlatePaint); canvas.drawRect(palanca, metalBordePaint)
+        canvas.restore()
+    }
+
+    /** (Sin uso) Versión con roseta, tornillos, eje, palanca metálica y cilindro de llave; se conserva por si se necesita. */
+    private fun dibujarManijaDetallada(canvas: Canvas, mec: String, gL: Float, gT: Float, gR: Float, gB: Float, grosorHoja: Float, puerta: Boolean = false) {
+        val cx = (gL + gR) / 2f
+        val cy = (gT + gB) / 2f
+        val lado = when (mec) { "4", "7", "3" -> 'L'; "2" -> 'T'; "9" -> 'B'; else -> 'R' }
+        val horizontal = lado == 'T' || lado == 'B'
+        val largoLado = if (horizontal) gR - gL else gB - gT
+        var g = grosorHoja.coerceIn(dpToPx(3f), dpToPx(8f)) * (if (puerta) 1.15f else 1f)
+        g = minOf(g, largoLado * 0.42f / (if (puerta) 6f else 4.8f))
+        if (g < dpToPx(1.2f)) return
+        val mx: Float
+        val my: Float
+        when (lado) {
+            'L' -> { mx = gL - grosorHoja / 2f; my = cy }
+            'T' -> { mx = cx; my = gT - grosorHoja / 2f }
+            'B' -> { mx = cx; my = gB + grosorHoja / 2f }
+            else -> { mx = gR + grosorHoja / 2f; my = cy }
+        }
+        canvas.save()
+        canvas.translate(mx, my)
+        if (horizontal) canvas.rotate(-90f)
+        val deslizante = (mec == "1" || mec == "3") && !puerta
+        if (deslizante) {
+            // tirador embutido con gancho de cierre
+            val placa = RectF(-g * 0.55f, -g * 2.2f, g * 0.55f, g * 2.2f)
+            pieza(canvas, placa, g * 0.3f)
+            canvas.drawRoundRect(RectF(-g * 0.2f, -g * 1.6f, g * 0.2f, g * 0.5f), g * 0.2f, g * 0.2f, herrajeDetallePaint)
+            val gancho = RectF(-g * 0.34f, g * 0.9f, g * 0.34f, g * 1.7f)
+            pieza(canvas, gancho, g * 0.15f, oscuro = true, sombra = false)
         } else {
-            val dir = if (my < cy) 1f else -1f
-            RectF(mx - dpToPx(1.3f), Math.min(my, my + dir * dpToPx(6f)), mx + dpToPx(1.3f), Math.max(my, my + dir * dpToPx(6f)))
+            val roseta = RectF(-g * 0.6f, -g * 1.5f, g * 0.6f, g * 1.5f)
+            pieza(canvas, roseta, g * 0.3f)
+            canvas.drawCircle(0f, -g * 1.1f, g * 0.13f, herrajeDetallePaint)
+            canvas.drawCircle(0f, g * 1.1f, g * 0.13f, herrajeDetallePaint)
+            // palanca que cuelga del eje
+            val palanca = RectF(-g * 0.3f, -g * 0.1f, g * 0.3f, g * (if (puerta) 4.4f else 3.6f))
+            pieza(canvas, palanca, g * 0.3f)
+            canvas.drawLine(-g * 0.12f, g * 0.6f, -g * 0.12f, palanca.bottom - g * 0.4f, herrajeBrilloPaint)
+            // eje
+            val eje = RectF(-g * 0.4f, -g * 0.4f, g * 0.4f, g * 0.4f)
+            canvas.drawCircle(0f, 0f, g * 0.4f, metalizar(eje, true))
+            canvas.drawCircle(0f, 0f, g * 0.4f, metalBordePaint)
+            canvas.drawCircle(-g * 0.1f, -g * 0.1f, g * 0.12f, herrajeBrilloPaint.apply { style = Paint.Style.FILL })
+            herrajeBrilloPaint.style = Paint.Style.STROKE
+            if (puerta) {
+                // cilindro de llave sobre la roseta
+                val cil = RectF(-g * 0.42f, -g * 2.9f, g * 0.42f, -g * 2.06f)
+                canvas.drawCircle(0f, -g * 2.48f, g * 0.42f, metalizar(cil, true, oscuro = true))
+                canvas.drawCircle(0f, -g * 2.48f, g * 0.42f, metalBordePaint)
+                canvas.drawCircle(0f, -g * 2.56f, g * 0.1f, herrajeDetallePaint)
+                canvas.drawRect(-g * 0.04f, -g * 2.56f, g * 0.04f, -g * 2.2f, herrajeDetallePaint)
+            }
         }
-        canvas.drawRoundRect(palanca, dpToPx(1f), dpToPx(1f), doorHandlePaint)
+        canvas.restore()
+        metalPaint.shader = null
     }
 
     private val barraVidrioPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -1205,7 +1474,7 @@ class WindowPreviewView @JvmOverloads constructor(
     private fun getActiveLayoutCols(cfg: WindowConfig): Int = cfg.colsActivas()
 
     private fun drawGrid(canvas: Canvas, rect: RectF, cols: Int, rows: Int, t: Float) {
-        canvas.drawRect(rect, framePaint)
+        canvas.drawRect(rect, marcoPintura())
         canvas.drawRect(rect, frameBorderPaint)
 
         val innerL = rect.left + t
@@ -1223,23 +1492,27 @@ class WindowPreviewView @JvmOverloads constructor(
 
         var currentY = innerT
         val padding = dpToPx(1f)
+        // Entre dos paños vecinos queda ~26 mm (13 mm por lado), como en el original; pegados al marco, casi nada
+        val mitadSep = mitadSeparacion().coerceAtLeast(padding)
 
         var pIdx = 0
         for (r in 0 until rows) {
             val rowRatio = activeHeights[r] / totalHVal
             val cellH = totalInnerH * rowRatio
-            val pT = currentY + padding
-            val pB = (currentY + cellH - padding).coerceAtMost(innerB - padding)
+            val pT = currentY + (if (r == 0) padding else mitadSep)
+            val pB = (currentY + cellH - (if (r == rows - 1) padding else mitadSep)).coerceAtMost(innerB - padding)
 
             var currentX = innerL
             for (c in 0 until cols) {
                 val colRatio = activeWidths[c] / totalWVal
                 val cellW = totalInnerW * colRatio
-                val pL = currentX + padding
-                val pR = (currentX + cellW - padding).coerceAtMost(innerR - padding)
+                val pL = currentX + (if (c == 0) padding else mitadSep)
+                val pR = (currentX + cellW - (if (c == cols - 1) padding else mitadSep)).coerceAtMost(innerR - padding)
 
                 if (pR > pL && pB > pT) {
                     drawPaneWithMechanism(canvas, pL, pT, pR, pB, paneIndex = pIdx, row = r, col = c)
+                    if (c < cols - 1) rematesSeparacion(canvas, true, pR, pR + 2 * mitadSep, pT + mitadSep, pB - mitadSep)
+                    if (r < rows - 1) rematesSeparacion(canvas, false, pB, pB + 2 * mitadSep, pL + mitadSep, pR - mitadSep)
                 }
                 pIdx++
                 currentX += cellW
@@ -1249,7 +1522,7 @@ class WindowPreviewView @JvmOverloads constructor(
     }
 
     private fun drawTopTransom(canvas: Canvas, rect: RectF, cols: Int, t: Float) {
-        canvas.drawRect(rect, framePaint)
+        canvas.drawRect(rect, marcoPintura())
         canvas.drawRect(rect, frameBorderPaint)
 
         val innerL = rect.left + t
@@ -1262,21 +1535,22 @@ class WindowPreviewView @JvmOverloads constructor(
         val transomRatio = activeHeights[0] / totalHSum
         val transomH = (innerB - innerT) * transomRatio
         val padding = dpToPx(1f)
+        val sep = mitadSeparacion().coerceAtLeast(padding)   // entre paños vecinos
 
-        drawPaneWithMechanism(canvas, innerL + padding, innerT + padding, innerR - padding, innerT + transomH - padding, paneIndex = 0)
+        drawPaneWithMechanism(canvas, innerL + padding, innerT + padding, innerR - padding, innerT + transomH - sep, paneIndex = 0)
 
         val cellW = (innerR - innerL) / cols
-        val bottomT = innerT + transomH + padding
+        val bottomT = innerT + transomH + sep
 
         for (c in 0 until cols) {
-            val pL = innerL + c * cellW + padding
-            val pR = (innerL + (c + 1) * cellW - padding).coerceAtMost(innerR - padding)
+            val pL = innerL + c * cellW + (if (c == 0) padding else sep)
+            val pR = (innerL + (c + 1) * cellW - (if (c == cols - 1) padding else sep)).coerceAtMost(innerR - padding)
             drawPaneWithMechanism(canvas, pL, bottomT, pR, innerB - padding, paneIndex = c + 1)
         }
     }
 
     private fun drawBottomTransom(canvas: Canvas, rect: RectF, cols: Int, t: Float) {
-        canvas.drawRect(rect, framePaint)
+        canvas.drawRect(rect, marcoPintura())
         canvas.drawRect(rect, frameBorderPaint)
 
         val innerL = rect.left + t
@@ -1289,19 +1563,20 @@ class WindowPreviewView @JvmOverloads constructor(
         val mainRatio = activeHeights[0] / totalHSum
         val topB = innerT + (innerB - innerT) * mainRatio
         val padding = dpToPx(1f)
+        val sep = mitadSeparacion().coerceAtLeast(padding)   // entre paños vecinos
 
         val cellW = (innerR - innerL) / cols
         for (c in 0 until cols) {
-            val pL = innerL + c * cellW + padding
-            val pR = (innerL + (c + 1) * cellW - padding).coerceAtMost(innerR - padding)
-            drawPaneWithMechanism(canvas, pL, innerT + padding, pR, topB - padding, paneIndex = c)
+            val pL = innerL + c * cellW + (if (c == 0) padding else sep)
+            val pR = (innerL + (c + 1) * cellW - (if (c == cols - 1) padding else sep)).coerceAtMost(innerR - padding)
+            drawPaneWithMechanism(canvas, pL, innerT + padding, pR, topB - sep, paneIndex = c)
         }
 
-        drawPaneWithMechanism(canvas, innerL + padding, topB + padding, innerR - padding, innerB - padding, paneIndex = cols)
+        drawPaneWithMechanism(canvas, innerL + padding, topB + sep, innerR - padding, innerB - padding, paneIndex = cols)
     }
 
     private fun drawTopBottomTransom(canvas: Canvas, rect: RectF, cols: Int, t: Float) {
-        canvas.drawRect(rect, framePaint)
+        canvas.drawRect(rect, marcoPintura())
         canvas.drawRect(rect, frameBorderPaint)
 
         val innerL = rect.left + t
@@ -1319,20 +1594,21 @@ class WindowPreviewView @JvmOverloads constructor(
         val topH = totalH * topRatio
         val midH = totalH * midRatio
         val padding = dpToPx(1f)
+        val sep = mitadSeparacion().coerceAtLeast(padding)   // entre paños vecinos
 
-        drawPaneWithMechanism(canvas, innerL + padding, innerT + padding, innerR - padding, innerT + topH - padding, paneIndex = 0)
+        drawPaneWithMechanism(canvas, innerL + padding, innerT + padding, innerR - padding, innerT + topH - sep, paneIndex = 0)
 
         val cellW = (innerR - innerL) / cols
-        val midT = innerT + topH + padding
-        val midB = midT + midH - padding * 2f
+        val midT = innerT + topH + sep
+        val midB = midT + midH - sep * 2f
 
         for (c in 0 until cols) {
-            val pL = innerL + c * cellW + padding
-            val pR = (innerL + (c + 1) * cellW - padding).coerceAtMost(innerR - padding)
+            val pL = innerL + c * cellW + (if (c == 0) padding else sep)
+            val pR = (innerL + (c + 1) * cellW - (if (c == cols - 1) padding else sep)).coerceAtMost(innerR - padding)
             drawPaneWithMechanism(canvas, pL, midT, pR, midB, paneIndex = c + 1)
         }
 
-        drawPaneWithMechanism(canvas, innerL + padding, midB + padding * 2f, innerR - padding, innerB - padding, paneIndex = cols + 1)
+        drawPaneWithMechanism(canvas, innerL + padding, midB + sep * 2f, innerR - padding, innerB - padding, paneIndex = cols + 1)
     }
 
     private fun drawDoorL(canvas: Canvas, rect: RectF, isLeftDoor: Boolean, hasTransom: Boolean, t: Float) {
@@ -1344,14 +1620,14 @@ class WindowPreviewView @JvmOverloads constructor(
         val windowBottomY = rect.top + (rect.height() * mainRatio)
 
         if (isLeftDoor) {
-            canvas.drawRect(rect.left, rect.top, splitX, rect.bottom, framePaint)
+            canvas.drawRect(rect.left, rect.top, splitX, rect.bottom, marcoPintura())
             canvas.drawRect(rect.left, rect.top, splitX, rect.bottom, frameBorderPaint)
-            canvas.drawRect(splitX, rect.top, rect.right, windowBottomY, framePaint)
+            canvas.drawRect(splitX, rect.top, rect.right, windowBottomY, marcoPintura())
             canvas.drawRect(splitX, rect.top, rect.right, windowBottomY, frameBorderPaint)
         } else {
-            canvas.drawRect(rect.left, rect.top, splitX, windowBottomY, framePaint)
+            canvas.drawRect(rect.left, rect.top, splitX, windowBottomY, marcoPintura())
             canvas.drawRect(rect.left, rect.top, splitX, windowBottomY, frameBorderPaint)
-            canvas.drawRect(splitX, rect.top, rect.right, rect.bottom, framePaint)
+            canvas.drawRect(splitX, rect.top, rect.right, rect.bottom, marcoPintura())
             canvas.drawRect(splitX, rect.top, rect.right, rect.bottom, frameBorderPaint)
         }
 
@@ -1360,34 +1636,35 @@ class WindowPreviewView @JvmOverloads constructor(
         val iR = rect.right - t
         val iB = rect.bottom - t
         val padding = dpToPx(1f)
+        val sep = mitadSeparacion().coerceAtLeast(padding)   // entre paños vecinos
 
         val transomH = if (hasTransom) (iB - iT) * 0.22f else 0f
 
         if (isLeftDoor) {
             if (hasTransom) {
-                drawPaneWithMechanism(canvas, iL + padding, iT + padding, splitX - padding, iT + transomH - padding, paneIndex = 0)
-                drawPaneWithMechanism(canvas, iL + padding, iT + transomH + padding, splitX - padding, iB - padding, paneIndex = 1)
+                drawPaneWithMechanism(canvas, iL + padding, iT + padding, splitX - sep, iT + transomH - sep, paneIndex = 0)
+                drawPaneWithMechanism(canvas, iL + padding, iT + transomH + sep, splitX - sep, iB - padding, paneIndex = 1)
             } else {
-                drawPaneWithMechanism(canvas, iL + padding, iT + padding, splitX - padding, iB - padding, paneIndex = 0)
+                drawPaneWithMechanism(canvas, iL + padding, iT + padding, splitX - sep, iB - padding, paneIndex = 0)
             }
             if (hasTransom) {
-                drawPaneWithMechanism(canvas, splitX + padding, iT + padding, iR - padding, iT + transomH - padding, paneIndex = 2)
-                drawPaneWithMechanism(canvas, splitX + padding, iT + transomH + padding, iR - padding, windowBottomY - t - padding, paneIndex = 3)
+                drawPaneWithMechanism(canvas, splitX + sep, iT + padding, iR - padding, iT + transomH - sep, paneIndex = 2)
+                drawPaneWithMechanism(canvas, splitX + sep, iT + transomH + sep, iR - padding, windowBottomY - t - padding, paneIndex = 3)
             } else {
-                drawPaneWithMechanism(canvas, splitX + padding, iT + padding, iR - padding, windowBottomY - t - padding, paneIndex = 1)
+                drawPaneWithMechanism(canvas, splitX + sep, iT + padding, iR - padding, windowBottomY - t - padding, paneIndex = 1)
             }
         } else {
             if (hasTransom) {
-                drawPaneWithMechanism(canvas, iL + padding, iT + padding, splitX - padding, iT + transomH - padding, paneIndex = 0)
-                drawPaneWithMechanism(canvas, iL + padding, iT + transomH + padding, splitX - padding, windowBottomY - t - padding, paneIndex = 1)
+                drawPaneWithMechanism(canvas, iL + padding, iT + padding, splitX - sep, iT + transomH - sep, paneIndex = 0)
+                drawPaneWithMechanism(canvas, iL + padding, iT + transomH + sep, splitX - sep, windowBottomY - t - padding, paneIndex = 1)
             } else {
-                drawPaneWithMechanism(canvas, iL + padding, iT + padding, splitX - padding, windowBottomY - t - padding, paneIndex = 0)
+                drawPaneWithMechanism(canvas, iL + padding, iT + padding, splitX - sep, windowBottomY - t - padding, paneIndex = 0)
             }
             if (hasTransom) {
-                drawPaneWithMechanism(canvas, splitX + padding, iT + padding, iR - padding, iT + transomH - padding, paneIndex = 2)
-                drawPaneWithMechanism(canvas, splitX + padding, iT + transomH + padding, iR - padding, iB - padding, paneIndex = 3)
+                drawPaneWithMechanism(canvas, splitX + sep, iT + padding, iR - padding, iT + transomH - sep, paneIndex = 2)
+                drawPaneWithMechanism(canvas, splitX + sep, iT + transomH + sep, iR - padding, iB - padding, paneIndex = 3)
             } else {
-                drawPaneWithMechanism(canvas, splitX + padding, iT + padding, iR - padding, iB - padding, paneIndex = 1)
+                drawPaneWithMechanism(canvas, splitX + sep, iT + padding, iR - padding, iB - padding, paneIndex = 1)
             }
         }
     }
@@ -1402,16 +1679,16 @@ class WindowPreviewView @JvmOverloads constructor(
         val windowBottomY = rect.top + (rect.height() * topRatio)
 
         if (hasTransom) {
-            canvas.drawRect(rect.left, rect.top, rect.right, windowBottomY, framePaint)
+            canvas.drawRect(rect.left, rect.top, rect.right, windowBottomY, marcoPintura())
             canvas.drawRect(rect.left, rect.top, rect.right, windowBottomY, frameBorderPaint)
-            canvas.drawRect(splitLeftX, windowBottomY, splitRightX, rect.bottom, framePaint)
+            canvas.drawRect(splitLeftX, windowBottomY, splitRightX, rect.bottom, marcoPintura())
             canvas.drawRect(splitLeftX, windowBottomY, splitRightX, rect.bottom, frameBorderPaint)
         } else {
-            canvas.drawRect(rect.left, rect.top, splitLeftX, windowBottomY, framePaint)
+            canvas.drawRect(rect.left, rect.top, splitLeftX, windowBottomY, marcoPintura())
             canvas.drawRect(rect.left, rect.top, splitLeftX, windowBottomY, frameBorderPaint)
-            canvas.drawRect(splitLeftX, rect.top, splitRightX, rect.bottom, framePaint)
+            canvas.drawRect(splitLeftX, rect.top, splitRightX, rect.bottom, marcoPintura())
             canvas.drawRect(splitLeftX, rect.top, splitRightX, rect.bottom, frameBorderPaint)
-            canvas.drawRect(splitRightX, rect.top, rect.right, windowBottomY, framePaint)
+            canvas.drawRect(splitRightX, rect.top, rect.right, windowBottomY, marcoPintura())
             canvas.drawRect(splitRightX, rect.top, rect.right, windowBottomY, frameBorderPaint)
         }
 
@@ -1420,16 +1697,17 @@ class WindowPreviewView @JvmOverloads constructor(
         val iR = rect.right - t
         val iB = rect.bottom - t
         val padding = dpToPx(1f)
+        val sep = mitadSeparacion().coerceAtLeast(padding)   // entre paños vecinos
 
         if (hasTransom) {
-            drawPaneWithMechanism(canvas, iL + padding, iT + padding, iR - padding, windowBottomY - padding, paneIndex = 0)
-            drawPaneWithMechanism(canvas, iL + padding, windowBottomY + padding, splitLeftX - padding, iB - padding, paneIndex = 1)
-            drawPaneWithMechanism(canvas, splitLeftX + padding, windowBottomY + padding, splitRightX - padding, iB - padding, paneIndex = 2)
-            drawPaneWithMechanism(canvas, splitRightX + padding, windowBottomY + padding, iR - padding, iB - padding, paneIndex = 3)
+            drawPaneWithMechanism(canvas, iL + padding, iT + padding, iR - padding, windowBottomY - sep, paneIndex = 0)
+            drawPaneWithMechanism(canvas, iL + padding, windowBottomY + sep, splitLeftX - sep, iB - padding, paneIndex = 1)
+            drawPaneWithMechanism(canvas, splitLeftX + sep, windowBottomY + sep, splitRightX - sep, iB - padding, paneIndex = 2)
+            drawPaneWithMechanism(canvas, splitRightX + sep, windowBottomY + sep, iR - padding, iB - padding, paneIndex = 3)
         } else {
-            drawPaneWithMechanism(canvas, iL + padding, iT + padding, splitLeftX - padding, windowBottomY - padding, paneIndex = 0)
-            drawPaneWithMechanism(canvas, splitRightX + padding, iT + padding, iR - padding, windowBottomY - padding, paneIndex = 2)
-            drawPaneWithMechanism(canvas, splitLeftX + padding, iT + padding, splitRightX - padding, iB - padding, paneIndex = 1)
+            drawPaneWithMechanism(canvas, iL + padding, iT + padding, splitLeftX - sep, windowBottomY - sep, paneIndex = 0)
+            drawPaneWithMechanism(canvas, splitRightX + sep, iT + padding, iR - padding, windowBottomY - sep, paneIndex = 2)
+            drawPaneWithMechanism(canvas, splitLeftX + sep, iT + padding, splitRightX - sep, iB - padding, paneIndex = 1)
         }
     }
 
@@ -1446,28 +1724,44 @@ class WindowPreviewView @JvmOverloads constructor(
         val oy = rect.top + (rect.height() - h * k) / 2f
         pxPorMm = k
         val plano = com.example.vineuro_pvc.data.ModelosVentana.plano(mo, w.toDouble(), h.toDouble(), sectionWidths, sectionHeights)
-        val pad = dpToPx(1f)
+        val sep = mitadSeparacion()   // entre paños vecinos del mismo marco
         if (showShadows) {
             for (c in plano.celdas) {
                 val sh = dpToPx(2.5f)
-                canvas.drawRect(ox + c.x0.toFloat() * k + sh, oy + c.y0.toFloat() * k + sh, ox + c.x1.toFloat() * k + sh, oy + c.y1.toFloat() * k + sh, shadowPaint)
+                sombraProyectada(canvas, ox + c.x0.toFloat() * k, oy + c.y0.toFloat() * k, ox + c.x1.toFloat() * k, oy + c.y1.toFloat() * k, sh)
             }
         }
         for (c in plano.celdas) {
             val l = ox + c.x0.toFloat() * k; val tp = oy + c.y0.toFloat() * k
             val r = ox + c.x1.toFloat() * k; val b = oy + c.y1.toFloat() * k
-            canvas.drawRect(l, tp, r, b, framePaint)
-            canvas.drawRect(l, tp, r, b, frameBorderPaint)
+            canvas.drawRect(l, tp, if (c.der) r else r + 0.6f, if (c.aba) b else b + 0.6f, marcoPintura())
+            // Borde solo en los lados exteriores: entre dos hojas el marco es continuo, sin raya por el centro del hueco
+            val m = frameBorderPaint.strokeWidth / 2f
+            if (c.arr) canvas.drawLine(l - m, tp, r + m, tp, frameBorderPaint)
+            if (c.aba) canvas.drawLine(l - m, b, r + m, b, frameBorderPaint)
+            if (c.izq) canvas.drawLine(l, tp - m, l, b + m, frameBorderPaint)
+            if (c.der) canvas.drawLine(r, tp - m, r, b + m, frameBorderPaint)
         }
         for ((i, c) in plano.celdas.withIndex()) {
             val l = ox + c.x0.toFloat() * k; val tp = oy + c.y0.toFloat() * k
             val r = ox + c.x1.toFloat() * k; val b = oy + c.y1.toFloat() * k
             drawPaneWithMechanism(
                 canvas,
-                l + (if (c.izq) t else pad), tp + (if (c.arr) t else pad),
-                r - (if (c.der) t else pad), b - (if (c.aba) t else pad),
+                l + (if (c.izq) t else sep), tp + (if (c.arr) t else sep),
+                r - (if (c.der) t else sep), b - (if (c.aba) t else sep),
                 paneIndex = i, row = 0, col = i,
             )
+        }
+        // Remates en los huecos entre hojas vecinas
+        for (c in plano.celdas) {
+            val l = ox + c.x0.toFloat() * k; val tp = oy + c.y0.toFloat() * k
+            val r = ox + c.x1.toFloat() * k; val b = oy + c.y1.toFloat() * k
+            val pt = tp + (if (c.arr) t else sep); val pb = b - (if (c.aba) t else sep)
+            val pl = l + (if (c.izq) t else sep); val pr = r - (if (c.der) t else sep)
+            if (!c.der) rematesSeparacion(canvas, true, pr, r, pt + sep, pb - sep)
+            if (!c.izq) rematesSeparacion(canvas, true, l, pl, pt + sep, pb - sep)
+            if (!c.aba) rematesSeparacion(canvas, false, pb, b, pl + sep, pr - sep)
+            if (!c.arr) rematesSeparacion(canvas, false, tp, pt, pl + sep, pr - sep)
         }
     }
 

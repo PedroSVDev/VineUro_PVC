@@ -253,6 +253,8 @@ class OfertaComercialFragment : Fragment() {
                 Toast.makeText(requireContext(), "No se pudo consultar el BCRP. Ingresa el tipo de cambio a mano.", Toast.LENGTH_LONG).show()
                 return@launch
             }
+            // La consulta automática nunca pisa un tipo de cambio que ya hay (el del gerente); solo el botón BCRP lo reemplaza
+            if (!forzar && tipoCambio() > 0) { actualizarInfoTc(); actualizarTotales(); return@launch }
             binding.etTipoCambio.setText(String.format(Locale.US, "%.3f", tc.usdPen))
             fechaTipoCambio = tc.fechaUsd // después del setText (que lo marca como "manual")
             actualizarInfoTc()

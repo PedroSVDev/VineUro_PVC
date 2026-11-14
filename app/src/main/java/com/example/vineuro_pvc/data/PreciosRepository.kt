@@ -24,13 +24,28 @@ class PreciosRepository(context: Context) {
 
     /** Precios guardados en el teléfono (o los valores por defecto si aún no hay nada). */
     fun obtener(): Precios {
-        val json = leerJsonLocal() ?: return Precios.porDefecto().also { ColoresPerfil.actualizar(it.colores) }
+        val json = leerJsonLocal() ?: return Precios.delGerente().also { ColoresPerfil.actualizar(it.colores) }
         return try {
-            PreciosJson.fromJson(JSONObject(json)).also { ColoresPerfil.actualizar(it.colores) }
+            migrarColoresGerente(PreciosJson.fromJson(JSONObject(json))).also { ColoresPerfil.actualizar(it.colores) }
         } catch (e: Exception) {
             e.printStackTrace()
-            Precios.porDefecto()
+            Precios.delGerente()
         }
+    }
+
+    /**
+     * Una sola vez por teléfono: pone Antracita, Blanco, Negro, Nogal, Roble Dorado y Silver (los colores del gerente) al
+     * inicio de la tabla de colores y en ese orden. No borra ni cambia nada más; después la tabla se edita con libertad.
+     */
+    private fun migrarColoresGerente(p: Precios): Precios {
+        if (db.leerConfiguracion(CLAVE_MIG_COLORES) != null) return p
+        val nuevos = Precios.conColoresDelGerente(p.colores)
+        db.guardarConfiguracion(CLAVE_MIG_COLORES, "1", System.currentTimeMillis())
+        return if (nuevos == p.colores) p else guardarLocal(p.copy(colores = nuevos))
+    }
+
+    private companion object {
+        const val CLAVE_MIG_COLORES = "mig_colores_gerente_v1"
     }
 
     /** Guarda en el teléfono marcando la fecha de modificación actual. */

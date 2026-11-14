@@ -474,14 +474,30 @@ class PreciosFragment : Fragment() {
      */
     private fun elegirMonedaParaConvertir() {
         val popup = PopupMenu(requireContext(), binding.btnConvertir)
+        popup.menu.add(1, 101, 99, "Cargar precios del gerente (US$)")
         popup.menu.add(1, 100, 100, "Cargar precios de ejemplo")
         MONEDAS.forEachIndexed { i, (simbolo, nombre) -> popup.menu.add(0, i, i, "Convertir a $simbolo  $nombre") }
         popup.setOnMenuItemClickListener { item ->
+            if (item.itemId == 101) { cargarPreciosDelGerente(); return@setOnMenuItemClickListener true }
             if (item.itemId == 100) { cargarPreciosDeEjemplo(); return@setOnMenuItemClickListener true }
             convertirPreciosA(MONEDAS[item.itemId].first)
             true
         }
         popup.show()
+    }
+
+    /** Reemplaza las tablas por los precios del gerente (US$). Lo que no se pudo copiar de sus capturas queda en 0.00. */
+    private fun cargarPreciosDelGerente() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("¿Cargar los precios del gerente?")
+            .setMessage("Se reemplazarán TODAS las tablas por los precios del gerente en US$ (planes, sistemas, vidrios, umbrales, muebles, extras, trabajos, mosquiteras, laminación y colores). Las columnas de herrajes, refuerzos y otros que no se tenían quedan en 0.00 y hay que completarlas. Tus precios actuales se perderán.")
+            .setPositiveButton("CARGAR") { _, _ ->
+                mostrarPrecios(Precios.delGerente())
+                onDatosCambiados()
+                Toast.makeText(requireContext(), "Precios del gerente cargados", Toast.LENGTH_LONG).show()
+            }
+            .setNegativeButton("CANCELAR", null)
+            .show()
     }
 
     /** Reemplaza las tablas por los precios de ejemplo (en US$). */
